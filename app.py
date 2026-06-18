@@ -494,7 +494,8 @@ with st.sidebar:
         with st.spinner("Importing…"):
             try:
     from data.db import import_trading_journal
-except: import_trading_journal = lambda: None
+except Exception:
+    import_trading_journal = lambda: None
             n1, m1 = import_from_excel()
             import_trading_journal()
         st.success(f"✅ {n1} trades") if m1=="OK" else st.error(f"Failed: {m1}")
@@ -505,7 +506,8 @@ if not last_sync_time():
     with st.spinner("First run — importing…"):
         try:
     from data.db import import_trading_journal
-except: import_trading_journal = lambda: None
+except Exception:
+    import_trading_journal = lambda: None
         n, msg = import_from_excel()
         import_trading_journal()
     if msg == "OK" and n > 0:
