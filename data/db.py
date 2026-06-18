@@ -90,3 +90,22 @@ else:
         except: return default
 
     def import_trading_journal(): pass
+
+
+# ── Compatibility stubs ───────────────────────────────────────────────────────
+def init_db():
+    """No-op on cloud — Supabase handles schema."""
+    pass
+
+def import_from_excel(path=None):
+    """No-op on cloud — data already in Supabase."""
+    return 0, "OK"
+
+def last_sync_time():
+    """Always return a value on cloud so first-run import is skipped."""
+    try:
+        import streamlit as st
+        if st.secrets.get("SUPABASE_URL"):
+            return "cloud"
+    except: pass
+    return None
