@@ -1,22 +1,13 @@
 import streamlit as st
-st.title("Test")
-
+st.title("SAK Journal")
+st.write("App is running!")
 try:
-    from pathlib import Path
     import sys
+    from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent))
-    st.write("✅ sys.path OK")
-    
-    from data.db import init_db, get_trades
-    st.write("✅ data.db OK")
-    
-    from theme import TEAL
-    st.write("✅ theme OK")
-    
-    from components.trade_modals import render_add_trade_modal
-    st.write("✅ trade_modals OK")
-    
-    st.success("All imports OK!")
+    from data.db import get_trades
+    trades = get_trades()
+    st.success(f"Connected! {len(trades)} trades in database.")
 except Exception as e:
     import traceback
     st.error(str(e))
