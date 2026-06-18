@@ -127,3 +127,102 @@ def get_open_trades():
 def get_trade_by_id(trade_id):
     trades = get_trades()
     return next((t for t in trades if t.get("id") == trade_id), None)
+
+
+# ── Missing stubs for cloud compatibility ─────────────────────────────────────
+
+def get_all_notes():
+    try:
+        if _use_supabase():
+            res=_sb().table("daily_notes").select("*").order("note_date",desc=True).execute()
+            return res.data or []
+    except: pass
+    try:
+        import sqlite3,os
+        db=os.path.abspath(os.path.join(os.path.dirname(__file__),"..","journal.db"))
+        c2=sqlite3.connect(db); c2.row_factory=sqlite3.Row
+        rows=c2.execute("SELECT * FROM daily_notes ORDER BY note_date DESC").fetchall()
+        c2.close(); return [dict(r) for r in rows]
+    except: return []
+
+def get_note_by_date(d):
+    notes=get_all_notes()
+    return next((n for n in notes if n.get("note_date")==str(d)),None)
+
+def save_note(d,text):
+    try:
+        if _use_supabase():
+            _sb().table("daily_notes").upsert({"note_date":str(d),"note":text,"updated_at":str(__import__("datetime").datetime.now())}).execute()
+            return
+    except: pass
+    try:
+        import sqlite3,os
+        db=os.path.abspath(os.path.join(os.path.dirname(__file__),"..","journal.db"))
+        c2=sqlite3.connect(db)
+        c2.execute("INSERT INTO daily_notes(note_date,note)VALUES(?,?)ON CONFLICT(note_date)DO UPDATE SET note=excluded.note",(str(d),text))
+        c2.commit(); c2.close()
+    except: pass
+
+def delete_note(d):
+    try:
+        if _use_supabase():
+            _sb().table("daily_notes").delete().eq("note_date",str(d)).execute(); return
+    except: pass
+
+def get_playbooks():
+    try:
+        if _use_supabase():
+            res=_sb().table("playbooks").select("*").order("name").execute()
+            return res.data or []
+    except: pass
+    try:
+        import sqlite3,os
+        db=os.path.abspath(os.path.join(os.path.dirname(__file__),"..","journal.db"))
+        c2=sqlite3.connect(db); c2.row_factory=sqlite3.Row
+        rows=c2.execute("SELECT * FROM playbooks ORDER BY name").fetchall()
+        c2.close(); return [dict(r) for r in rows]
+    except: return []
+
+def get_playbook(pid):
+    pbs=get_playbooks()
+    return next((p for p in pbs if p.get("id")==pid),None)
+
+def create_playbook(data):
+    try:
+        if _use_supabase():
+            res=_sb().table("playbooks").insert(data).execute()
+            return res.data[0] if res.data else None
+    except: pass
+
+def update_playbook(pid,data):
+    try:
+        if _use_supabase():
+            _sb().table("playbooks").update(data).eq("id",pid).execute()
+    except: pass
+
+def get_trade_playbook(tid):
+    t=get_trade_by_id(tid)
+    if t and t.get("playbook"):
+        pbs=get_playbooks()
+        return next((p for p in pbs if p.get("name")==t["playbook"]),None)
+    return None
+
+def set_setting(key,value):
+    try:
+        if _use_supabase():
+            _sb().table("settings").upsert({"key":key,"value":str(value)}).execute()
+    except: pass
+
+def get_kpi_summary_extended(*args,**kwargs):
+    trades=get_trades()
+    closed=[t for t in trades if t.get("status")=="CLOSED"]
+    pnls=[float(t.get("pnl") or 0) for t in closed]
+    win_p=[p for p in pnls if p>0]; loss_p=[p for p in pnls if p<0]
+    return {
+        "total_pnl":sum(pnls),
+        "win_rate":len(win_p)/len(pnls)*100 if pnls else 0,
+        "profit_factor":abs(sum(win_p)/sum(loss_p)) if loss_p and sum(loss_p) else 0,
+        "total_trades":len(closed),
+        "avg_win":sum(win_p)/len(win_p) if win_p else 0,
+        "avg_loss":sum(loss_p)/len(loss_p) if loss_p else 0,
+    }
