@@ -120,9 +120,10 @@ def render():
         base = all_trades
 
     # Date filter
+    # Date filter — open trades always included
     trades = [t for t in base if
+              t.get("status")=="OPEN" or
               d_from.isoformat() <= str(t.get("exit_date","") or "")[:10] <= d_to.isoformat()]
-
     # Other filters — read widget state directly
     fs   = st.session_state.get("tl_fs",[]) or []
     fside= st.session_state.get("tl_fside","All") or "All"
