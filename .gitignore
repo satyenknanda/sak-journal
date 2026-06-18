@@ -1,0 +1,15 @@
+.env
+.streamlit/secrets.toml
+journal.db
+attachments/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+*.db-shm
+*.db-wal
+*.xlsx
+11.17.0
+pages/install_morning_brief.py
+pages/morning_brief 2.py
+pages/bell_curve.py.
