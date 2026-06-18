@@ -255,3 +255,35 @@ def set_setting(key, value):
         c.execute("INSERT INTO settings(key,value)VALUES(?,?)ON CONFLICT(key)DO UPDATE SET value=excluded.value",(key,str(value)))
         c.commit(); c.close()
     except Exception as e: print(f"set_setting local error: {e}")
+
+
+# ── Playbook Rules ────────────────────────────────────────────────────────────
+def get_playbook_rules(pid):
+    try:
+        if _use_supabase():
+            res=_sb().table("playbook_rules").select("*").eq("playbook_id",pid).order("sort_order").execute()
+            return res.data or []
+    except: pass
+    try:
+        c2=_local_db()
+        rows=c2.execute("SELECT * FROM playbook_rules WHERE playbook_id=? ORDER BY sort_order",(pid,)).fetchall()
+        c2.close(); return [dict(r) for r in rows]
+    except: return []
+
+def save_playbook_rules(pid, rules):
+    try:
+        if _use_supabase():
+            _sb().table("playbook_rules").delete().eq("playbook_id",pid).execute()
+            for i,r in enumerate(rules):
+                r["playbook_id"]=pid; r["sort_order"]=i
+                _sb().table("playbook_rules").insert(r).execute()
+    except: pass
+
+def get_missed_trades(pid):
+    return []
+
+def save_trade_playbook(trade_id, playbook_name):
+    update_trade(trade_id, {"playbook": playbook_name})
+
+def get_trades_by_playbook(playbook_name):
+    return [t for t in get_trades() if t.get("playbook")==playbook_name]
