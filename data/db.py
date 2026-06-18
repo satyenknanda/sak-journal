@@ -287,3 +287,16 @@ def save_trade_playbook(trade_id, playbook_name):
 
 def get_trades_by_playbook(playbook_name):
     return [t for t in get_trades() if t.get("playbook")==playbook_name]
+
+
+def add_missed_trade(pid, ticker, date, notes=""):
+    try:
+        if _use_supabase():
+            _sb().table("missed_trades").insert({"playbook_id":pid,"ticker":ticker,"date":str(date),"notes":notes}).execute()
+    except: pass
+
+def delete_missed_trade(mid):
+    try:
+        if _use_supabase():
+            _sb().table("missed_trades").delete().eq("id",mid).execute()
+    except: pass
