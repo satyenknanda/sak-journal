@@ -291,3 +291,13 @@ def update_playbook_rule(rule_id, data):
         if _use_supabase():
             _sb().table("playbook_rules").update(data).eq("id",rule_id).execute()
     except: pass
+
+
+def get_strategies'(*args, **kwargs):
+    """Auto-generated stub for cloud compatibility."""
+    try:
+        # Try to handle common patterns
+        if 'trade_id' in kwargs: return update_trade(kwargs['trade_id'], kwargs)
+        if args and isinstance(args[0], int): pass
+    except: pass
+    return None
