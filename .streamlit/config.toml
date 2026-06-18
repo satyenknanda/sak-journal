@@ -6,10 +6,5 @@ secondaryBackgroundColor = "#FFFFFF"
 textColor = "#334155"
 font = "sans serif"
 
-[server]
-headless = false
-port = 8501
-enableCORS = false
-
 [browser]
 gatherUsageStats = false
