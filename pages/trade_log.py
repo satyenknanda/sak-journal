@@ -102,7 +102,7 @@ def render():
             with r1c1: st.multiselect("Strategy",get_strategies(),key="tl_fs",label_visibility="visible")
             with r1c2: st.selectbox("Status",["All","OPEN","CLOSED"],key="tl_fstatus",label_visibility="visible")
             with r1c2: st.selectbox("Status",["All","OPEN","CLOSED"],key="tl_fstatus",label_visibility="visible")
-            with r1c2: st.selectbox("Side",["All","Long","Short"],key="tl_fside",label_visibility="visible")
+            with r1c3: st.selectbox("Side",["All","Long","Short"],key="tl_fside",label_visibility="visible")
             with r1c3: st.selectbox("Result",["All","Win","Loss"],key="tl_fres",label_visibility="visible")
             with r1c4: st.text_input("Symbol",placeholder="HDFCBANK",key="tl_fsym",label_visibility="visible")
             if st.button("↺ Reset Filters",key="tl_reset"):
