@@ -109,3 +109,21 @@ def last_sync_time():
             return "cloud"
     except: pass
     return None
+
+
+def exit_trade(trade_id, exit_price, exit_date, exit_qty=None, commission=0):
+    """Exit a trade."""
+    try:
+        data = {"status": "CLOSED", "exit_price": exit_price, "exit_date": str(exit_date)}
+        if exit_qty: data["exit_qty"] = exit_qty
+        if commission: data["commission_exit"] = commission
+        update_trade(trade_id, data)
+    except Exception as e:
+        print(f"exit_trade error: {e}")
+
+def get_open_trades():
+    return [t for t in get_trades() if t.get("status") == "OPEN"]
+
+def get_trade_by_id(trade_id):
+    trades = get_trades()
+    return next((t for t in trades if t.get("id") == trade_id), None)
