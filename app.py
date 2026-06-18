@@ -522,7 +522,8 @@ if not last_sync_time():
 
 # ── Route ──────────────────────────────────────────────────────────────────
 p = st.session_state.get("page","dashboard")
-if   p=="dashboard": from pages.dashboard         import render; render()
+try:
+    if   p=="dashboard": from pages.dashboard         import render; render()
 elif p=="daily":     from pages.journal            import render; render()
 elif p=="journal":   from pages.trade_log          import render; render()
 elif p=="tradedetail": from pages.trade_detail       import render; render()
