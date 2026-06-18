@@ -119,12 +119,12 @@ def render():
         exit_r  = [r for r in rules if r["rule_type"]=="exit"]
         missed  = get_missed_trades(pb["id"])
 
-        # Trades tagged to this playbook
+        # Trades tagged to this playbook — match by name (fast, no N+1 queries)
         pb_trades = []
-        for t in trades:  # include open + closed
-            tp = get_trade_playbook(t["id"]) if t.get("id") else None
-            if tp and tp.get("playbook_id") == pb["id"]:
-                pb_trades.append((t, tp))
+        for t in trades:
+            if (t.get("playbook") == pb["name"] or 
+                t.get("strategy","").upper() == pb["name"].upper()):
+                pb_trades.append((t, {}))
 
         closed_pb  = [(t,tp) for t,tp in pb_trades if t.get("status")=="CLOSED"]
         wins       = sum(1 for t,_ in closed_pb if float(t.get("pnl") or 0)>0)
