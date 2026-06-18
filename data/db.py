@@ -267,3 +267,27 @@ def get_playbook_trades(pid):
             return [t for t in get_trades() if t.get("playbook")==pb.get("name")]
     except: pass
     return []
+
+def save_trade_playbook(trade_id, playbook_name):
+    update_trade(trade_id, {"playbook": playbook_name})
+
+def get_trades_by_playbook(playbook_name):
+    return [t for t in get_trades() if t.get("playbook")==playbook_name]
+
+def add_playbook_rule(pid, rule_text, rule_type="entry", sort_order=0):
+    try:
+        if _use_supabase():
+            _sb().table("playbook_rules").insert({"playbook_id":pid,"rule":rule_text,"rule_type":rule_type,"sort_order":sort_order}).execute()
+    except: pass
+
+def delete_playbook_rule(rule_id):
+    try:
+        if _use_supabase():
+            _sb().table("playbook_rules").delete().eq("id",rule_id).execute()
+    except: pass
+
+def update_playbook_rule(rule_id, data):
+    try:
+        if _use_supabase():
+            _sb().table("playbook_rules").update(data).eq("id",rule_id).execute()
+    except: pass
