@@ -1,6 +1,13 @@
 import streamlit as st
 from pathlib import Path
 import sys
+import traceback
+
+# Cloud error logging
+def _log_error():
+    exc = traceback.format_exc()
+    st.error(f"App Error:\n```\n{exc}\n```")
+    st.stop()
 sys.path.insert(0, str(Path(__file__).parent))
 
 from data.db import init_db, import_from_excel, last_sync_time
