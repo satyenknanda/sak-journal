@@ -6,3 +6,4 @@ supabase>=2.0.0
 certifi
 python-dotenv
 openpyxl
+scipy

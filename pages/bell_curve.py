@@ -66,15 +66,41 @@ def render():
             import plotly.graph_objects as go
             import numpy as np
             rs = [float(t["r_multiple"]) for t in trades]
+            mean_r = np.mean(rs); std_r = np.std(rs)
+            # Clip outliers for display
+            p5, p95 = np.percentile(rs, 5), np.percentile(rs, 95)
+            x_range = [min(-3, p5-0.5), max(5, p95+0.5)]
+
+            # Normal curve
+            x_norm = np.linspace(x_range[0], x_range[1], 200)
+            from scipy.stats import norm
+            y_norm = norm.pdf(x_norm, mean_r, std_r) * len(rs) * (x_range[1]-x_range[0])/30
+
             fig = go.Figure()
             fig.add_trace(go.Histogram(x=rs, nbinsx=30, name="R Distribution",
-                marker_color="#10B981", opacity=0.7))
+                marker_color="#10B981", opacity=0.7,
+                xbins=dict(start=x_range[0], end=x_range[1])))
+            fig.add_trace(go.Scatter(x=x_norm, y=y_norm, mode="lines",
+                name="Normal Curve", line=dict(color="#7C3AED", width=2)))
+            fig.add_vline(x=0, line=dict(color="#EF4444", width=1, dash="dash"))
+            fig.add_vline(x=mean_r, line=dict(color="#F59E0B", width=1, dash="dot"),
+                annotation_text=f"Mean {mean_r:.2f}R", annotation_position="top right")
             fig.update_layout(title="R-Multiple Distribution",
                 xaxis_title="R-Multiple", yaxis_title="Count",
-                height=400, paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)")
+                xaxis=dict(range=x_range),
+                height=420, paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                legend=dict(orientation="h", y=1.1))
             st.plotly_chart(fig, use_container_width=True)
-            st.info(f"Based on {len(rs)} closed trades. Avg R: {np.mean(rs):.2f} | Median: {np.median(rs):.2f}")
+
+            # Stats strip
+            wins = [r for r in rs if r>0]; losses = [r for r in rs if r<0]
+            k1,k2,k3,k4,k5 = st.columns(5)
+            k1.metric("Total Trades", len(rs))
+            k2.metric("Win Rate", f"{len(wins)/len(rs)*100:.1f}%")
+            k3.metric("Avg R", f"{mean_r:.2f}R")
+            k4.metric("Avg Win R", f"{np.mean(wins):.2f}R" if wins else "—")
+            k5.metric("Avg Loss R", f"{np.mean(losses):.2f}R" if losses else "—")
         except Exception as e:
             st.error(f"Error: {e}")
         return
