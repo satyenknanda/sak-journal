@@ -234,3 +234,36 @@ def delete_playbook(pid):
             _sb().table("playbooks").delete().eq("id", pid).execute()
     except Exception as e:
         print(f"delete_playbook error: {e}")
+
+
+def get_playbook_rules(pid):
+    try:
+        if _use_supabase():
+            res=_sb().table("playbook_rules").select("*").eq("playbook_id",pid).order("sort_order").execute()
+            return res.data or []
+    except: pass
+    try:
+        import sqlite3,os
+        db=os.path.abspath(os.path.join(os.path.dirname(__file__),"..","journal.db"))
+        c2=sqlite3.connect(db); c2.row_factory=sqlite3.Row
+        rows=c2.execute("SELECT * FROM playbook_rules WHERE playbook_id=? ORDER BY sort_order",(pid,)).fetchall()
+        c2.close(); return [dict(r) for r in rows]
+    except: return []
+
+def save_playbook_rules(pid, rules):
+    try:
+        if _use_supabase():
+            _sb().table("playbook_rules").delete().eq("playbook_id",pid).execute()
+            for r in rules:
+                r["playbook_id"]=pid
+                _sb().table("playbook_rules").insert(r).execute()
+    except: pass
+
+def get_playbook_trades(pid):
+    try:
+        pbs=get_playbooks()
+        pb=next((p for p in pbs if p.get("id")==pid),None)
+        if pb:
+            return [t for t in get_trades() if t.get("playbook")==pb.get("name")]
+    except: pass
+    return []
