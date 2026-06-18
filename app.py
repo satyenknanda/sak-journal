@@ -505,9 +505,9 @@ with st.sidebar:
 if not last_sync_time():
     with st.spinner("First run — importing…"):
         try:
-        from data.db import import_trading_journal
-    except Exception:
-        import_trading_journal = lambda: None
+            from data.db import import_trading_journal
+        except Exception:
+            import_trading_journal = lambda: None
         n, msg = import_from_excel()
         import_trading_journal()
     if msg == "OK" and n > 0:
