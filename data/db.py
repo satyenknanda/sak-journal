@@ -317,3 +317,13 @@ def get_trade_note(trade_id):
 
 def save_trade_note(trade_id, note):
     update_trade(trade_id, {"notes": note})
+
+
+def get_conn():
+    """Return a SQLite connection for local use. Returns None on cloud."""
+    try:
+        if _use_supabase():
+            return None
+        return _local_db()
+    except:
+        return None
