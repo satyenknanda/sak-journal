@@ -310,5 +310,5 @@ def main():
     print("   - reversal_chart.png")
     print("   - sneaky_attack_chart.png")
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

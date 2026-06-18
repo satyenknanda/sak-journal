@@ -300,3 +300,12 @@ def delete_missed_trade(mid):
         if _use_supabase():
             _sb().table("missed_trades").delete().eq("id",mid).execute()
     except: pass
+
+
+def get_trade_note(trade_id):
+    trades = get_trades()
+    t = next((tr for tr in trades if tr.get("id")==trade_id), None)
+    return t.get("notes","") if t else ""
+
+def save_trade_note(trade_id, note):
+    update_trade(trade_id, {"notes": note})

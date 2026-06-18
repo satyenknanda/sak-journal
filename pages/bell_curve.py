@@ -2,7 +2,10 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import numpy as np
-import openpyxl
+try:
+    import openpyxl
+except ImportError:
+    openpyxl = None
 from theme import *
 
 EXCEL_PATH = "Daily_P__FY26-27_.xlsx"
