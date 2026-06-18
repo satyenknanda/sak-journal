@@ -55,7 +55,28 @@ def render():
     data, stats = load_bell_data()
 
     if not data:
-        st.error("Could not load Bell sheet from Excel file.")
+        st.info("Bell curve Excel file not available on cloud. Generating from trade data...")
+        # Generate from Supabase trades instead
+        try:
+            from data.db import get_trades
+            trades = [t for t in get_trades() if t.get("status")=="CLOSED" and t.get("r_multiple")]
+            if not trades:
+                st.warning("No closed trades with R-multiple data found.")
+                return
+            import plotly.graph_objects as go
+            import numpy as np
+            rs = [float(t["r_multiple"]) for t in trades]
+            fig = go.Figure()
+            fig.add_trace(go.Histogram(x=rs, nbinsx=30, name="R Distribution",
+                marker_color="#10B981", opacity=0.7))
+            fig.update_layout(title="R-Multiple Distribution",
+                xaxis_title="R-Multiple", yaxis_title="Count",
+                height=400, paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)")
+            st.plotly_chart(fig, use_container_width=True)
+            st.info(f"Based on {len(rs)} closed trades. Avg R: {np.mean(rs):.2f} | Median: {np.median(rs):.2f}")
+        except Exception as e:
+            st.error(f"Error: {e}")
         return
 
     # Filter to rows with actual trades
