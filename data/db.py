@@ -293,7 +293,7 @@ def update_playbook_rule(rule_id, data):
     except: pass
 
 
-def get_strategies'(*args, **kwargs):
+def get_strategies_stub(*args, **kwargs):
     """Auto-generated stub for cloud compatibility."""
     try:
         # Try to handle common patterns
