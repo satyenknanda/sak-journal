@@ -55,7 +55,6 @@ def render():
     data, stats = load_bell_data()
 
     if not data:
-        st.info("Bell curve Excel file not available on cloud. Generating from trade data...")
         # Generate from Supabase trades instead
         try:
             from data.db import get_trades
