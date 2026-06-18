@@ -226,3 +226,11 @@ def get_kpi_summary_extended(*args,**kwargs):
         "avg_win":sum(win_p)/len(win_p) if win_p else 0,
         "avg_loss":sum(loss_p)/len(loss_p) if loss_p else 0,
     }
+
+
+def delete_playbook(pid):
+    try:
+        if _use_supabase():
+            _sb().table("playbooks").delete().eq("id", pid).execute()
+    except Exception as e:
+        print(f"delete_playbook error: {e}")
