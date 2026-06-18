@@ -46,11 +46,13 @@ def import_trading_journal():
     pass
 
 # ── Trades ────────────────────────────────────────────────────────────────────
-def get_trades(strategy="All", date_from=None, date_to=None):
+def get_trades(strategy="All", date_from=None, date_to=None, status=None, ticker=None):
     try:
         if _use_supabase():
             q = _sb().table("trades").select("*")
             if strategy and strategy != "All": q = q.eq("strategy", strategy)
+            if status and status != "All": q = q.eq("status", status)
+            if ticker and ticker != "All": q = q.ilike("ticker", f"%{ticker}%")
             if date_from: q = q.gte("exit_date", str(date_from))
             if date_to:   q = q.lte("exit_date", str(date_to))
             res = q.order("entry_date", desc=True).execute()
@@ -62,6 +64,8 @@ def get_trades(strategy="All", date_from=None, date_to=None):
         q = "SELECT * FROM trades WHERE 1=1"
         params = []
         if strategy and strategy != "All": q += " AND strategy=?"; params.append(strategy)
+        if status and status != "All": q += " AND status=?"; params.append(status)
+        if ticker and ticker != "All": q += " AND ticker LIKE ?"; params.append(f"%{ticker}%")
         if date_from: q += " AND exit_date>=?"; params.append(str(date_from))
         if date_to:   q += " AND exit_date<=?"; params.append(str(date_to))
         q += " ORDER BY entry_date DESC"
