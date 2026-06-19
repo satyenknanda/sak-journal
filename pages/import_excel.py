@@ -62,15 +62,23 @@ def _find_trade_sheet_and_header(file):
     candidates = [s for s in xl.sheet_names if "daily" in s.lower() or "plan" in s.lower()]
     sheets_to_check = candidates + [s for s in xl.sheet_names if s not in candidates]
 
+    debug_info = []
     for sheet in sheets_to_check:
         try:
-            df_raw = pd.read_excel(file, sheet_name=sheet, header=None, nrows=60)
-        except Exception:
+            df_raw = pd.read_excel(file, sheet_name=sheet, header=None, nrows=80)
+        except Exception as e:
+            debug_info.append(f"{sheet}: read error {e}")
             continue
-        for i in range(min(60, len(df_raw))):
-            row_vals = [str(v).strip() for v in df_raw.iloc[i].tolist()]
-            if "Status" in row_vals and "Ticker" in row_vals and ("Entry Date" in row_vals or any("Entry Date" in v for v in row_vals)):
+        for i in range(min(80, len(df_raw))):
+            row_vals = [str(v).strip().lower() for v in df_raw.iloc[i].tolist()]
+            has_status = any(v == "status" for v in row_vals)
+            has_ticker = any(v == "ticker" for v in row_vals)
+            has_entry  = any("entry date" in v for v in row_vals)
+            if has_status and has_ticker and has_entry:
                 return sheet, i
+        debug_info.append(f"{sheet}: no match in first 80 rows")
+    import streamlit as st
+    st.session_state["_import_debug"] = debug_info
     return None, None
 
 def parse_daily_plan_excel(file):
@@ -226,5 +234,9 @@ Commission | Risk Status""", language=None)
                 st.warning("No valid trade rows found. Make sure Ticker column is populated.")
         except Exception as e:
             st.error(f"Error parsing file: {e}")
+            if "_import_debug" in st.session_state:
+                with st.expander("🔍 Debug info"):
+                    for line in st.session_state["_import_debug"]:
+                        st.text(line)
             import traceback
             st.code(traceback.format_exc())
