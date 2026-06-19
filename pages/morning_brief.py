@@ -59,12 +59,26 @@ def save_brief(brief_date, data):
     conn.commit(); conn.close()
 
 def load_brief(brief_date):
+    if _use_supabase():
+        try:
+            res = _sb().table("morning_brief").select("data").eq("brief_date", str(brief_date)).execute()
+            return json.loads(res.data[0]["data"]) if res.data else None
+        except Exception as e:
+            print(f"load_brief supabase error: {e}")
+            return None
     conn = get_db()
     row = conn.execute("SELECT data FROM morning_brief WHERE brief_date=?", (brief_date,)).fetchone()
     conn.close()
     return json.loads(row["data"]) if row else None
 
 def list_briefs():
+    if _use_supabase():
+        try:
+            res = _sb().table("morning_brief").select("brief_date,data").order("brief_date", desc=True).limit(20).execute()
+            return [(r["brief_date"], r["data"]) for r in res.data]
+        except Exception as e:
+            print(f"list_briefs supabase error: {e}")
+            return []
     conn = get_db()
     rows = conn.execute("SELECT brief_date, data FROM morning_brief ORDER BY brief_date DESC LIMIT 20").fetchall()
     conn.close()
