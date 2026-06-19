@@ -56,9 +56,31 @@ def _safe_str(v):
     if pd.isna(v) or v is None: return ""
     return str(v).strip()
 
+def _find_trade_sheet_and_header(file):
+    """Auto-detect which sheet + header row contains the trade table."""
+    xl = pd.ExcelFile(file)
+    candidates = [s for s in xl.sheet_names if "daily" in s.lower() or "plan" in s.lower()]
+    sheets_to_check = candidates + [s for s in xl.sheet_names if s not in candidates]
+
+    for sheet in sheets_to_check:
+        try:
+            df_raw = pd.read_excel(file, sheet_name=sheet, header=None, nrows=60)
+        except Exception:
+            continue
+        for i in range(min(60, len(df_raw))):
+            row_vals = [str(v).strip() for v in df_raw.iloc[i].tolist()]
+            if "Status" in row_vals and "Ticker" in row_vals and ("Entry Date" in row_vals or any("Entry Date" in v for v in row_vals)):
+                return sheet, i
+    return None, None
+
 def parse_daily_plan_excel(file):
     """Read the Daily Plan sheet and return list of trade dicts."""
-    df = pd.read_excel(file, sheet_name="DailyPlan", header=25)
+    sheet, header_row = _find_trade_sheet_and_header(file)
+    if sheet is None:
+        raise ValueError("Could not find a sheet with Status/No/Entry Date/Ticker columns. "
+                          "Make sure your trade table headers exactly match the expected format.")
+    file.seek(0)  # reset file pointer after scanning
+    df = pd.read_excel(file, sheet_name=sheet, header=header_row)
     df.columns = [str(c).strip() for c in df.columns]
 
     trades = []
