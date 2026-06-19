@@ -61,27 +61,69 @@ def kcard_local(label, value, color="neutral", fs="1.2rem"):
         <div style="font-size:{fs};font-weight:700;color:{TEXT};font-family:'SF Mono','Fira Code',monospace;white-space:nowrap">{value}</div>
     </div>"""
 
+def _calc_running(t):
+    """Returns (pnl, r_mult) — running for OPEN trades using live price, actual for CLOSED."""
+    pnl = t.get("pnl")
+    r   = t.get("r_multiple")
+    live = t.get("live_price")
+    ep   = t.get("entry_price", 0)
+    if t["status"] == "OPEN" and live and ep:
+        qty = float(t.get("qty") or 0)
+        side = str(t.get("side","")).upper()
+        lp = float(live); epf = float(ep)
+        if side in ("BUY","LONG"):
+            pnl = (lp - epf) * qty
+        else:
+            pnl = (epf - lp) * qty
+        sl = t.get("stop_loss")
+        if sl:
+            risk = abs(epf - float(sl)) * qty
+            if risk:
+                r = pnl / risk
+    return pnl, r
+
 
 def render():
     st.markdown("## Daily Plan")
     st.markdown(f'<p style="color:{MUTED};margin-top:-10px;margin-bottom:18px;font-size:0.88rem">FY 2026-27 · NSE Equity</p>', unsafe_allow_html=True)
 
-    # ── KPI strip ──────────────────────────────────────────────────────────
-    kpi = get_kpi()
-    if kpi:
-        wr  = kpi.get("win_rate", 0)
-        pnl = kpi.get("total_pnl", 0)
-        cols = st.columns(8)
-        for col,(l,v,c,f) in zip(cols,[
-            ("Total Trades", str(kpi.get("total_trades",0)),              "neutral","1.4rem"),
-            ("Open",         str(kpi.get("open_trades",0)),               "blue",   "1.4rem"),
-            ("Closed",       str(kpi.get("closed_trades",0)),             "neutral","1.4rem"),
-            ("Win Rate",     f"{wr*100:.1f}%",                            "green" if wr>=0.4 else "amber","1.2rem"),
-            ("Total P&L",    f"₹{pnl:,.0f}",                             "green" if pnl>=0 else "red","1.0rem"),
-            ("Expectancy",   f"{kpi.get('expectancy',0):.2f}R",           "green" if kpi.get('expectancy',0)>0 else "red","1.2rem"),
-            ("Avg Win R",    f"{kpi.get('avg_win_r',0):.2f}R",            "green","1.2rem"),
-            ("Avg Loss R",   f"{kpi.get('avg_loss_r',0):.2f}R",           "red","1.2rem"),
-        ]): col.markdown(kcard(l,v,c,f), unsafe_allow_html=True)
+    # ── Load all trades once, compute running P&L for open ones ────────────
+    all_trades_raw = get_trades()
+    open_all = [t for t in all_trades_raw if t["status"] == "OPEN"]
+    closed_all = [t for t in all_trades_raw if t["status"] == "CLOSED"]
+
+    # Refresh live prices for open trades (best-effort; falls back to stored value)
+    if open_all:
+        with st.spinner("Refreshing prices…"):
+            price_data = fetch_prices_bulk(list({t["ticker"] for t in open_all}))
+        for t in open_all:
+            if t["ticker"] in price_data:
+                p = price_data[t["ticker"]]
+                if p.get("price"):
+                    t["live_price"] = p["price"]; t["change_pct"] = p["change_pct"]
+    else:
+        price_data = {}
+
+    # ── Focused cockpit strip — 4 cards about OPEN positions ────────────────
+    unrealized_pnl = 0.0
+    at_risk = 0
+    in_profit = 0
+    for t in open_all:
+        pnl, _ = _calc_running(t)
+        if pnl is not None:
+            unrealized_pnl += pnl
+        rs = (t.get("risk_status") or "")
+        if "SL Breached" in rs or "Open Risk" in rs:
+            at_risk += 1
+        if "Profit" in rs or (pnl is not None and pnl > 0):
+            in_profit += 1
+
+    cc = st.columns(4)
+    cc[0].markdown(kcard("Open Positions", str(len(open_all)), "blue", "1.4rem"), unsafe_allow_html=True)
+    cc[1].markdown(kcard("Unrealized P&L", f"{'+' if unrealized_pnl>=0 else ''}₹{unrealized_pnl:,.0f}",
+                          "green" if unrealized_pnl>=0 else "red", "1.2rem"), unsafe_allow_html=True)
+    cc[2].markdown(kcard("At Risk", str(at_risk), "red" if at_risk else "neutral", "1.4rem"), unsafe_allow_html=True)
+    cc[3].markdown(kcard("In Profit", str(in_profit), "green", "1.4rem"), unsafe_allow_html=True)
 
     st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
@@ -115,25 +157,19 @@ def render():
     if not trades:
         st.info("No trades match the current filters."); return
 
-    # ── Live prices ────────────────────────────────────────────────────────
-    open_t = [t for t in trades if t["status"]=="OPEN"]
-    price_data = {}
-    if open_t:
-        with st.spinner("Refreshing prices…"):
-            price_data = fetch_prices_bulk(list({t["ticker"] for t in open_t}))
-        for t in trades:
-            if t["status"]=="OPEN" and t["ticker"] in price_data:
-                p = price_data[t["ticker"]]
-                if p.get("price"): t["live_price"]=p["price"]; t["change_pct"]=p["change_pct"]
+    # Apply refreshed live prices to filtered trade list too
+    for t in trades:
+        if t["status"] == "OPEN" and t["ticker"] in price_data:
+            p = price_data[t["ticker"]]
+            if p.get("price"):
+                t["live_price"] = p["price"]; t["change_pct"] = p["change_pct"]
 
     fetched_at = next((v["fetched_at"] for v in price_data.values() if v.get("fetched_at")), None)
     st.caption(f"{len(trades)} trades{f' · prices as of {fetched_at}' if fetched_at else ''}")
 
-    # ── More Stats ─────────────────────────────────────────────────────────
+    # ── More Stats (unchanged) ──────────────────────────────────────────────
+    kpi = get_kpi()
     with st.expander("📊  More Stats"):
-        all_trades  = get_trades()
-        open_all    = [t for t in all_trades if t["status"]=="OPEN"]
-        closed_all  = [t for t in all_trades if t["status"]=="CLOSED"]
         acct_bal    = kpi.get("account_balance", 10_000_000)
 
         above = sum(1 for t in open_all if (t.get("live_price") or 0)>(t.get("entry_price") or 0))
@@ -214,7 +250,7 @@ def render():
         # Strategy breakdown
         st.markdown("#### 📋 Strategy Breakdown")
         sm = defaultdict(lambda:{"trades":0,"closed":0,"wins":0,"pnl":0.0,"r":[]})
-        for t in all_trades:
+        for t in all_trades_raw:
             s=t.get("strategy",""); sm[s]["trades"]+=1
             if t["status"]=="CLOSED":
                 sm[s]["closed"]+=1; p=float(t.get("pnl") or 0); sm[s]["pnl"]+=p
@@ -271,7 +307,7 @@ def render():
         bg    = "#F0FDF4" if pnl>0 else "#FEF2F2" if pnl<0 else "#F3F4F6"
         r_str = f'<span style="font-size:0.68rem;opacity:0.75;margin-left:3px">({r_mult:+.1f}R)</span>' if r_mult else ""
         prefix = "~" if is_open else ""
-        return f'<span style="background:{bg};color:{color};padding:2px 8px;border-radius:12px;font-size:0.78rem;font-weight:700;border:1px solid {color}22">{prefix}{"+₹" if pnl>0 else "₹"}{abs(pnl):,.0f}{r_str}</span>'
+        return f'<span style="background:{bg};color:{color};padding:2px 8px;border-radius:12px;font-size:0.78rem;font-weight:700;border:1px solid {color}22;white-space:nowrap">{prefix}{"+₹" if pnl>0 else "₹"}{abs(pnl):,.0f}{r_str}</span>'
 
     def live_cell(live, entry, chg):
         if not live: return '<span style="color:#9CA3AF">—</span>'
@@ -291,27 +327,12 @@ def render():
 
     rows_html = []
     for t in trades:
-        pnl  = t.get("pnl")
-        r    = t.get("r_multiple")
         live = t.get("live_price")
         chg  = t.get("change_pct")
         ep   = t.get("entry_price",0)
         rs   = t.get("risk_status","") or ""
 
-        # Running (unrealized) P&L and R-Mult for OPEN trades using live price
-        if t["status"] == "OPEN" and live and ep:
-            qty = float(t.get("qty") or 0)
-            side = str(t.get("side","")).upper()
-            lp = float(live); epf = float(ep)
-            if side in ("BUY","LONG"):
-                pnl = (lp - epf) * qty
-            else:
-                pnl = (epf - lp) * qty
-            sl = t.get("stop_loss")
-            if sl:
-                risk = abs(epf - float(sl)) * qty
-                if risk:
-                    r = pnl / risk
+        pnl, r = _calc_running(t)
 
         if t["status"] == "OPEN":
             row_bg = "#EFF6FF" if not rs else ("#FEF2F2" if "SL" in rs else "#F0FDF4" if "Profit" in rs else "#EFF6FF")
@@ -351,7 +372,7 @@ def render():
             {td(_p(t.get('exit_price')) if t.get('exit_price') else '—', mono=True)}
             {td(_p(t.get('commission_exit'), 0) if t.get('commission_exit') else '—', mono=True)}
             {td(rs or '—')}
-            {td(pnl_chip(pnl, r, is_open=(t["status"]=="OPEN")))}
+            {td(pnl_chip(pnl, r, is_open=(t["status"]=="OPEN")), align="right")}
         </tr>""")
 
     th_style = f"padding:9px 12px;text-align:left;color:{MUTED};font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;white-space:nowrap;border-bottom:2px solid {BORDER};background:{HEADER_BG}"
