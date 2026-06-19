@@ -58,7 +58,7 @@ def _safe_str(v):
 
 def parse_daily_plan_excel(file):
     """Read the Daily Plan sheet and return list of trade dicts."""
-    df = pd.read_excel(file, sheet_name=0, header=0)
+    df = pd.read_excel(file, sheet_name="DailyPlan", header=25)
     df.columns = [str(c).strip() for c in df.columns]
 
     trades = []
