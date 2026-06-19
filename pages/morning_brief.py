@@ -7,12 +7,28 @@ from datetime import date
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "journal.db")
 
+def _use_supabase():
+    try:
+        url = st.secrets.get("SUPABASE_URL","")
+        key = st.secrets.get("SUPABASE_KEY","")
+        if url and key:
+            os.environ["SUPABASE_URL"] = url
+            os.environ["SUPABASE_KEY"] = key
+            return True
+    except: pass
+    return bool(os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_KEY"))
+
+def _sb():
+    from supabase import create_client
+    return create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_KEY"])
+
 def get_db():
     conn = sqlite3.connect(os.path.abspath(DB_PATH))
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
+    if _use_supabase(): return
     conn = get_db()
     conn.execute("""CREATE TABLE IF NOT EXISTS morning_brief (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,6 +40,17 @@ def init_db():
     conn.commit(); conn.close()
 
 def save_brief(brief_date, data):
+    if _use_supabase():
+        try:
+            _sb().table("morning_brief").upsert({
+                "brief_date": str(brief_date),
+                "data": json.dumps(data),
+                "updated_at": str(__import__("datetime").datetime.now())
+            }).execute()
+            return
+        except Exception as e:
+            print(f"save_brief supabase error: {e}")
+            return
     conn = get_db()
     conn.execute("""INSERT INTO morning_brief (brief_date, data, updated_at)
         VALUES (?,?,datetime('now','localtime'))
@@ -216,6 +243,7 @@ def render():
             saved = load_brief(sel_date.isoformat())
             if saved:
                 set_state(saved)
+                st.rerun()
                 st.session_state["brief_news"]   = saved.get("news",[])
                 st.session_state["brief_focus"]  = saved.get("companiesInFocus",[])
                 st.session_state["brief_orders"] = saved.get("orders",[])
@@ -715,6 +743,7 @@ h2{{color:#7C3AED;border-bottom:2px solid #7C3AED;padding-bottom:8px}}
             dt = d2.get("dayType","—")
             if st.button(f"{row['brief_date']}  •  {dt}", key=f"pb_{row['brief_date']}"):
                 set_state(d2)
+                st.rerun()
                 st.session_state["brief_news"]   = d2.get("news",[])
                 st.session_state["brief_focus"]  = d2.get("companiesInFocus",[])
                 st.session_state["brief_orders"] = d2.get("orders",[])
