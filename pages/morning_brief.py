@@ -75,7 +75,7 @@ def list_briefs():
     if _use_supabase():
         try:
             res = _sb().table("morning_brief").select("brief_date,data").order("brief_date", desc=True).limit(20).execute()
-            return [(r["brief_date"], r["data"]) for r in res.data]
+            return res.data or []
         except Exception as e:
             print(f"list_briefs supabase error: {e}")
             return []
