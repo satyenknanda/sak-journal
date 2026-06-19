@@ -81,15 +81,29 @@ def _find_trade_sheet_and_header(file):
     st.session_state["_import_debug"] = debug_info
     return None, None
 
+EXPECTED_COLS = ["Status","No","Entry Date","Side","Qty","Ticker","Strategy",
+    "Entry Price","Stop Loss","Take Profit","Commission","TSL","Live Price",
+    "Change%","Exit Date","Qty","Exit Price","Commission","Risk Status"]
+
 def parse_daily_plan_excel(file):
-    """Read the Daily Plan sheet and return list of trade dicts."""
+    """Read the Daily Plan sheet and return list of trade dicts.
+    Supports both: (1) full sheet with header row, (2) headerless raw rows
+    in the same column order (for incremental 'recent trades only' uploads)."""
     sheet, header_row = _find_trade_sheet_and_header(file)
-    if sheet is None:
-        raise ValueError("Could not find a sheet with Status/No/Entry Date/Ticker columns. "
-                          "Make sure your trade table headers exactly match the expected format.")
-    file.seek(0)  # reset file pointer after scanning
-    df = pd.read_excel(file, sheet_name=sheet, header=header_row)
-    df.columns = [str(c).strip() for c in df.columns]
+    file.seek(0)
+
+    if sheet is not None:
+        df = pd.read_excel(file, sheet_name=sheet, header=header_row)
+        df.columns = [str(c).strip() for c in df.columns]
+    else:
+        # Fallback: assume headerless single-sheet file with columns in expected order
+        file.seek(0)
+        df = pd.read_excel(file, sheet_name=0, header=None)
+        if df.shape[1] < len(EXPECTED_COLS):
+            raise ValueError(f"File has {df.shape[1]} columns, expected at least {len(EXPECTED_COLS)} "
+                              f"(Status/No/Entry Date/.../Risk Status). Could not auto-detect format.")
+        df = df.iloc[:, :len(EXPECTED_COLS)]
+        df.columns = EXPECTED_COLS
 
     trades = []
     # Handle duplicate column names (Qty appears twice, Commission twice)
