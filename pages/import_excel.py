@@ -193,6 +193,21 @@ Commission | Risk Status""", language=None)
             st.success(f"✅ Parsed {len(trades)} trades from the sheet.")
 
             if trades:
+                # Status filter
+                st.markdown(f'<div style="font-size:12px;font-weight:600;color:{TEXT_H if "TEXT_H" in dir() else "#111827"};margin-bottom:4px">Filter by status</div>', unsafe_allow_html=True)
+                status_filter = st.radio("Status filter", ["All","CLOSED only","OPEN only"],
+                                          horizontal=True, label_visibility="collapsed", key="import_status_filter")
+                if status_filter == "CLOSED only":
+                    trades = [t for t in trades if t.get("status")=="CLOSED"]
+                elif status_filter == "OPEN only":
+                    trades = [t for t in trades if t.get("status")=="OPEN"]
+
+                if not trades:
+                    st.warning(f"No trades match filter '{status_filter}'.")
+                    st.stop()
+
+                st.caption(f"{len(trades)} trades after filter")
+
                 # Preview
                 preview_df = pd.DataFrame(trades)
                 show_cols = [c for c in ["entry_date","ticker","strategy","side","qty","entry_price","exit_price","status","pnl"] if c in preview_df.columns]
