@@ -468,6 +468,7 @@ with st.sidebar:
         ("progress", "Progress Tracker"),
         ("playbook", "Playbook"),
         ("morning", "Morning Brief"),
+        ("import",   "Import Excel"),
     ]
 
     # Nav — use st.button with CSS override to look like Tradezella nav items
