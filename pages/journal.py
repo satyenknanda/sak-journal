@@ -87,7 +87,7 @@ def render():
 
     # ── Filter bar ─────────────────────────────────────────────────────────
     fc = st.columns([1, 1.4, 1.4, 1.4, 1.4, 1.4, 1])
-    with fc[0]: status_f  = st.selectbox("Status",   ["All","OPEN","CLOSED"], label_visibility="collapsed")
+    with fc[0]: status_f  = st.selectbox("Status",   ["OPEN","All","CLOSED"], label_visibility="collapsed")
     with fc[1]:
         strats = ["All"] + get_strategies()
         strat_f = st.selectbox("Strategy", strats, label_visibility="collapsed")
@@ -265,12 +265,13 @@ def render():
             label = "CLOSED"
         return f'<span style="background:{bg};color:{fg};padding:3px 10px;border-radius:20px;font-size:0.7rem;font-weight:600;white-space:nowrap;border:1px solid {fg}22">{label}</span>'
 
-    def pnl_chip(pnl, r_mult=None):
-        if pnl is None or pnl == 0: return '<span style="color:#9CA3AF">—</span>'
-        color = G if pnl>0 else R
-        bg    = "#F0FDF4" if pnl>0 else "#FEF2F2"
+    def pnl_chip(pnl, r_mult=None, is_open=False):
+        if pnl is None: return '<span style="color:#9CA3AF">—</span>'
+        color = G if pnl>0 else R if pnl<0 else MUTED
+        bg    = "#F0FDF4" if pnl>0 else "#FEF2F2" if pnl<0 else "#F3F4F6"
         r_str = f'<span style="font-size:0.68rem;opacity:0.75;margin-left:3px">({r_mult:+.1f}R)</span>' if r_mult else ""
-        return f'<span style="background:{bg};color:{color};padding:2px 8px;border-radius:12px;font-size:0.78rem;font-weight:700;border:1px solid {color}22">{"+₹" if pnl>0 else "₹"}{abs(pnl):,.0f}{r_str}</span>'
+        prefix = "~" if is_open else ""
+        return f'<span style="background:{bg};color:{color};padding:2px 8px;border-radius:12px;font-size:0.78rem;font-weight:700;border:1px solid {color}22">{prefix}{"+₹" if pnl>0 else "₹"}{abs(pnl):,.0f}{r_str}</span>'
 
     def live_cell(live, entry, chg):
         if not live: return '<span style="color:#9CA3AF">—</span>'
@@ -296,6 +297,21 @@ def render():
         chg  = t.get("change_pct")
         ep   = t.get("entry_price",0)
         rs   = t.get("risk_status","") or ""
+
+        # Running (unrealized) P&L and R-Mult for OPEN trades using live price
+        if t["status"] == "OPEN" and live and ep:
+            qty = float(t.get("qty") or 0)
+            side = str(t.get("side","")).upper()
+            lp = float(live); epf = float(ep)
+            if side in ("BUY","LONG"):
+                pnl = (lp - epf) * qty
+            else:
+                pnl = (epf - lp) * qty
+            sl = t.get("stop_loss")
+            if sl:
+                risk = abs(epf - float(sl)) * qty
+                if risk:
+                    r = pnl / risk
 
         if t["status"] == "OPEN":
             row_bg = "#EFF6FF" if not rs else ("#FEF2F2" if "SL" in rs else "#F0FDF4" if "Profit" in rs else "#EFF6FF")
@@ -335,7 +351,7 @@ def render():
             {td(_p(t.get('exit_price')) if t.get('exit_price') else '—', mono=True)}
             {td(_p(t.get('commission_exit'), 0) if t.get('commission_exit') else '—', mono=True)}
             {td(rs or '—')}
-            {td(pnl_chip(pnl, r))}
+            {td(pnl_chip(pnl, r, is_open=(t["status"]=="OPEN")))}
         </tr>""")
 
     th_style = f"padding:9px 12px;text-align:left;color:{MUTED};font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;white-space:nowrap;border-bottom:2px solid {BORDER};background:{HEADER_BG}"

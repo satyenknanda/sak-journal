@@ -495,19 +495,7 @@ with st.sidebar:
 
     st.markdown(f'<div style="height:1px;background:rgba(255,255,255,0.07);margin:8px 2px 6px"></div>', unsafe_allow_html=True)
 
-    sync_time = last_sync_time()
-    if sync_time:
-        st.markdown(f'<div style="font-size:10px;color:#475569;padding:0 6px 5px">Synced {sync_time[:16]}</div>', unsafe_allow_html=True)
-    if st.button("⟳  Re-sync Excel", key="resync", use_container_width=True):
-        with st.spinner("Importing…"):
-            try:
-                from data.db import import_trading_journal
-            except Exception:
-                import_trading_journal = lambda: None
-            n1, m1 = import_from_excel()
-            import_trading_journal()
-        st.success(f"✅ {n1} trades") if m1=="OK" else st.error(f"Failed: {m1}")
-        st.rerun()
+    pass  # Re-sync Excel removed — use Import Excel page instead
 
 # ── First-run import ───────────────────────────────────────────────────────
 if not last_sync_time():
