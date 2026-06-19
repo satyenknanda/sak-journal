@@ -538,6 +538,7 @@ try:
     elif p=="progress": from pages.progress_tracker import render; render()
     elif p=="bell":      from pages.bell_curve         import render; render()
     elif p=="morning":   from pages.morning_brief      import render; render()
+    elif p=="import":    from pages.import_excel      import render; render()
     else:                from pages.dashboard          import render; render()
 except Exception as _err:
     import traceback
