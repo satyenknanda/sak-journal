@@ -562,11 +562,9 @@ def render():
         col.markdown(f'<div style="font-size:10px;color:{TEXT_SUBTLE};font-weight:500;text-transform:uppercase;letter-spacing:0.06em;padding:8px 0;border-bottom:2px solid {BORDER}">{label}</div>', unsafe_allow_html=True)
 
     for pb in playbooks:
-        pb_trade_list = []
-        for t in closed:
-            tp = get_trade_playbook(t["id"]) if t.get("id") else None
-            if tp and tp.get("playbook_id") == pb["id"]:
-                pb_trade_list.append(t)
+        pb_trade_list = [t for t in closed if
+            (t.get("playbook") == pb["name"]) or
+            (t.get("strategy","").upper() == pb["name"].upper())]
 
         n_trades  = len(pb_trade_list)
         total_pnl = sum(float(t.get("pnl") or 0) for t in pb_trade_list)
