@@ -12,7 +12,7 @@ import os
 from datetime import datetime, date
 
 from theme import *
-from data.db import add_trade, get_trades
+from data.db import add_trade, get_trades, update_trade
 
 G="#10B981"; R="#EF4444"; B="#3B82F6"; MUTED="#6B7280"; BORDER="#E5E7EB"
 
@@ -220,37 +220,75 @@ Commission | Risk Status""", language=None)
 
                 # Check for duplicates against existing trades
                 existing = get_trades()
-                existing_keys = {(t.get("ticker"), str(t.get("entry_date"))[:10], t.get("trade_no")) for t in existing}
+                existing_by_key = {(t.get("ticker"), str(t.get("entry_date"))[:10], t.get("trade_no")): t for t in existing}
 
                 new_trades = []
-                dup_trades = []
+                changed_trades = []   # exists but data differs (e.g. OPEN -> CLOSED)
+                unchanged_trades = []
                 for t in trades:
                     key = (t.get("ticker"), str(t.get("entry_date"))[:10], t.get("trade_no"))
-                    if key in existing_keys:
-                        dup_trades.append(t)
-                    else:
+                    if key not in existing_by_key:
                         new_trades.append(t)
+                    else:
+                        ex = existing_by_key[key]
+                        # Compare key fields that would indicate the trade was updated
+                        diff = (
+                            str(ex.get("status")) != str(t.get("status")) or
+                            str(ex.get("exit_price") or "") != str(t.get("exit_price") or "") or
+                            str(ex.get("exit_date") or "") != str(t.get("exit_date") or "")
+                        )
+                        if diff:
+                            t["_existing_id"] = ex.get("id")
+                            changed_trades.append(t)
+                        else:
+                            unchanged_trades.append(t)
 
-                c1,c2,c3 = st.columns(3)
+                c1,c2,c3,c4 = st.columns(4)
                 c1.metric("Total Parsed", len(trades))
                 c2.metric("New", len(new_trades))
-                c3.metric("Duplicates (skip)", len(dup_trades))
+                c3.metric("Changed (update)", len(changed_trades))
+                c4.metric("Unchanged (skip)", len(unchanged_trades))
 
-                skip_dups = st.checkbox("Skip duplicates (matched by Ticker + Entry Date + Trade No)", value=True)
-                to_import = new_trades if skip_dups else trades
+                if changed_trades:
+                    with st.expander(f"🔄 {len(changed_trades)} trades will be UPDATED (e.g. OPEN→CLOSED)"):
+                        chg_df = pd.DataFrame(changed_trades)
+                        chg_cols = [c2 for c2 in ["ticker","trade_no","status","exit_date","exit_price","pnl"] if c2 in chg_df.columns]
+                        st.dataframe(chg_df[chg_cols], use_container_width=True, hide_index=True)
 
-                if st.button(f"⬆️ Import {len(to_import)} Trades", type="primary", use_container_width=True):
+                update_existing = st.checkbox(f"Update {len(changed_trades)} changed trades (e.g. mark as closed)", value=True)
+                add_new = st.checkbox(f"Add {len(new_trades)} new trades", value=True)
+
+                to_add = new_trades if add_new else []
+                to_update = changed_trades if update_existing else []
+
+                if st.button(f"⬆️ Import ({len(to_add)} new, {len(to_update)} updates)", type="primary", use_container_width=True):
                     prog = st.progress(0, text="Importing...")
                     success = 0
                     errors = []
-                    for i, t in enumerate(to_import):
+                    total_ops = len(to_add) + len(to_update)
+                    op_i = 0
+
+                    for t in to_add:
                         try:
                             add_trade(t)
                             success += 1
                         except Exception as e:
-                            errors.append(f"{t.get('ticker','?')}: {e}")
-                        prog.progress((i+1)/len(to_import), text=f"Importing {i+1}/{len(to_import)}...")
+                            errors.append(f"ADD {t.get('ticker','?')}: {e}")
+                        op_i += 1
+                        prog.progress(op_i/max(total_ops,1), text=f"Importing {op_i}/{total_ops}...")
+
+                    for t in to_update:
+                        try:
+                            eid = t.pop("_existing_id")
+                            update_trade(eid, t)
+                            success += 1
+                        except Exception as e:
+                            errors.append(f"UPDATE {t.get('ticker','?')}: {e}")
+                        op_i += 1
+                        prog.progress(op_i/max(total_ops,1), text=f"Importing {op_i}/{total_ops}...")
+
                     prog.empty()
+                    to_import = to_add + to_update  # for results table below
 
                     if success:
                         st.success(f"✅ Imported {success} trades successfully!")
