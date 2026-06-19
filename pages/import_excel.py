@@ -22,13 +22,13 @@ COL_MAP = {
     "No": "trade_no",
     "Entry Date": "entry_date",
     "Side": "side",
-    "Qty": "qty",                 # first Qty = entry qty
+    "Qty": "qty",
     "Ticker": "ticker",
     "Strategy": "strategy",
     "Entry Price": "entry_price",
     "Stop Loss": "stop_loss",
     "Take Profit": "take_profit",
-    "Commission": "commission_entry",   # first Commission = entry commission
+    "Commission": "commission_entry",
     "TSL": "tsl",
     "Live Price": "live_price",
     "Change%": "change_pct",
@@ -77,7 +77,6 @@ def _find_trade_sheet_and_header(file):
             if has_status and has_ticker and has_entry:
                 return sheet, i
         debug_info.append(f"{sheet}: no match in first 80 rows")
-    import streamlit as st
     st.session_state["_import_debug"] = debug_info
     return None, None
 
@@ -96,7 +95,6 @@ def parse_daily_plan_excel(file):
         df = pd.read_excel(file, sheet_name=sheet, header=header_row)
         df.columns = [str(c).strip() for c in df.columns]
     else:
-        # Fallback: assume headerless single-sheet file with columns in expected order
         file.seek(0)
         df = pd.read_excel(file, sheet_name=0, header=None)
         if df.shape[1] < len(EXPECTED_COLS):
@@ -106,17 +104,14 @@ def parse_daily_plan_excel(file):
         df.columns = EXPECTED_COLS
 
     trades = []
-    # Handle duplicate column names (Qty appears twice, Commission twice)
     cols = list(df.columns)
-
-    # Find positional indices for duplicated columns
     qty_idxs = [i for i,c in enumerate(cols) if c=="Qty"]
     comm_idxs = [i for i,c in enumerate(cols) if c=="Commission"]
 
     for _, row in df.iterrows():
         ticker = _safe_str(row.get("Ticker",""))
         if not ticker:
-            continue  # skip blank rows
+            continue
 
         entry_qty = _safe_float(row.iloc[qty_idxs[0]]) if qty_idxs else None
         exit_qty  = _safe_float(row.iloc[qty_idxs[1]]) if len(qty_idxs)>1 else None
@@ -168,7 +163,6 @@ def parse_daily_plan_excel(file):
         if pnl is not None: trade["pnl"] = round(pnl, 2)
         if r_mult is not None: trade["r_multiple"] = round(r_mult, 3)
 
-        # Remove None values (Supabase doesn't like them for some col types)
         trade = {k:v for k,v in trade.items() if v not in (None, "", "nan")}
         trades.append(trade)
 
@@ -193,110 +187,105 @@ Commission | Risk Status""", language=None)
             st.success(f"✅ Parsed {len(trades)} trades from the sheet.")
 
             if trades:
-                # Status filter
-                st.markdown(f'<div style="font-size:12px;font-weight:600;color:{TEXT_H if "TEXT_H" in dir() else "#111827"};margin-bottom:4px">Filter by status</div>', unsafe_allow_html=True)
-                status_filter = st.radio("Status filter", ["All","CLOSED only","OPEN only"],
-                                          horizontal=True, label_visibility="collapsed", key="import_status_filter")
-                if status_filter == "CLOSED only":
-                    trades = [t for t in trades if t.get("status")=="CLOSED"]
-                elif status_filter == "OPEN only":
-                    trades = [t for t in trades if t.get("status")=="OPEN"]
+                open_trades   = [t for t in trades if t.get("status")=="OPEN"]
+                closed_trades = [t for t in trades if t.get("status")=="CLOSED"]
 
-                if not trades:
-                    st.warning(f"No trades match filter '{status_filter}'.")
-                    st.stop()
+                st.caption(f"{len(open_trades)} OPEN  ·  {len(closed_trades)} CLOSED")
 
-                st.caption(f"{len(trades)} trades after filter")
-
-                # Preview
+                # Full preview
                 preview_df = pd.DataFrame(trades)
                 show_cols = [c for c in ["entry_date","ticker","strategy","side","qty","entry_price","exit_price","status","pnl"] if c in preview_df.columns]
                 st.dataframe(preview_df[show_cols].head(20), use_container_width=True, hide_index=True)
-
                 if len(trades) > 20:
                     st.caption(f"Showing first 20 of {len(trades)} trades")
 
                 st.markdown("---")
 
-                # Check for duplicates against existing trades
                 existing = get_trades()
                 existing_by_key = {(t.get("ticker"), str(t.get("entry_date"))[:10], t.get("trade_no")): t for t in existing}
 
-                new_trades = []
-                changed_trades = []   # exists but data differs (e.g. OPEN -> CLOSED)
-                unchanged_trades = []
-                for t in trades:
-                    key = (t.get("ticker"), str(t.get("entry_date"))[:10], t.get("trade_no"))
-                    if key not in existing_by_key:
-                        new_trades.append(t)
-                    else:
-                        ex = existing_by_key[key]
-                        # Compare key fields that would indicate the trade was updated
-                        diff = (
-                            str(ex.get("status")) != str(t.get("status")) or
-                            str(ex.get("exit_price") or "") != str(t.get("exit_price") or "") or
-                            str(ex.get("exit_date") or "") != str(t.get("exit_date") or "")
-                        )
-                        if diff:
-                            t["_existing_id"] = ex.get("id")
-                            changed_trades.append(t)
+                def classify(subset):
+                    add_list, upd_list, same_list = [], [], []
+                    for t in subset:
+                        key = (t.get("ticker"), str(t.get("entry_date"))[:10], t.get("trade_no"))
+                        if key not in existing_by_key:
+                            add_list.append(t)
                         else:
-                            unchanged_trades.append(t)
+                            ex = existing_by_key[key]
+                            diff = (
+                                str(ex.get("status")) != str(t.get("status")) or
+                                str(ex.get("exit_price") or "") != str(t.get("exit_price") or "") or
+                                str(ex.get("exit_date") or "") != str(t.get("exit_date") or "")
+                            )
+                            if diff:
+                                t2 = dict(t); t2["_existing_id"] = ex.get("id")
+                                upd_list.append(t2)
+                            else:
+                                same_list.append(t)
+                    return add_list, upd_list, same_list
 
-                c1,c2,c3,c4 = st.columns(4)
-                c1.metric("Total Parsed", len(trades))
-                c2.metric("New", len(new_trades))
-                c3.metric("Changed (update)", len(changed_trades))
-                c4.metric("Unchanged (skip)", len(unchanged_trades))
-
-                if changed_trades:
-                    with st.expander(f"🔄 {len(changed_trades)} trades will be UPDATED (e.g. OPEN→CLOSED)"):
-                        chg_df = pd.DataFrame(changed_trades)
-                        chg_cols = [c2 for c2 in ["ticker","trade_no","status","exit_date","exit_price","pnl"] if c2 in chg_df.columns]
-                        st.dataframe(chg_df[chg_cols], use_container_width=True, hide_index=True)
-
-                update_existing = st.checkbox(f"Update {len(changed_trades)} changed trades (e.g. mark as closed)", value=True)
-                add_new = st.checkbox(f"Add {len(new_trades)} new trades", value=True)
-
-                to_add = new_trades if add_new else []
-                to_update = changed_trades if update_existing else []
-
-                if st.button(f"⬆️ Import ({len(to_add)} new, {len(to_update)} updates)", type="primary", use_container_width=True):
-                    prog = st.progress(0, text="Importing...")
-                    success = 0
-                    errors = []
-                    total_ops = len(to_add) + len(to_update)
+                def run_import(add_list, upd_list, label):
+                    prog = st.progress(0, text=f"Importing {label}...")
+                    success, errors = 0, []
+                    total_ops = len(add_list) + len(upd_list)
                     op_i = 0
-
-                    for t in to_add:
+                    for t in add_list:
                         try:
-                            add_trade(t)
-                            success += 1
+                            add_trade(t); success += 1
                         except Exception as e:
                             errors.append(f"ADD {t.get('ticker','?')}: {e}")
                         op_i += 1
-                        prog.progress(op_i/max(total_ops,1), text=f"Importing {op_i}/{total_ops}...")
-
-                    for t in to_update:
+                        prog.progress(op_i/max(total_ops,1), text=f"Importing {label} {op_i}/{total_ops}...")
+                    for t in upd_list:
                         try:
                             eid = t.pop("_existing_id")
-                            update_trade(eid, t)
-                            success += 1
+                            update_trade(eid, t); success += 1
                         except Exception as e:
                             errors.append(f"UPDATE {t.get('ticker','?')}: {e}")
                         op_i += 1
-                        prog.progress(op_i/max(total_ops,1), text=f"Importing {op_i}/{total_ops}...")
-
+                        prog.progress(op_i/max(total_ops,1), text=f"Importing {label} {op_i}/{total_ops}...")
                     prog.empty()
-                    to_import = to_add + to_update  # for results table below
-
-                    if success:
-                        st.success(f"✅ Imported {success} trades successfully!")
+                    if success: st.success(f"✅ {label}: {success} trades imported/updated!")
                     if errors:
                         with st.expander(f"⚠️ {len(errors)} errors"):
-                            for e in errors[:20]:
-                                st.text(e)
-                    st.balloons()
+                            for e in errors[:20]: st.text(e)
+                    if success: st.balloons()
+                    return add_list + upd_list
+
+                oc1, oc2 = st.columns(2)
+
+                # ── OPEN column ──────────────────────────────────────────────
+                with oc1:
+                    st.markdown(f'<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px"><div style="font-size:13px;font-weight:700;color:{B if "B" in dir() else "#3B82F6"};margin-bottom:8px">📂 OPEN Trades ({len(open_trades)})</div></div>', unsafe_allow_html=True)
+                    o_add, o_upd, o_same = classify(open_trades)
+                    st.caption(f"{len(o_add)} new · {len(o_upd)} changed · {len(o_same)} unchanged")
+                    if st.button(f"⬆️ Import OPEN only ({len(o_add)+len(o_upd)})", key="import_open_btn", use_container_width=True):
+                        imported = run_import(o_add, o_upd, "OPEN")
+                        if imported:
+                            st.session_state["_last_imported"] = imported
+
+                # ── CLOSED column ────────────────────────────────────────────
+                with oc2:
+                    st.markdown(f'<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:14px"><div style="font-size:13px;font-weight:700;color:{G if "G" in dir() else "#10B981"};margin-bottom:8px">✅ CLOSED Trades ({len(closed_trades)})</div></div>', unsafe_allow_html=True)
+                    c_add, c_upd, c_same = classify(closed_trades)
+                    st.caption(f"{len(c_add)} new · {len(c_upd)} changed · {len(c_same)} unchanged")
+                    if st.button(f"⬆️ Import CLOSED only ({len(c_add)+len(c_upd)})", key="import_closed_btn", type="primary", use_container_width=True):
+                        imported = run_import(c_add, c_upd, "CLOSED")
+                        if imported:
+                            st.session_state["_last_imported"] = imported
+
+                # ── Results table ────────────────────────────────────────────
+                if st.session_state.get("_last_imported"):
+                    st.markdown("---")
+                    st.markdown(f"### ✅ Last Import Results ({len(st.session_state['_last_imported'])})")
+                    result_df = pd.DataFrame(st.session_state["_last_imported"])
+                    show_cols2 = [c for c in ["entry_date","ticker","strategy","side","qty",
+                        "entry_price","stop_loss","take_profit","exit_date","exit_price",
+                        "status","pnl","r_multiple"] if c in result_df.columns]
+                    st.dataframe(result_df[show_cols2], use_container_width=True, hide_index=True)
+                    csv = result_df.to_csv(index=False)
+                    st.download_button("⬇ Download imported trades as CSV", csv,
+                        "imported_trades.csv", "text/csv", use_container_width=True)
             else:
                 st.warning("No valid trade rows found. Make sure Ticker column is populated.")
         except Exception as e:
