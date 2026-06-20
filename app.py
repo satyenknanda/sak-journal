@@ -23,7 +23,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-inject_glass_css()
 
 init_db()
 
@@ -409,6 +408,8 @@ button[kind="header"],
 ::-webkit-scrollbar-thumb:hover{{background:#CBD5E1}}
 </style>
 """, unsafe_allow_html=True)
+
+inject_glass_css()  # Apply glass skin AFTER base theme so it wins the cascade
 
 # ── Sidebar ────────────────────────────────────────────────────────────────
 with st.sidebar:
