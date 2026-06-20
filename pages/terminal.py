@@ -87,7 +87,7 @@ def render():
     ]
 
     with elements("terminal_grid"):
-        with dashboard.Grid(layout, draggableHandle=".drag-handle"):
+        with dashboard.Grid(layout, draggableHandle=".drag-handle", rowHeight=80, cols=12, isResizable=True, isDraggable=True):
 
             # ── Panel: Portfolio Holdings ────────────────────────────────
             with mui.Paper(key="holdings", sx={"display":"flex","flexDirection":"column","height":"100%","borderRadius":"12px","overflow":"hidden"}):
