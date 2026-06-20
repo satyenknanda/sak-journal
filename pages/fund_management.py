@@ -38,7 +38,8 @@ def render():
     st.markdown(section_label("Current Exposure — Own Capital vs MTF"), unsafe_allow_html=True)
 
     cash_value = 0.0
-    mtf_value = 0.0
+    mtf_own_value = 0.0
+    mtf_borrowed_value = 0.0
     cash_count = mtf_count = 0
     for t in open_trades:
         qty = safe_float(t.get("qty"))
@@ -46,27 +47,36 @@ def render():
         value = qty * price
         funding = str(t.get("funding_type", "CASH") or "CASH").upper()
         if funding == "MTF":
-            mtf_value += value
+            margin_pct = safe_float(t.get("mtf_margin_pct")) or 50.0
+            mtf_own_value += value * margin_pct / 100
+            mtf_borrowed_value += value * (1 - margin_pct / 100)
             mtf_count += 1
         else:
             cash_value += value
             cash_count += 1
 
+    mtf_value = mtf_own_value + mtf_borrowed_value  # total MTF position value
+    own_capital_total = cash_value + mtf_own_value   # your actual money across both
     total_exposure = cash_value + mtf_value
-    mtf_pct = (mtf_value / total_exposure * 100) if total_exposure > 0 else 0
+    leverage_pct = (mtf_borrowed_value / total_exposure * 100) if total_exposure > 0 else 0
 
     e1, e2, e3, e4 = st.columns(4)
-    e1.markdown(kpi_card("OWN CAPITAL DEPLOYED", fmt_inr(cash_value), sub=f"{cash_count} positions"), unsafe_allow_html=True)
-    e2.markdown(kpi_card("MTF EXPOSURE", fmt_inr(mtf_value), color=AMBER, sub=f"{mtf_count} positions"), unsafe_allow_html=True)
-    e3.markdown(kpi_card("TOTAL EXPOSURE", fmt_inr(total_exposure)), unsafe_allow_html=True)
-    e4.markdown(kpi_card("MTF % OF EXPOSURE", f"{mtf_pct:.1f}%",
-                          color=(RED if mtf_pct > 50 else AMBER if mtf_pct > 25 else TEAL)), unsafe_allow_html=True)
+    e1.markdown(kpi_card("YOUR CAPITAL DEPLOYED", fmt_inr(own_capital_total),
+                          sub=f"Cash {fmt_inr(cash_value)} + MTF margin {fmt_inr(mtf_own_value)}"), unsafe_allow_html=True)
+    e2.markdown(kpi_card("ZERODHA-BORROWED (MTF)", fmt_inr(mtf_borrowed_value), color=AMBER,
+                          sub=f"{mtf_count} MTF position(s)"), unsafe_allow_html=True)
+    e3.markdown(kpi_card("TOTAL EXPOSURE", fmt_inr(total_exposure), sub=f"{cash_count+mtf_count} open positions"), unsafe_allow_html=True)
+    e4.markdown(kpi_card("LEVERAGE %", f"{leverage_pct:.1f}%",
+                          color=(RED if leverage_pct > 30 else AMBER if leverage_pct > 15 else TEAL),
+                          sub="borrowed ÷ total exposure"), unsafe_allow_html=True)
 
-    if mtf_pct > 0:
+    if leverage_pct > 0:
         st.markdown(f"""<div style="background:{AMBER_BG};border:1px solid {AMBER_BORDER};border-radius:8px;
             padding:10px 14px;font-size:12px;color:{TEXT_BODY};margin:10px 0">
-            ⚡ {mtf_pct:.1f}% of your current open exposure is MTF-funded (borrowed). This amplifies both gains and losses,
-            and accrues daily interest — tracked below as a monthly expense against P&L.
+            ⚡ {leverage_pct:.1f}% of your total exposure is Zerodha-funded (borrowed) via MTF — based on the margin %
+            you entered per trade. This amplifies both gains and losses, and accrues daily interest — tracked below as
+            a monthly expense against P&L. Margin % per trade isn't pulled live from Zerodha; verify against Kite's
+            order screen at entry time, since rates vary by stock and can change.
         </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)

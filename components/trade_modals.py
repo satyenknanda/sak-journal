@@ -42,13 +42,25 @@ def render_add_trade_modal():
             funding_type = st.selectbox("Funding", ["Cash", "MTF"],
                                          help="MTF = Zerodha Margin Trading Facility (leveraged/borrowed funds)")
 
+        mtf_margin_pct = 50.0
+        if funding_type == "MTF":
+            mtf_margin_pct = st.number_input(
+                "Your Margin % (MTF)", min_value=1.0, max_value=100.0, step=1.0, value=50.0,
+                help="% of position value you fund yourself — check Kite's order screen at entry time for the exact "
+                     "figure (it varies by stock per Zerodha's MTF approved list). Remainder is Zerodha-funded."
+            )
+
         # Live 1R display
         if entry_price and stop_loss and qty:
             risk_per_share = abs(entry_price - stop_loss)
             one_r = risk_per_share * qty
             position_size = entry_price * qty
-            st.info(f"📊  1R = ₹{one_r:,.0f}  |  Risk/share = ₹{risk_per_share:.2f}  |  Position size = ₹{position_size:,.0f}"
-                    f"{'  ⚡ MTF (leveraged)' if funding_type == 'MTF' else ''}")
+            extra = ""
+            if funding_type == "MTF":
+                own_amt = position_size * mtf_margin_pct / 100
+                borrowed_amt = position_size - own_amt
+                extra = f"  ⚡ MTF — Your capital ₹{own_amt:,.0f} ({mtf_margin_pct:.0f}%) · Borrowed ₹{borrowed_amt:,.0f}"
+            st.info(f"📊  1R = ₹{one_r:,.0f}  |  Risk/share = ₹{risk_per_share:.2f}  |  Position size = ₹{position_size:,.0f}{extra}")
 
         submitted = st.form_submit_button("Add Trade", type="primary", use_container_width=True)
         if submitted:
@@ -71,6 +83,7 @@ def render_add_trade_modal():
                     "tsl": tsl if tsl > 0 else None,
                     "notes": notes,
                     "funding_type": funding_type.upper(),
+                    "mtf_margin_pct": mtf_margin_pct if funding_type == "MTF" else None,
                 })
                 st.success(f"✅ Trade added: {ticker}")
                 st.rerun()
@@ -185,6 +198,14 @@ def render_edit_trade_modal(trade: dict):
             funding_type = st.selectbox("Funding", ["Cash", "MTF"], index=funding_idx,
                                          help="MTF = Zerodha Margin Trading Facility (leveraged/borrowed funds)")
 
+        mtf_margin_pct = float(trade.get("mtf_margin_pct") or 50.0)
+        if funding_type == "MTF":
+            mtf_margin_pct = st.number_input(
+                "Your Margin % (MTF)", min_value=1.0, max_value=100.0, step=1.0, value=mtf_margin_pct,
+                help="% of position value you fund yourself — check Kite's order screen at entry time for the exact "
+                     "figure (it varies by stock per Zerodha's MTF approved list). Remainder is Zerodha-funded."
+            )
+
         # Live 1R
         if entry_price and stop_loss and qty:
             one_r = abs(entry_price - stop_loss) * qty
@@ -208,6 +229,7 @@ def render_edit_trade_modal(trade: dict):
                     "commission_entry": commission,
                     "notes":            notes,
                     "funding_type":     funding_type.upper(),
+                    "mtf_margin_pct":   mtf_margin_pct if funding_type == "MTF" else None,
                 })
                 st.success(f"✅ {ticker} updated!")
                 st.rerun()
