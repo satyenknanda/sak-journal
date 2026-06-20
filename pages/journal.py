@@ -105,22 +105,38 @@ def render():
     else:
         price_data = {}
 
-    # ── Focused cockpit strip — 4 cards about OPEN positions ────────────────
+    # ── Combine same-ticker open positions for KPI purposes only ────────────
+    # (individual trade rows in the table below stay separate; this only affects
+    #  the Open Positions / Unrealized P&L / At Risk / In Profit cockpit cards)
+    combined_by_ticker = {}
+    for t in open_all:
+        tk = t.get("ticker","")
+        pnl, _ = _calc_running(t)
+        rs = (t.get("risk_status") or "")
+        if tk not in combined_by_ticker:
+            combined_by_ticker[tk] = {"pnl": 0.0, "qty": 0.0, "rs_flags": set()}
+        combined_by_ticker[tk]["pnl"] += pnl or 0
+        combined_by_ticker[tk]["qty"] += float(t.get("qty") or 0)
+        if "SL Breached" in rs or "Open Risk" in rs:
+            combined_by_ticker[tk]["rs_flags"].add("at_risk")
+        if "Profit" in rs or (pnl is not None and pnl > 0):
+            combined_by_ticker[tk]["rs_flags"].add("in_profit")
+
+    # ── Focused cockpit strip — 4 cards about OPEN positions (ticker-combined) ──
     unrealized_pnl = 0.0
     at_risk = 0
     in_profit = 0
-    for t in open_all:
-        pnl, _ = _calc_running(t)
-        if pnl is not None:
-            unrealized_pnl += pnl
-        rs = (t.get("risk_status") or "")
-        if "SL Breached" in rs or "Open Risk" in rs:
+    for tk, agg in combined_by_ticker.items():
+        unrealized_pnl += agg["pnl"]
+        if "at_risk" in agg["rs_flags"]:
             at_risk += 1
-        if "Profit" in rs or (pnl is not None and pnl > 0):
+        elif agg["pnl"] > 0 or "in_profit" in agg["rs_flags"]:
             in_profit += 1
 
+    n_positions = len(combined_by_ticker)  # unique tickers, not individual trade rows
+
     cockpit_rows = [
-        metric_row("Open Positions", str(len(open_all)), icon="📂", icon_color="blue"),
+        metric_row("Open Positions", str(n_positions), f"{len(open_all)} trade rows" if len(open_all)!=n_positions else "", icon="📂", icon_color="blue"),
         metric_row("Unrealized P&L", f"{'+' if unrealized_pnl>=0 else ''}₹{unrealized_pnl:,.0f}",
                    icon="💰", icon_color="green" if unrealized_pnl>=0 else "red"),
         metric_row("At Risk", str(at_risk), icon="⚠️", icon_color="red" if at_risk else "blue"),
