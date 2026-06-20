@@ -19,22 +19,62 @@ def fmt_inr(v):
 
 def render():
     st.markdown("## Fund Management")
-    st.caption("Track month-over-month capital flows and growth attribution. Enter Added/Withdrawn amounts as they occur — nothing is pre-filled.")
+    st.caption("Track month-over-month capital flows, growth attribution, and own-funds vs MTF (leverage) exposure.")
 
     from data.db import get_capital_flows, save_capital_flow
 
     trades = get_journal_trades()
     closed = [t for t in trades if t.get("status") == "CLOSED"]
+    open_trades = [t for t in trades if t.get("status") == "OPEN"]
 
     years = sorted({int(str(t.get("exit_date",""))[:4]) for t in closed if str(t.get("exit_date",""))[:4].isdigit()}, reverse=True)
     if not years:
         years = [datetime.now().year]
     year_sel = st.selectbox("Year", years, key="fund_year")
 
-    flows = get_capital_flows(year_sel)  # {month_num: {"added": x, "withdrawn": y}}
+    flows = get_capital_flows(year_sel)  # {month_num: {"added": x, "withdrawn": y, "mtf_interest": z}}
 
-    # ── monthly net P&L from journal ─────────────────────────────────────
+    # ── Own Capital vs MTF Exposure (current open positions) ────────────
+    st.markdown(section_label("Current Exposure — Own Capital vs MTF"), unsafe_allow_html=True)
+
+    cash_value = 0.0
+    mtf_value = 0.0
+    cash_count = mtf_count = 0
+    for t in open_trades:
+        qty = safe_float(t.get("qty"))
+        price = safe_float(t.get("entry_price")) or safe_float(t.get("live_price"))
+        value = qty * price
+        funding = str(t.get("funding_type", "CASH") or "CASH").upper()
+        if funding == "MTF":
+            mtf_value += value
+            mtf_count += 1
+        else:
+            cash_value += value
+            cash_count += 1
+
+    total_exposure = cash_value + mtf_value
+    mtf_pct = (mtf_value / total_exposure * 100) if total_exposure > 0 else 0
+
+    e1, e2, e3, e4 = st.columns(4)
+    e1.markdown(kpi_card("OWN CAPITAL DEPLOYED", fmt_inr(cash_value), sub=f"{cash_count} positions"), unsafe_allow_html=True)
+    e2.markdown(kpi_card("MTF EXPOSURE", fmt_inr(mtf_value), color=AMBER, sub=f"{mtf_count} positions"), unsafe_allow_html=True)
+    e3.markdown(kpi_card("TOTAL EXPOSURE", fmt_inr(total_exposure)), unsafe_allow_html=True)
+    e4.markdown(kpi_card("MTF % OF EXPOSURE", f"{mtf_pct:.1f}%",
+                          color=(RED if mtf_pct > 50 else AMBER if mtf_pct > 25 else TEAL)), unsafe_allow_html=True)
+
+    if mtf_pct > 0:
+        st.markdown(f"""<div style="background:{AMBER_BG};border:1px solid {AMBER_BORDER};border-radius:8px;
+            padding:10px 14px;font-size:12px;color:{TEXT_BODY};margin:10px 0">
+            ⚡ {mtf_pct:.1f}% of your current open exposure is MTF-funded (borrowed). This amplifies both gains and losses,
+            and accrues daily interest — tracked below as a monthly expense against P&L.
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── monthly net P&L from journal, split by funding type ──────────────
     monthly_pnl = {m: 0.0 for m in range(1, 13)}
+    monthly_pnl_cash = {m: 0.0 for m in range(1, 13)}
+    monthly_pnl_mtf = {m: 0.0 for m in range(1, 13)}
     for t in closed:
         d = str(t.get("exit_date",""))[:10]
         try:
@@ -42,7 +82,12 @@ def render():
         except Exception:
             continue
         if dt.year == year_sel:
-            monthly_pnl[dt.month] += safe_float(t.get("pnl"))
+            p = safe_float(t.get("pnl"))
+            monthly_pnl[dt.month] += p
+            if str(t.get("funding_type","CASH") or "CASH").upper() == "MTF":
+                monthly_pnl_mtf[dt.month] += p
+            else:
+                monthly_pnl_cash[dt.month] += p
 
     # ── compute starting capital roll-forward ───────────────────────────
     starting_capital = st.number_input(
@@ -54,22 +99,26 @@ def render():
 
     rows = []
     running_capital = starting_capital
-    total_added = total_withdrawn = total_pnl = 0.0
+    total_added = total_withdrawn = total_pnl = total_mtf_interest = 0.0
 
     for m in range(1, 13):
-        f = flows.get(m, {"added": 0.0, "withdrawn": 0.0})
+        f = flows.get(m, {"added": 0.0, "withdrawn": 0.0, "mtf_interest": 0.0})
         added = f.get("added", 0.0)
         withdrawn = f.get("withdrawn", 0.0)
+        mtf_interest = f.get("mtf_interest", 0.0)
         pnl = monthly_pnl.get(m, 0.0)
+        net_pnl = pnl - mtf_interest
         start_cap = running_capital
-        running_capital = running_capital + added - withdrawn + pnl
+        running_capital = running_capital + added - withdrawn + net_pnl
         total_added += added
         total_withdrawn += withdrawn
         total_pnl += pnl
+        total_mtf_interest += mtf_interest
         rows.append({
             "month": MONTHS[m-1], "month_num": m,
             "added": added, "withdrawn": withdrawn,
-            "starting_capital": start_cap, "net_pnl": pnl,
+            "starting_capital": start_cap, "gross_pnl": pnl,
+            "mtf_interest": mtf_interest, "net_pnl": net_pnl,
             "ending_capital": running_capital,
         })
 
@@ -77,20 +126,22 @@ def render():
     k1, k2, k3, k4 = st.columns(4)
     k1.markdown(kpi_card("TOTAL ADDED", fmt_inr(total_added)), unsafe_allow_html=True)
     k2.markdown(kpi_card("TOTAL WITHDRAWN", fmt_inr(total_withdrawn)), unsafe_allow_html=True)
-    k3.markdown(kpi_card("NET P&L (YEAR)", fmt_pnl(total_pnl), color=(TEAL if total_pnl>=0 else RED)), unsafe_allow_html=True)
+    k3.markdown(kpi_card("MTF INTEREST PAID", fmt_inr(total_mtf_interest), color=AMBER), unsafe_allow_html=True)
     k4.markdown(kpi_card("CURRENT CAPITAL", fmt_inr(running_capital)), unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
     # ── editable monthly table ──────────────────────────────────────────
     st.markdown(section_label(f"Monthly Flows — {year_sel}"), unsafe_allow_html=True)
-    st.caption("Edit Added / Withdrawn inline below, then click Save. Starting Capital and Net P/L are computed automatically.")
+    st.caption("Edit Added / Withdrawn / MTF Interest inline below, then click Save. Starting Capital and Net P/L are computed automatically.")
 
     edit_df = pd.DataFrame([{
         "Month": r["month"],
         "Added (₹)": r["added"],
         "Withdrawn (₹)": r["withdrawn"],
+        "MTF Interest (₹)": r["mtf_interest"],
         "Starting Capital (₹)": r["starting_capital"],
+        "Gross P/L (₹)": r["gross_pnl"],
         "Net P/L (₹)": r["net_pnl"],
         "Ending Capital (₹)": r["ending_capital"],
     } for r in rows])
@@ -98,11 +149,14 @@ def render():
     edited = st.data_editor(
         edit_df,
         use_container_width=True, hide_index=True, key=f"fund_editor_{year_sel}",
-        disabled=["Month", "Starting Capital (₹)", "Net P/L (₹)", "Ending Capital (₹)"],
+        disabled=["Month", "Starting Capital (₹)", "Gross P/L (₹)", "Net P/L (₹)", "Ending Capital (₹)"],
         column_config={
             "Added (₹)": st.column_config.NumberColumn(format="₹%.0f", min_value=0.0),
             "Withdrawn (₹)": st.column_config.NumberColumn(format="₹%.0f", min_value=0.0),
+            "MTF Interest (₹)": st.column_config.NumberColumn(format="₹%.0f", min_value=0.0,
+                                                                help="Monthly MTF interest charged by Zerodha — reduces Net P/L"),
             "Starting Capital (₹)": st.column_config.NumberColumn(format="₹%.0f"),
+            "Gross P/L (₹)": st.column_config.NumberColumn(format="₹%.0f"),
             "Net P/L (₹)": st.column_config.NumberColumn(format="₹%.0f"),
             "Ending Capital (₹)": st.column_config.NumberColumn(format="₹%.0f"),
         },
@@ -112,21 +166,24 @@ def render():
         for i, m in enumerate(range(1, 13)):
             added = safe_float(edited.iloc[i]["Added (₹)"])
             withdrawn = safe_float(edited.iloc[i]["Withdrawn (₹)"])
-            save_capital_flow(year_sel, m, added, withdrawn)
+            mtf_interest = safe_float(edited.iloc[i]["MTF Interest (₹)"])
+            save_capital_flow(year_sel, m, added, withdrawn, mtf_interest=mtf_interest)
         save_capital_flow(year_sel, 0, 0, 0, base_capital=starting_capital)  # month=0 stores the anchor
         st.success("Saved. Reload the page to see updated roll-forward.")
         st.rerun()
 
     # ── TOTAL (post-tax placeholder) row ─────────────────────────────────
     st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
-        padding:14px 18px;margin-top:10px;display:flex;justify-content:space-between;align-items:center">
+        padding:14px 18px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <span style="font-size:12px;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;font-weight:600">
             TOTAL <span style="color:{TEAL}">POST-TAX</span>
         </span>
         <span style="font-size:13px;color:{TEXT_BODY}">
             Added {fmt_inr(total_added)} &nbsp;·&nbsp; Withdrawn {fmt_inr(total_withdrawn)} &nbsp;·&nbsp;
-            Net P/L {fmt_pnl(total_pnl)} &nbsp;·&nbsp; <b style="color:{TEXT_H}">Ending {fmt_inr(running_capital)}</b>
+            Gross P/L {fmt_pnl(total_pnl)} &nbsp;·&nbsp; MTF Interest -{fmt_inr(total_mtf_interest)} &nbsp;·&nbsp;
+            <b style="color:{TEXT_H}">Ending {fmt_inr(running_capital)}</b>
         </span>
     </div>""", unsafe_allow_html=True)
 
-    st.caption("Post-tax total is illustrative — wire to your Tax Analytics page output if you want an exact post-STCG/LTCG figure.")
+    st.caption("Post-tax total is illustrative — wire to your Tax Analytics page output if you want an exact post-STCG/LTCG figure. "
+               "MTF interest is entered manually per month from your Zerodha contract notes / fund statement, since it isn't captured per-trade.")

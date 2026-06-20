@@ -33,17 +33,22 @@ def render_add_trade_modal():
         with c9:
             tsl = st.number_input("TSL ₹ (optional)", min_value=0.0, step=0.05, format="%.2f", value=0.0)
 
-        c10, c11 = st.columns(2)
+        c10, c11, c12 = st.columns(3)
         with c10:
             commission = st.number_input("Commission ₹", min_value=0.0, step=1.0, format="%.2f", value=0.0)
         with c11:
             notes = st.text_input("Notes (optional)")
+        with c12:
+            funding_type = st.selectbox("Funding", ["Cash", "MTF"],
+                                         help="MTF = Zerodha Margin Trading Facility (leveraged/borrowed funds)")
 
         # Live 1R display
         if entry_price and stop_loss and qty:
             risk_per_share = abs(entry_price - stop_loss)
             one_r = risk_per_share * qty
-            st.info(f"📊  1R = ₹{one_r:,.0f}  |  Risk/share = ₹{risk_per_share:.2f}")
+            position_size = entry_price * qty
+            st.info(f"📊  1R = ₹{one_r:,.0f}  |  Risk/share = ₹{risk_per_share:.2f}  |  Position size = ₹{position_size:,.0f}"
+                    f"{'  ⚡ MTF (leveraged)' if funding_type == 'MTF' else ''}")
 
         submitted = st.form_submit_button("Add Trade", type="primary", use_container_width=True)
         if submitted:
@@ -65,6 +70,7 @@ def render_add_trade_modal():
                     "commission_entry": commission,
                     "tsl": tsl if tsl > 0 else None,
                     "notes": notes,
+                    "funding_type": funding_type.upper(),
                 })
                 st.success(f"✅ Trade added: {ticker}")
                 st.rerun()
@@ -74,7 +80,8 @@ def render_exit_trade_modal(trade: dict):
     """Renders Exit Trade form inside a st.dialog."""
     with st.form(f"exit_trade_form_{trade['id']}", clear_on_submit=True):
         st.markdown(f"### Exit Trade — **{trade['ticker']}** ({trade['strategy']})")
-        st.caption(f"Entry: ₹{trade['entry_price']} × {trade['qty']} shares  |  SL: ₹{trade['stop_loss']}")
+        funding_badge = " ⚡ MTF" if str(trade.get("funding_type","CASH")).upper() == "MTF" else ""
+        st.caption(f"Entry: ₹{trade['entry_price']} × {trade['qty']} shares  |  SL: ₹{trade['stop_loss']}{funding_badge}")
 
         c1, c2 = st.columns(2)
         with c1:
@@ -166,12 +173,17 @@ def render_edit_trade_modal(trade: dict):
             tsl = st.number_input("TSL ₹", min_value=0.0, step=0.05,
                 value=float(trade.get("tsl") or 0.0), format="%.2f")
 
-        c10, c11 = st.columns(2)
+        c10, c11, c12 = st.columns(3)
         with c10:
             commission = st.number_input("Commission ₹", min_value=0.0, step=1.0,
                 value=float(trade.get("commission_entry") or 0.0), format="%.2f")
         with c11:
             notes = st.text_input("Notes", value=trade.get("notes","") or "")
+        with c12:
+            cur_funding = str(trade.get("funding_type","CASH")).upper()
+            funding_idx = 1 if cur_funding == "MTF" else 0
+            funding_type = st.selectbox("Funding", ["Cash", "MTF"], index=funding_idx,
+                                         help="MTF = Zerodha Margin Trading Facility (leveraged/borrowed funds)")
 
         # Live 1R
         if entry_price and stop_loss and qty:
@@ -195,6 +207,7 @@ def render_edit_trade_modal(trade: dict):
                     "tsl":              tsl if tsl > 0 else None,
                     "commission_entry": commission,
                     "notes":            notes,
+                    "funding_type":     funding_type.upper(),
                 })
                 st.success(f"✅ {ticker} updated!")
                 st.rerun()

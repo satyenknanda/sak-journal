@@ -330,7 +330,7 @@ def get_conn():
 
 
 def get_capital_flows(year):
-    """Returns dict of month -> added/withdrawn/base_capital for a year."""
+    """Returns dict of month -> added/withdrawn/mtf_interest/base_capital for a year."""
     try:
         res = _sb().table("capital_flows").select("*").eq("year", year).execute()
         out = {}
@@ -338,6 +338,7 @@ def get_capital_flows(year):
             out[row["month"]] = {
                 "added": float(row.get("added") or 0),
                 "withdrawn": float(row.get("withdrawn") or 0),
+                "mtf_interest": float(row.get("mtf_interest") or 0),
                 "base_capital": float(row.get("base_capital") or 0),
             }
         return out
@@ -345,12 +346,14 @@ def get_capital_flows(year):
         return {}
 
 
-def save_capital_flow(year, month, added, withdrawn, base_capital=None):
+def save_capital_flow(year, month, added, withdrawn, base_capital=None, mtf_interest=None):
     """Upsert a single month's flow row. month=0 is the starting-capital anchor row."""
     try:
         payload = {"year": year, "month": month, "added": added, "withdrawn": withdrawn}
         if base_capital is not None:
             payload["base_capital"] = base_capital
+        if mtf_interest is not None:
+            payload["mtf_interest"] = mtf_interest
         _sb().table("capital_flows").upsert(payload, on_conflict="year,month").execute()
         return True
     except Exception as e:
