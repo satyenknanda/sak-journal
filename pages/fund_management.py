@@ -81,6 +81,53 @@ def render():
 
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # ── MTF Margin Lookup (collapsible) ──────────────────────────────────
+    from data.db import get_mtf_margins, save_mtf_margin, delete_mtf_margin
+
+    with st.expander("⚡ MTF Margin Lookup — paste Zerodha margin % per ticker"):
+        st.caption("Paste margin % from Zerodha's MTF page (zerodha.com/mtf-approved-securities) once per ticker. "
+                   "Edit Trade will auto-fill from here instead of asking you to look it up every time. "
+                   "Still editable per trade if Zerodha revises a stock's margin requirement.")
+
+        margins = get_mtf_margins()
+
+        if margins:
+            mdf = pd.DataFrame([{
+                "Symbol": m["ticker"],
+                "Margin %": float(m.get("margin_pct") or 0),
+                "Leverage": f"{float(m.get('leverage') or 0):.2f}x" if m.get("leverage") else "—",
+                "Updated": str(m.get("updated_at",""))[:10],
+            } for m in margins])
+            st.dataframe(mdf, use_container_width=True, hide_index=True)
+        else:
+            st.caption("No tickers added yet.")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        ac1, ac2, ac3 = st.columns([2, 2, 1])
+        with ac1:
+            new_ticker = st.text_input("Ticker", key="mtf_lookup_ticker", placeholder="e.g. TATATECH").upper()
+        with ac2:
+            new_margin = st.number_input("Margin %", key="mtf_lookup_margin", min_value=1.0, max_value=100.0,
+                                          step=0.01, value=50.0, format="%.2f")
+        with ac3:
+            st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+            if st.button("Save", key="mtf_lookup_save", use_container_width=True):
+                if new_ticker:
+                    save_mtf_margin(new_ticker, new_margin)
+                    st.success(f"✅ Saved {new_ticker} at {new_margin:.2f}%")
+                    st.rerun()
+                else:
+                    st.error("Enter a ticker first.")
+
+        if margins:
+            del_ticker = st.selectbox("Remove a ticker", ["—"] + [m["ticker"] for m in margins], key="mtf_lookup_del")
+            if del_ticker != "—" and st.button(f"🗑️ Remove {del_ticker}", key="mtf_lookup_del_btn"):
+                delete_mtf_margin(del_ticker)
+                st.success(f"Removed {del_ticker}")
+                st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
     # ── monthly net P&L from journal, split by funding type ──────────────
     monthly_pnl = {m: 0.0 for m in range(1, 13)}
     monthly_pnl_cash = {m: 0.0 for m in range(1, 13)}

@@ -360,3 +360,37 @@ def save_capital_flow(year, month, added, withdrawn, base_capital=None, mtf_inte
         print("save_capital_flow error:", e)
         return False
 
+
+
+def get_mtf_margins():
+    """Returns list of dicts: [{ticker, margin_pct, leverage, updated_at}, ...] sorted by ticker."""
+    try:
+        res = _sb().table("mtf_margins").select("*").order("ticker").execute()
+        return res.data or []
+    except Exception:
+        return []
+
+
+def save_mtf_margin(ticker, margin_pct, leverage=None):
+    """Upsert a ticker's margin %. Computes leverage automatically if not provided."""
+    try:
+        ticker = ticker.upper().strip()
+        if leverage is None and margin_pct and float(margin_pct) > 0:
+            leverage = round(100.0 / float(margin_pct), 2)
+        payload = {"ticker": ticker, "margin_pct": margin_pct, "leverage": leverage,
+                   "updated_at": "now()"}
+        _sb().table("mtf_margins").upsert(payload, on_conflict="ticker").execute()
+        return True
+    except Exception as e:
+        print("save_mtf_margin error:", e)
+        return False
+
+
+def delete_mtf_margin(ticker):
+    """Remove a ticker from the MTF margin lookup table."""
+    try:
+        _sb().table("mtf_margins").delete().eq("ticker", ticker.upper().strip()).execute()
+        return True
+    except Exception as e:
+        print("delete_mtf_margin error:", e)
+        return False

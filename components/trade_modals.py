@@ -5,29 +5,43 @@ from data.db import add_trade, exit_trade, get_strategies
 
 def render_add_trade_modal():
     """Renders Add Trade form inside a st.dialog."""
+    from data.db import get_mtf_margins
     strategies = get_strategies()
 
-    # Funding type must live OUTSIDE st.form — forms don't rerun on widget change,
-    # only on submit, so a conditional field inside the form won't react live.
+    # Ticker + Funding type must live OUTSIDE st.form — forms don't rerun on widget
+    # change, only on submit, so the MTF margin% auto-fill lookup needs the ticker
+    # value available before the form renders.
     st.markdown("### ＋ Add New Trade")
-    fc1, fc2 = st.columns([1, 3])
+    fc0, fc1, fc2 = st.columns([2, 1, 2])
+    with fc0:
+        ticker = st.text_input("Ticker", placeholder="e.g. RELIANCE", key="add_trade_ticker").upper()
     with fc1:
         funding_type = st.selectbox("Funding", ["Cash", "MTF"], key="add_trade_funding",
                                      help="MTF = Zerodha Margin Trading Facility (leveraged/borrowed funds)")
+
     mtf_margin_pct = 50.0
     if funding_type == "MTF":
+        # Auto-fill from saved lookup table if this ticker has a saved margin %
+        lookup_default = 50.0
+        if ticker:
+            margins = get_mtf_margins()
+            match = next((m for m in margins if m["ticker"] == ticker), None)
+            if match:
+                lookup_default = float(match.get("margin_pct") or 50.0)
         with fc2:
             mtf_margin_pct = st.number_input(
-                "Your Margin % (MTF)", min_value=1.0, max_value=100.0, step=1.0, value=50.0,
-                key="add_trade_margin_pct",
-                help="% of position value you fund yourself — check Kite's order screen at entry time for the exact "
-                     "figure (it varies by stock per Zerodha's MTF approved list). Remainder is Zerodha-funded."
+                "Your Margin % (MTF)", min_value=1.0, max_value=100.0, step=1.0, value=lookup_default,
+                key=f"add_trade_margin_pct_{ticker}",
+                help="Auto-filled from your MTF Margin Lookup (Fund Management page) if this ticker is saved there. "
+                     "Still editable — check Kite's order screen at entry time for the exact figure."
             )
+            if ticker and any(m["ticker"] == ticker for m in get_mtf_margins()):
+                st.caption(f"📋 Auto-filled from saved lookup for {ticker}")
 
     with st.form("add_trade_form", clear_on_submit=True):
         c1, c2, c3 = st.columns(3)
         with c1:
-            ticker = st.text_input("Ticker", placeholder="e.g. RELIANCE").upper()
+            st.text_input("Ticker", value=ticker, disabled=True, key="add_trade_ticker_display")
         with c2:
             strategy = st.selectbox("Strategy", strategies)
         with c3:
@@ -152,6 +166,7 @@ def render_edit_trade_modal(trade: dict):
     """Renders Edit Trade form inside a st.dialog — pre-filled with existing values."""
     from data.db import update_trade, get_strategies
     strategies = get_strategies()
+    from data.db import get_mtf_margins
 
     st.markdown(f"### ✏️ Edit Trade — **{trade.get('ticker','')}**")
     st.caption(f"Trade #{trade.get('trade_no','')}  ·  ID {trade.get('id','')}")
@@ -163,15 +178,29 @@ def render_edit_trade_modal(trade: dict):
         funding_type = st.selectbox("Funding", ["Cash", "MTF"], index=funding_idx,
                                      key=f"edit_trade_funding_{trade['id']}",
                                      help="MTF = Zerodha Margin Trading Facility (leveraged/borrowed funds)")
-    mtf_margin_pct = float(trade.get("mtf_margin_pct") or 50.0)
+
+    # Default: use the trade's own saved margin% if set, else look up by ticker, else 50%
+    existing_margin = trade.get("mtf_margin_pct")
+    if existing_margin:
+        mtf_margin_pct = float(existing_margin)
+        lookup_note = None
+    else:
+        trade_ticker = (trade.get("ticker") or "").upper().strip()
+        margins = get_mtf_margins()
+        match = next((m for m in margins if m["ticker"] == trade_ticker), None)
+        mtf_margin_pct = float(match.get("margin_pct")) if match else 50.0
+        lookup_note = f"📋 Auto-filled from saved lookup for {trade_ticker}" if match else None
+
     if funding_type == "MTF":
         with fc2:
             mtf_margin_pct = st.number_input(
                 "Your Margin % (MTF)", min_value=1.0, max_value=100.0, step=1.0, value=mtf_margin_pct,
                 key=f"edit_trade_margin_pct_{trade['id']}",
-                help="% of position value you fund yourself — check Kite's order screen at entry time for the exact "
-                     "figure (it varies by stock per Zerodha's MTF approved list). Remainder is Zerodha-funded."
+                help="Auto-filled from your MTF Margin Lookup (Fund Management page) if this ticker is saved there "
+                     "and no margin% has been set on this trade yet. Still editable."
             )
+            if lookup_note:
+                st.caption(lookup_note)
 
     with st.form(f"edit_trade_form_{trade['id']}", clear_on_submit=False):
         c1, c2, c3 = st.columns(3)
