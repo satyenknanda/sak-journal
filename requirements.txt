@@ -7,3 +7,5 @@ certifi
 python-dotenv
 openpyxl
 scipy
+
+streamlit-elements>=0.1.0
