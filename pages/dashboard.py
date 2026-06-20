@@ -8,6 +8,7 @@ import calendar as cal_mod
 import math, re
 from datetime import date, timedelta, datetime
 from data.db import get_journal_trades, get_kpi_summary_extended as get_kpi
+from position_utils import combine_open_positions
 from theme import *
 
 # ── SVG helpers ──────────────────────────────────────────────────────────────
@@ -690,13 +691,31 @@ def render():
             TH_OP = f"padding:7px 10px;font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid {BORDER}"
             TD_OP = f"padding:8px 10px;font-size:12px;border-bottom:1px solid {BORDER_LIGHT}"
             op_rows = ""
-            for t in open_t[:15]:
-                ep  = float(t.get("entry_price") or 0)
-                sl  = float(t.get("stop_loss")   or 0)
-                qty = t.get("qty","—")
-                strat = t.get("strategy","—")
+            # Combine same-ticker open positions: merge strategies, weighted-avg entry,
+            # show widest (most conservative) stop loss among combined trades
+            _combined_open = combine_open_positions(open_t)
+            # Recover individual SLs per ticker for "widest stop" display
+            _sl_by_ticker = {}
+            for t in open_t:
+                tk = t.get("ticker","")
+                sl = float(t.get("stop_loss") or 0)
+                if sl:
+                    side = str(t.get("side","")).upper()
+                    if tk not in _sl_by_ticker:
+                        _sl_by_ticker[tk] = sl
+                    else:
+                        # For longs, widest/safest stop is the lowest; for shorts, the highest
+                        if side in ("BUY","LONG"):
+                            _sl_by_ticker[tk] = min(_sl_by_ticker[tk], sl)
+                        else:
+                            _sl_by_ticker[tk] = max(_sl_by_ticker[tk], sl)
+
+            for tk, agg in list(_combined_open.items())[:15]:
+                ep = agg["avg_entry"]
+                sl = _sl_by_ticker.get(tk, 0)
+                strat = ", ".join(sorted(agg["strategies"])) or "—"
                 op_rows += (f'<tr>'
-                    f'<td style="{TD_OP};font-weight:700;color:{TEXT_H}">{t.get("ticker","")}</td>'
+                    f'<td style="{TD_OP};font-weight:700;color:{TEXT_H}">{tk}</td>'
                     f'<td style="{TD_OP};color:{TEXT_MUTED}">{strat}</td>'
                     f'<td style="{TD_OP};color:{TEXT_H}">₹{ep:,.2f}</td>'
                     f'<td style="{TD_OP};color:{RED};text-align:right">SL ₹{sl:,.2f}</td>'
