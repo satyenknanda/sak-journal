@@ -13,3 +13,4 @@ __pycache__/
 pages/install_morning_brief.py
 pages/morning_brief 2.py
 pages/bell_curve.py.
+*.bak
