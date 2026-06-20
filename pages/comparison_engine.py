@@ -96,6 +96,9 @@ def render():
         for i, sector in enumerate(selected):
             sec_tickers = uni_df[uni_df["sector"] == sector]["ticker"].tolist()
             sec_ph = ph_df[ph_df["ticker"].isin(sec_tickers)]
+            st.caption(f"DEBUG: {sector} — {len(sec_tickers)} tickers in universe, "
+                       f"{sec_ph['ticker'].nunique() if not sec_ph.empty else 0} found in price_history, "
+                       f"{len(sec_ph)} total rows")
             if sec_ph.empty:
                 continue
             # average close per day across all tickers in this sector, then normalize
