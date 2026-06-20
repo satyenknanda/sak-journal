@@ -453,6 +453,7 @@ with st.sidebar:
         "fund_management": '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v16"/></svg>',
         "thematic_heatmap": '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
         "tracker": '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+        "comparison_engine": '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     }
 
     # Add Trade button - functional
@@ -488,6 +489,7 @@ with st.sidebar:
         None,
         ("thematic_heatmap", "Thematic Heatmap"),
         ("tracker", "Tracker"),
+        ("comparison_engine", "Comparison Engine"),
         ("import",   "Import Excel"),
         ("terminal", "Terminal"),
     ]
@@ -557,6 +559,7 @@ try:
     elif p=="portfolio_dna":   from pages.portfolio_dna     import render; render()
     elif p=="fund_management": from pages.fund_management   import render; render()
     elif p=="thematic_heatmap": from pages.thematic_heatmap import render; render()
+    elif p=="comparison_engine": from pages.comparison_engine import render; render()
     else:                from pages.dashboard          import render; render()
 except Exception as _err:
     import traceback

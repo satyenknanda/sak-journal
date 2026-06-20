@@ -62,46 +62,79 @@ def ytd_change(hist):
     return round((latest - first) / first * 100, 2)
 
 
-def fetch_returns_for_ticker(ticker):
-    """Pulls 1y daily history and computes the 7 return windows. Returns dict or None on failure."""
+def fetch_hist_for_ticker(ticker):
+    """Pulls 1y daily history once. Returns the DataFrame or None on failure."""
     try:
         t = yf.Ticker(f"{ticker}.NS")
         hist = t.history(period="1y", interval="1d")
         if hist.empty or len(hist) < 2:
             print(f"  ⚠️ {ticker}: no data")
             return None
-        return {
-            "ticker": ticker,
-            "as_of_date": str(date.today()),
-            "ret_1d": pct_change(hist, 1),
-            "ret_1w": pct_change(hist, 5),
-            "ret_1m": pct_change(hist, 21),
-            "ret_3m": pct_change(hist, 63),
-            "ret_6m": pct_change(hist, 126),
-            "ret_12m": pct_change(hist, 252) if len(hist) >= 253 else pct_change(hist, len(hist) - 1),
-            "ret_ytd": ytd_change(hist),
-        }
+        return hist
     except Exception as e:
         print(f"  ❌ {ticker}: {e}")
         return None
 
 
+def returns_row_from_hist(ticker, hist):
+    return {
+        "ticker": ticker,
+        "as_of_date": str(date.today()),
+        "ret_1d": pct_change(hist, 1),
+        "ret_1w": pct_change(hist, 5),
+        "ret_1m": pct_change(hist, 21),
+        "ret_3m": pct_change(hist, 63),
+        "ret_6m": pct_change(hist, 126),
+        "ret_12m": pct_change(hist, 252) if len(hist) >= 253 else pct_change(hist, len(hist) - 1),
+        "ret_ytd": ytd_change(hist),
+    }
+
+
+def price_rows_from_hist(ticker, hist):
+    """One row per trading day: {ticker, trade_date, close}."""
+    rows = []
+    for idx, row in hist.iterrows():
+        close = row.get("Close")
+        if pd.isna(close):
+            continue
+        rows.append({"ticker": ticker, "trade_date": idx.strftime("%Y-%m-%d"), "close": round(float(close), 2)})
+    return rows
+
+
 def refresh_all():
     sb = _sb()
     tickers = [t for (t, s, i) in UNIVERSE]
-    print(f"Refreshing returns for {len(tickers)} tickers...")
+    print(f"Refreshing returns + price history for {len(tickers)} tickers...")
 
     success, failed = 0, []
     for idx, ticker in enumerate(tickers, 1):
         print(f"[{idx}/{len(tickers)}] {ticker}...")
-        row = fetch_returns_for_ticker(ticker)
-        if row:
-            try:
-                sb.table("market_returns").upsert(row, on_conflict="ticker").execute()
-                success += 1
-            except Exception as e:
-                print(f"  ❌ DB upsert failed for {ticker}: {e}")
-                failed.append(ticker)
+        hist = fetch_hist_for_ticker(ticker)
+        if hist is None:
+            failed.append(ticker)
+            time.sleep(0.3)
+            continue
+
+        ok = True
+        try:
+            ret_row = returns_row_from_hist(ticker, hist)
+            sb.table("market_returns").upsert(ret_row, on_conflict="ticker").execute()
+        except Exception as e:
+            print(f"  ❌ returns upsert failed for {ticker}: {e}")
+            ok = False
+
+        try:
+            price_rows = price_rows_from_hist(ticker, hist)
+            # batch upsert in chunks of 200 to stay well under request size limits
+            for i in range(0, len(price_rows), 200):
+                chunk = price_rows[i:i+200]
+                sb.table("price_history").upsert(chunk, on_conflict="ticker,trade_date").execute()
+        except Exception as e:
+            print(f"  ❌ price_history upsert failed for {ticker}: {e}")
+            ok = False
+
+        if ok:
+            success += 1
         else:
             failed.append(ticker)
         time.sleep(0.3)  # be polite to Yahoo's rate limits
