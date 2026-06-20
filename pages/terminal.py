@@ -175,20 +175,38 @@ def render():
                                 for h in ["Ticker","Strategy","Entry","Live","P&L"]:
                                     mui.TableCell(h, sx={"fontWeight":700,"fontSize":"11px","color":"#6B7280"})
                         with mui.TableBody():
+                            # Combine same-ticker positions: sum qty/P&L, weighted-avg entry,
+                            # show all strategies involved, most recent live price
+                            _tbl_combined = {}
                             for t in open_trades:
+                                tk = t.get("ticker","")
                                 live=t.get("live_price"); ep=t.get("entry_price")
+                                qty=float(t.get("qty") or 0)
                                 pnl=0
                                 if live and ep:
-                                    qty=float(t.get("qty") or 0); side=str(t.get("side","")).upper()
+                                    side=str(t.get("side","")).upper()
                                     lp,epf=float(live),float(ep)
                                     pnl=(lp-epf)*qty if side in ("BUY","LONG") else (epf-lp)*qty
-                                color = "#10B981" if pnl>=0 else "#EF4444"
+                                if tk not in _tbl_combined:
+                                    _tbl_combined[tk] = {"qty":0.0,"cost":0.0,"pnl":0.0,
+                                                          "strategies":set(),"live":live}
+                                agg = _tbl_combined[tk]
+                                agg["qty"] += qty
+                                agg["cost"] += float(ep or 0) * qty
+                                agg["pnl"] += pnl
+                                if t.get("strategy"): agg["strategies"].add(t.get("strategy"))
+                                if live: agg["live"] = live
+
+                            for tk, agg in _tbl_combined.items():
+                                avg_entry = agg["cost"]/agg["qty"] if agg["qty"] else 0
+                                strat_label = ", ".join(sorted(agg["strategies"])) or "—"
+                                color = "#10B981" if agg["pnl"]>=0 else "#EF4444"
                                 with mui.TableRow():
-                                    mui.TableCell(t.get("ticker",""), sx={"fontWeight":700,"fontSize":"12px"})
-                                    mui.TableCell(t.get("strategy",""), sx={"fontSize":"12px"})
-                                    mui.TableCell(f"₹{float(ep or 0):,.2f}", sx={"fontSize":"12px"})
-                                    mui.TableCell(f"₹{float(live or 0):,.2f}" if live else "—", sx={"fontSize":"12px"})
-                                    mui.TableCell(f"{'+' if pnl>=0 else ''}₹{pnl:,.0f}", sx={"fontSize":"12px","color":color,"fontWeight":700})
+                                    mui.TableCell(tk, sx={"fontWeight":700,"fontSize":"12px"})
+                                    mui.TableCell(strat_label, sx={"fontSize":"12px"})
+                                    mui.TableCell(f"₹{avg_entry:,.2f}", sx={"fontSize":"12px"})
+                                    mui.TableCell(f"₹{float(agg['live'] or 0):,.2f}" if agg["live"] else "—", sx={"fontSize":"12px"})
+                                    mui.TableCell(f"{'+' if agg['pnl']>=0 else ''}₹{agg['pnl']:,.0f}", sx={"fontSize":"12px","color":color,"fontWeight":700})
 
             # ── Panel: Strategy Breakdown ───────────────────────────────
             with mui.Paper(key="strategy", sx={"display":"flex","flexDirection":"column","height":"100%","borderRadius":"12px","overflow":"hidden"}):
