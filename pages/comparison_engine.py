@@ -55,9 +55,15 @@ def render():
         return
 
     try:
-        # Pull price history for all relevant tickers in one query
-        ph_res = _sb().table("price_history").select("*").in_("ticker", target_tickers).execute()
-        ph = ph_res.data or []
+        # Pull price history for all relevant tickers, batched to avoid
+        # PostgREST/.in_() URL length limits when target_tickers is large
+        # (e.g. selecting many sectors pulls 100+ tickers at once).
+        ph = []
+        chunk_size = 40
+        for i in range(0, len(target_tickers), chunk_size):
+            chunk = target_tickers[i:i + chunk_size]
+            ph_res = _sb().table("price_history").select("*").in_("ticker", chunk).execute()
+            ph.extend(ph_res.data or [])
     except Exception as e:
         st.error(f"Could not load price history: {e}")
         return
