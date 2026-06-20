@@ -1,5 +1,6 @@
 import streamlit as st
 from theme import *
+from glass_theme import glass_kpi_card
 # ── backwards-compat aliases ──────────────────────────────────────────────
 kcard   = kpi_card          # old name used in some pages
 G       = TEAL
@@ -119,11 +120,11 @@ def render():
             in_profit += 1
 
     cc = st.columns(4)
-    cc[0].markdown(kcard("Open Positions", str(len(open_all)), "blue", "1.4rem"), unsafe_allow_html=True)
-    cc[1].markdown(kcard("Unrealized P&L", f"{'+' if unrealized_pnl>=0 else ''}₹{unrealized_pnl:,.0f}",
-                          "green" if unrealized_pnl>=0 else "red", "1.2rem"), unsafe_allow_html=True)
-    cc[2].markdown(kcard("At Risk", str(at_risk), "red" if at_risk else "neutral", "1.4rem"), unsafe_allow_html=True)
-    cc[3].markdown(kcard("In Profit", str(in_profit), "green", "1.4rem"), unsafe_allow_html=True)
+    cc[0].markdown(glass_kpi_card("Open Positions", str(len(open_all)), "blue"), unsafe_allow_html=True)
+    cc[1].markdown(glass_kpi_card("Unrealized P&L", f"{'+' if unrealized_pnl>=0 else ''}₹{unrealized_pnl:,.0f}",
+                          "green" if unrealized_pnl>=0 else "red"), unsafe_allow_html=True)
+    cc[2].markdown(glass_kpi_card("At Risk", str(at_risk), "red" if at_risk else "blue"), unsafe_allow_html=True)
+    cc[3].markdown(glass_kpi_card("In Profit", str(in_profit), "green"), unsafe_allow_html=True)
 
     st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 

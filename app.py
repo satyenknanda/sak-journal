@@ -1,4 +1,5 @@
 import streamlit as st
+from glass_theme import inject_glass_css, glass_kpi_card
 from pathlib import Path
 import sys
 import traceback
@@ -21,6 +22,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+inject_glass_css()
 
 init_db()
 
