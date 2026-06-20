@@ -108,7 +108,7 @@ def render():
         fig.update_layout(**l)
         st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown(section_label("Top Winners Breakdown"))
+    st.markdown(section_label("Top Winners Breakdown"), unsafe_allow_html=True)
 
     rows = []
     for i, t in enumerate(wins_sorted[:15]):
@@ -125,7 +125,7 @@ def render():
     df = pd.DataFrame(rows)
     st.dataframe(df, use_container_width=True, hide_index=True)
 
-    st.markdown(section_label("What this means"))
+    st.markdown(section_label("What this means"), unsafe_allow_html=True)
     st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6">
         If a small number of trades drive most of your profit, your exit execution on the <i>rest</i> of your winners is likely
         cutting them short — i.e. an MFE-capture problem, not a stop-loss problem. The fix is usually trailing/scale-out discipline

@@ -108,7 +108,7 @@ def render():
                 st.plotly_chart(fig, use_container_width=True, key=f"dna_pie_{level}")
 
     # ── Theme / peer cards (sector-level grouping with peers) ───────────
-    st.markdown(section_label("Theme Exposure & Peers"))
+    st.markdown(section_label("Theme Exposure & Peers"), unsafe_allow_html=True)
     sector_groups = df.groupby("sector")
     cards_per_row = 3
     sectors_list = list(sector_groups.groups.keys())

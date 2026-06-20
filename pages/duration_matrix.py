@@ -82,7 +82,7 @@ def render():
     # ── Volume by duration / Returns by duration ───────────────────────
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown(section_label("Volume by Duration"))
+        st.markdown(section_label("Volume by Duration"), unsafe_allow_html=True)
         fig = go.Figure()
         fig.add_trace(go.Bar(x=BUCKETS, y=grp["trades"], marker=dict(color=BLUE, opacity=0.85),
                               hovertemplate="%{x}<br>%{y} trades<extra></extra>"))
@@ -92,7 +92,7 @@ def render():
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        st.markdown(section_label("Returns by Duration"))
+        st.markdown(section_label("Returns by Duration"), unsafe_allow_html=True)
         fig = go.Figure()
         colors = [TEAL if v>=0 else RED for v in grp["avg_pnl"]]
         fig.add_trace(go.Bar(x=BUCKETS, y=grp["avg_pnl"], marker=dict(color=colors, opacity=0.9),
@@ -104,7 +104,7 @@ def render():
         st.plotly_chart(fig, use_container_width=True)
 
     # ── Combined correlation matrix (dual axis) ─────────────────────────
-    st.markdown(section_label("Duration Performance Matrix — Correlation Between Frequency & Profitability"))
+    st.markdown(section_label("Duration Performance Matrix — Correlation Between Frequency & Profitability"), unsafe_allow_html=True)
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     fig.add_trace(go.Bar(x=BUCKETS, y=grp["trades"], name="# Trades",
                           marker=dict(color=BLUE, opacity=0.55),
@@ -124,7 +124,7 @@ def render():
     st.plotly_chart(fig, use_container_width=True)
 
     # ── Detail table ─────────────────────────────────────────────────────
-    st.markdown(section_label("Bucket Detail"))
+    st.markdown(section_label("Bucket Detail"), unsafe_allow_html=True)
     out = grp.reset_index().rename(columns={"bucket": "Duration"})
     out["Trades"] = out["trades"].astype(int)
     out["Win Rate"] = out["win_rate"].map(lambda v: f"{v:.1f}%")
@@ -135,7 +135,7 @@ def render():
 
     # ── Strategy-specific note (VCP/REVERSAL stop optimization) ─────────
     if strat_sel in ("VCP", "REVERSAL", "All Strategies"):
-        st.markdown(section_label("Notes"))
+        st.markdown(section_label("Notes"), unsafe_allow_html=True)
         st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6">
             Use this to sanity-check your strategy-specific stop levels: VCP at 2.5–3% and REVERSAL at technical stop with a 2.5% floor
             should show their best Avg P/L in the 4-7 Day to 2-4 Week buckets if exits are working as designed. If the Intraday or 1-3 Day

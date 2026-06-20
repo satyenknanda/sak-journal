@@ -132,7 +132,7 @@ def render():
 
     # ── FY-wise breakdown chart (if All Years) ───────────────────────────
     if fy_sel == "All Years":
-        st.markdown(section_label("FY-wise STCG vs LTCG"))
+        st.markdown(section_label("FY-wise STCG vs LTCG"), unsafe_allow_html=True)
         by_fy = defaultdict(lambda: {"stcg":0.0, "ltcg":0.0})
         for _, r in df.iterrows():
             by_fy[r["fy"]][r["term"].lower()] += r["pnl"]

@@ -83,7 +83,7 @@ def render():
     st.markdown("<br>", unsafe_allow_html=True)
 
     # ── editable monthly table ──────────────────────────────────────────
-    st.markdown(section_label(f"Monthly Flows — {year_sel}"))
+    st.markdown(section_label(f"Monthly Flows — {year_sel}"), unsafe_allow_html=True)
     st.caption("Edit Added / Withdrawn inline below, then click Save. Starting Capital and Net P/L are computed automatically.")
 
     edit_df = pd.DataFrame([{
