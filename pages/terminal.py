@@ -45,15 +45,23 @@ def render():
             unrealized += pnl
 
     total_pnl = kpi.get("total_pnl", 0)
-    win_rate = kpi.get("win_rate", 0) * 100
+    win_rate = kpi.get("win_rate", 0)  # already a percentage from get_kpi_summary_extended
 
-    # Cumulative P&L curve from closed trades
+    # Cumulative P&L curve from closed trades — aggregate by exit DATE
+    # (avoids duplicate x-axis points when multiple trades close same day)
     sorted_closed = sorted(closed_trades, key=lambda x: str(x.get("exit_date") or ""))
+    from collections import defaultdict
+    daily_pnl = defaultdict(float)
+    for t in sorted_closed:
+        d = str(t.get("exit_date",""))[:10]
+        if d:
+            daily_pnl[d] += float(t.get("pnl") or 0)
+
     cum = 0
     curve = []
-    for t in sorted_closed[-30:]:  # last 30 closed trades
-        cum += float(t.get("pnl") or 0)
-        curve.append({"x": str(t.get("exit_date",""))[:10], "y": round(cum,0)})
+    for d in sorted(daily_pnl.keys())[-30:]:  # last 30 trading days
+        cum += daily_pnl[d]
+        curve.append({"x": d, "y": round(cum,0)})
 
     # Streak calculation
     streak = 0
