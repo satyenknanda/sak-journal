@@ -454,6 +454,7 @@ with st.sidebar:
         "thematic_heatmap": '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
         "tracker": '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
         "comparison_engine": '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        "stock_niche_mapper": '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
     }
 
     # Add Trade button - functional
@@ -490,6 +491,7 @@ with st.sidebar:
         ("thematic_heatmap", "Thematic Heatmap"),
         ("tracker", "Tracker"),
         ("comparison_engine", "Comparison Engine"),
+        ("stock_niche_mapper", "Stock Niche Mapper"),
         ("import",   "Import Excel"),
         ("terminal", "Terminal"),
     ]
@@ -560,6 +562,7 @@ try:
     elif p=="fund_management": from pages.fund_management   import render; render()
     elif p=="thematic_heatmap": from pages.thematic_heatmap import render; render()
     elif p=="comparison_engine": from pages.comparison_engine import render; render()
+    elif p=="stock_niche_mapper": from pages.stock_niche_mapper import render; render()
     else:                from pages.dashboard          import render; render()
 except Exception as _err:
     import traceback
