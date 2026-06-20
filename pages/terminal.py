@@ -94,18 +94,27 @@ def render():
                 with mui.Box(className="drag-handle", sx={"bgcolor":"#111827","color":"white","px":2,"py":1,"cursor":"move","fontSize":"12px","fontWeight":700,"letterSpacing":"0.05em"}):
                     mui.Typography("📊 OPEN POSITIONS", variant="caption", sx={"fontWeight":700})
                 with mui.Box(sx={"p":2,"overflowY":"auto","flex":1}):
-                    mui.Typography(f"{len(open_trades)} Active", variant="h6", sx={"fontWeight":700,"mb":1})
-                    for t in open_trades[:6]:
+                    # Combine same-ticker open positions for display (sum P&L, sum qty)
+                    _combined = {}
+                    for t in open_trades:
+                        tk = t.get("ticker","")
                         pnl = 0
                         live=t.get("live_price"); ep=t.get("entry_price")
                         if live and ep:
                             qty=float(t.get("qty") or 0); side=str(t.get("side","")).upper()
                             lp,epf=float(live),float(ep)
                             pnl=(lp-epf)*qty if side in ("BUY","LONG") else (epf-lp)*qty
-                        color = "#10B981" if pnl>=0 else "#EF4444"
+                        if tk not in _combined:
+                            _combined[tk] = {"pnl":0.0,"qty":0.0}
+                        _combined[tk]["pnl"] += pnl
+                        _combined[tk]["qty"] += float(t.get("qty") or 0)
+
+                    mui.Typography(f"{len(_combined)} Active", variant="h6", sx={"fontWeight":700,"mb":1})
+                    for tk, agg in list(_combined.items())[:6]:
+                        color = "#10B981" if agg["pnl"]>=0 else "#EF4444"
                         with mui.Box(sx={"display":"flex","justifyContent":"space-between","py":0.7,"borderBottom":"1px solid #F3F4F6"}):
-                            mui.Typography(t.get("ticker",""), sx={"fontWeight":700,"fontSize":"13px"})
-                            mui.Typography(f"{'+' if pnl>=0 else ''}₹{pnl:,.0f}", sx={"color":color,"fontWeight":700,"fontSize":"13px"})
+                            mui.Typography(tk, sx={"fontWeight":700,"fontSize":"13px"})
+                            mui.Typography(f"{'+' if agg['pnl']>=0 else ''}₹{agg['pnl']:,.0f}", sx={"color":color,"fontWeight":700,"fontSize":"13px"})
 
             # ── Panel: Performance Chart ─────────────────────────────────
             with mui.Paper(key="performance", sx={"display":"flex","flexDirection":"column","height":"100%","borderRadius":"12px","overflow":"hidden"}):
