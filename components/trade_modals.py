@@ -7,8 +7,24 @@ def render_add_trade_modal():
     """Renders Add Trade form inside a st.dialog."""
     strategies = get_strategies()
 
+    # Funding type must live OUTSIDE st.form — forms don't rerun on widget change,
+    # only on submit, so a conditional field inside the form won't react live.
+    st.markdown("### ＋ Add New Trade")
+    fc1, fc2 = st.columns([1, 3])
+    with fc1:
+        funding_type = st.selectbox("Funding", ["Cash", "MTF"], key="add_trade_funding",
+                                     help="MTF = Zerodha Margin Trading Facility (leveraged/borrowed funds)")
+    mtf_margin_pct = 50.0
+    if funding_type == "MTF":
+        with fc2:
+            mtf_margin_pct = st.number_input(
+                "Your Margin % (MTF)", min_value=1.0, max_value=100.0, step=1.0, value=50.0,
+                key="add_trade_margin_pct",
+                help="% of position value you fund yourself — check Kite's order screen at entry time for the exact "
+                     "figure (it varies by stock per Zerodha's MTF approved list). Remainder is Zerodha-funded."
+            )
+
     with st.form("add_trade_form", clear_on_submit=True):
-        st.markdown("### ＋ Add New Trade")
         c1, c2, c3 = st.columns(3)
         with c1:
             ticker = st.text_input("Ticker", placeholder="e.g. RELIANCE").upper()
@@ -33,22 +49,11 @@ def render_add_trade_modal():
         with c9:
             tsl = st.number_input("TSL ₹ (optional)", min_value=0.0, step=0.05, format="%.2f", value=0.0)
 
-        c10, c11, c12 = st.columns(3)
+        c10, c11 = st.columns(2)
         with c10:
             commission = st.number_input("Commission ₹", min_value=0.0, step=1.0, format="%.2f", value=0.0)
         with c11:
             notes = st.text_input("Notes (optional)")
-        with c12:
-            funding_type = st.selectbox("Funding", ["Cash", "MTF"],
-                                         help="MTF = Zerodha Margin Trading Facility (leveraged/borrowed funds)")
-
-        mtf_margin_pct = 50.0
-        if funding_type == "MTF":
-            mtf_margin_pct = st.number_input(
-                "Your Margin % (MTF)", min_value=1.0, max_value=100.0, step=1.0, value=50.0,
-                help="% of position value you fund yourself — check Kite's order screen at entry time for the exact "
-                     "figure (it varies by stock per Zerodha's MTF approved list). Remainder is Zerodha-funded."
-            )
 
         # Live 1R display
         if entry_price and stop_loss and qty:
@@ -151,6 +156,23 @@ def render_edit_trade_modal(trade: dict):
     st.markdown(f"### ✏️ Edit Trade — **{trade.get('ticker','')}**")
     st.caption(f"Trade #{trade.get('trade_no','')}  ·  ID {trade.get('id','')}")
 
+    cur_funding = str(trade.get("funding_type","CASH")).upper()
+    funding_idx = 1 if cur_funding == "MTF" else 0
+    fc1, fc2 = st.columns([1, 3])
+    with fc1:
+        funding_type = st.selectbox("Funding", ["Cash", "MTF"], index=funding_idx,
+                                     key=f"edit_trade_funding_{trade['id']}",
+                                     help="MTF = Zerodha Margin Trading Facility (leveraged/borrowed funds)")
+    mtf_margin_pct = float(trade.get("mtf_margin_pct") or 50.0)
+    if funding_type == "MTF":
+        with fc2:
+            mtf_margin_pct = st.number_input(
+                "Your Margin % (MTF)", min_value=1.0, max_value=100.0, step=1.0, value=mtf_margin_pct,
+                key=f"edit_trade_margin_pct_{trade['id']}",
+                help="% of position value you fund yourself — check Kite's order screen at entry time for the exact "
+                     "figure (it varies by stock per Zerodha's MTF approved list). Remainder is Zerodha-funded."
+            )
+
     with st.form(f"edit_trade_form_{trade['id']}", clear_on_submit=False):
         c1, c2, c3 = st.columns(3)
         with c1:
@@ -186,25 +208,12 @@ def render_edit_trade_modal(trade: dict):
             tsl = st.number_input("TSL ₹", min_value=0.0, step=0.05,
                 value=float(trade.get("tsl") or 0.0), format="%.2f")
 
-        c10, c11, c12 = st.columns(3)
+        c10, c11 = st.columns(2)
         with c10:
             commission = st.number_input("Commission ₹", min_value=0.0, step=1.0,
                 value=float(trade.get("commission_entry") or 0.0), format="%.2f")
         with c11:
             notes = st.text_input("Notes", value=trade.get("notes","") or "")
-        with c12:
-            cur_funding = str(trade.get("funding_type","CASH")).upper()
-            funding_idx = 1 if cur_funding == "MTF" else 0
-            funding_type = st.selectbox("Funding", ["Cash", "MTF"], index=funding_idx,
-                                         help="MTF = Zerodha Margin Trading Facility (leveraged/borrowed funds)")
-
-        mtf_margin_pct = float(trade.get("mtf_margin_pct") or 50.0)
-        if funding_type == "MTF":
-            mtf_margin_pct = st.number_input(
-                "Your Margin % (MTF)", min_value=1.0, max_value=100.0, step=1.0, value=mtf_margin_pct,
-                help="% of position value you fund yourself — check Kite's order screen at entry time for the exact "
-                     "figure (it varies by stock per Zerodha's MTF approved list). Remainder is Zerodha-funded."
-            )
 
         # Live 1R
         if entry_price and stop_loss and qty:
