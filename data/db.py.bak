@@ -38,6 +38,34 @@ def last_sync_time():
         r = c.execute("SELECT value FROM settings WHERE key='last_sync'").fetchone()
         c.close(); return r[0] if r else None
     except: return None
+    def get_capital_flows(year):
+    """Returns {month_num: {"added": x, "withdrawn": y, "base_capital": z}} for a year.
+    month_num 0 is reserved for the one-time starting-capital anchor."""
+    try:
+        res = _sb().table("capital_flows").select("*").eq("year", year).execute()
+        out = {}
+        for row in res.data:
+            out[row["month"]] = {
+                "added": float(row.get("added") or 0),
+                "withdrawn": float(row.get("withdrawn") or 0),
+                "base_capital": float(row.get("base_capital") or 0),
+            }
+        return out
+    except Exception:
+        return {}
+
+
+def save_capital_flow(year, month, added, withdrawn, base_capital=None):
+    """Upsert a single month's flow row. month=0 is the starting-capital anchor row."""
+    try:
+        payload = {"year": year, "month": month, "added": added, "withdrawn": withdrawn}
+        if base_capital is not None:
+            payload["base_capital"] = base_capital
+        _sb().table("capital_flows").upsert(payload, on_conflict="year,month").execute()
+        return True
+    except Exception as e:
+        print("save_capital_flow error:", e)
+        return False
 
 def import_from_excel(path=None):
     return 0, "OK"
@@ -356,4 +384,3 @@ def save_capital_flow(year, month, added, withdrawn, base_capital=None):
     except Exception as e:
         print("save_capital_flow error:", e)
         return False
-

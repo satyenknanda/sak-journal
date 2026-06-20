@@ -446,6 +446,11 @@ with st.sidebar:
         "progress":  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
         "bell":      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
         "morning":   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>',
+        "pareto":          '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>',
+        "duration_matrix": '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+        "tax_analytics":   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+        "portfolio_dna":   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>',
+        "fund_management": '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v16"/></svg>',
     }
 
     # Add Trade button - functional
@@ -472,6 +477,12 @@ with st.sidebar:
         ("progress", "Progress Tracker"),
         ("playbook", "Playbook"),
         ("morning", "Morning Brief"),
+        None,
+        ("pareto",          "Pareto / Asymmetry"),
+        ("duration_matrix", "Duration Matrix"),
+        ("tax_analytics",   "Tax Analytics"),
+        ("portfolio_dna",   "Portfolio DNA"),
+        ("fund_management", "Fund Management"),
         ("import",   "Import Excel"),
         ("terminal", "Terminal"),
     ]
@@ -534,6 +545,11 @@ try:
     elif p=="morning":   from pages.morning_brief      import render; render()
     elif p=="terminal":  from pages.terminal           import render; render()
     elif p=="import":    from pages.import_excel      import render; render()
+    elif p=="pareto":          from pages.pareto            import render; render()
+    elif p=="duration_matrix": from pages.duration_matrix   import render; render()
+    elif p=="tax_analytics":   from pages.tax_analytics     import render; render()
+    elif p=="portfolio_dna":   from pages.portfolio_dna     import render; render()
+    elif p=="fund_management": from pages.fund_management   import render; render()
     else:                from pages.dashboard          import render; render()
 except Exception as _err:
     import traceback
