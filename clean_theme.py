@@ -67,94 +67,63 @@ table tbody td {
 
 
 # ── Clean metric card matching the reference design ─────────────────────────
-METRIC_CARD_CSS = """
-<style>
-.metric-card-group {
-    background: #FFFFFF;
-    border: 1px solid #E5E7EB;
-    border-radius: 18px;
-    padding: 22px 24px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+# NOTE: CSS lives in inject_clean_css() (called once globally), not repeated per-card,
+# to avoid Streamlit markdown-escaping issues when called multiple times per page.
+
+_ICON_BG = {
+    "blue":   ("#EFF6FF", "#BFDBFE"),
+    "green":  ("#F0FDF4", "#BBF7D0"),
+    "amber":  ("#FFFBEB", "#FDE68A"),
+    "red":    ("#FEF2F2", "#FECACA"),
+    "neutral":("#F9FAFB", "#E5E7EB"),
 }
-.metric-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 18px;
-}
-.metric-row:last-child { margin-bottom: 0; }
-.metric-label {
-    font-size: 16px;
-    font-weight: 700;
-    font-style: italic;
-    color: #111827;
-    margin-bottom: 4px;
-}
-.metric-value {
-    font-size: 22px;
-    font-weight: 800;
-    color: #111827;
-    font-family: 'SF Mono','Fira Code',monospace;
-}
-.metric-sub {
-    font-size: 12px;
-    color: #9CA3AF;
-    margin-top: 2px;
-}
-.metric-icon {
-    width: 34px; height: 34px;
-    border-radius: 50%;
-    background: #F9FAFB;
-    border: 1px solid #E5E7EB;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 15px;
-    flex-shrink: 0;
-}
-.metric-icon.blue { background: #EFF6FF; border-color: #BFDBFE; }
-.metric-icon.green { background: #F0FDF4; border-color: #BBF7D0; }
-.metric-icon.amber { background: #FFFBEB; border-color: #FDE68A; }
-.metric-icon.red { background: #FEF2F2; border-color: #FECACA; }
-</style>
-"""
 
 def metric_row(label, value, sub="", icon="●", icon_color="neutral"):
-    """One metric line inside a metric-card-group: icon top-right, label + value + sub below."""
-    return f'''<div class="metric-row">
-        <div>
-            <div class="metric-label">{label}</div>
-            <div class="metric-value">{value}</div>
-            {f'<div class="metric-sub">{sub}</div>' if sub else ''}
-        </div>
-        <div class="metric-icon {icon_color}">{icon}</div>
-    </div>'''
+    """One metric line: label + value + sub on the left, icon badge on the right."""
+    bg, border = _ICON_BG.get(icon_color, _ICON_BG["neutral"])
+    sub_html = f'<div style="font-size:12px;color:#9CA3AF;margin-top:2px">{sub}</div>' if sub else ""
+    return (
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;'
+        'margin-bottom:18px">'
+        '<div>'
+        f'<div style="font-size:16px;font-weight:700;font-style:italic;color:#111827;margin-bottom:4px">{label}</div>'
+        f'<div style="font-size:22px;font-weight:800;color:#111827;'
+        f'font-family:\'SF Mono\',\'Fira Code\',monospace">{value}</div>'
+        f'{sub_html}'
+        '</div>'
+        f'<div style="width:34px;height:34px;border-radius:50%;background:{bg};border:1px solid {border};'
+        'display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">'
+        f'{icon}</div>'
+        '</div>'
+    )
 
 def metric_card_group(rows_html):
-    """Wrap a list of metric_row() outputs in the card container."""
-    return f'{METRIC_CARD_CSS}<div class="metric-card-group">{"".join(rows_html)}</div>'
+    """Wrap a list of metric_row() outputs in the white card container."""
+    inner = "".join(rows_html)
+    return (
+        '<div style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:18px;'
+        'padding:22px 24px;box-shadow:0 1px 3px rgba(0,0,0,0.04)">'
+        f'{inner}'
+        '</div>'
+    )
 
 
 # ── Pill tab navigation matching reference (Position & P&L, Streaks, etc.) ──
-TAB_PILL_CSS = """
-<style>
-.tab-pill-row {
-    display: flex; gap: 6px; background: #FFFFFF; border: 1px solid #E5E7EB;
-    border-radius: 14px; padding: 6px; margin: 16px 0;
-}
-.tab-pill {
-    padding: 8px 16px; border-radius: 10px; font-size: 12.5px; font-weight: 700;
-    color: #6B7280; cursor: pointer; white-space: nowrap;
-}
-.tab-pill.active { background: #F3F4F6; color: #111827; }
-</style>
-"""
-
 def tab_pill_row(tabs, active):
     """tabs: list of (icon, label) tuples. active: label string currently selected."""
     pills = "".join(
-        f'<div class="tab-pill{" active" if label==active else ""}">{icon} {label}</div>'
+        (
+            f'<div style="padding:8px 16px;border-radius:10px;font-size:12.5px;font-weight:700;'
+            f'white-space:nowrap;'
+            f'{"background:#F3F4F6;color:#111827" if label==active else "color:#6B7280"}">'
+            f'{icon} {label}</div>'
+        )
         for icon, label in tabs
     )
-    return f'{TAB_PILL_CSS}<div class="tab-pill-row">{pills}</div>'
+    return (
+        '<div style="display:flex;gap:6px;background:#FFFFFF;border:1px solid #E5E7EB;'
+        f'border-radius:14px;padding:6px;margin:16px 0">{pills}</div>'
+    )
 
 
 # ── Insight callout card (e.g. "Asymmetry Found") ────────────────────────────
