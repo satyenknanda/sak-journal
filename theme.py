@@ -114,14 +114,14 @@ def kpi_card(label, value, sub=None, color=None):
     """Exact Tradezella KPI card — white, subtle shadow, no border accent."""
     c = color or TEXT_H
     sub_html = f'<div style="font-size:11px;color:{TEXT_SUBTLE};margin-top:3px;font-family:Inter,sans-serif">{sub}</div>' if sub else ""
-    return f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
-        padding:14px 16px;box-shadow:{SHADOW_SM};min-height:78px">
-        <div style="font-size:10.5px;color:{TEXT_SUBTLE};text-transform:uppercase;
-            letter-spacing:0.07em;font-weight:500;margin-bottom:6px;font-family:Inter,sans-serif">{label}</div>
-        <div style="font-size:1.35rem;font-weight:700;color:{c};letter-spacing:-0.02em;
-            font-family:Inter,sans-serif;font-variant-numeric:tabular-nums;line-height:1.2">{value}</div>
-        {sub_html}
-    </div>"""
+    return (f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;'
+            f'padding:14px 16px;box-shadow:{SHADOW_SM};min-height:78px">'
+            f'<div style="font-size:10.5px;color:{TEXT_SUBTLE};text-transform:uppercase;'
+            f'letter-spacing:0.07em;font-weight:500;margin-bottom:6px;font-family:Inter,sans-serif">{label}</div>'
+            f'<div style="font-size:1.35rem;font-weight:700;color:{c};letter-spacing:-0.02em;'
+            f'font-family:Inter,sans-serif;font-variant-numeric:tabular-nums;line-height:1.2">{value}</div>'
+            f'{sub_html}'
+            f'</div>')
 
 
 def section_label(text):
