@@ -1,5 +1,5 @@
 import streamlit as st
-from glass_theme import inject_glass_css, glass_kpi_card
+from clean_theme import inject_clean_css
 from pathlib import Path
 import sys
 import traceback
@@ -409,7 +409,7 @@ button[kind="header"],
 </style>
 """, unsafe_allow_html=True)
 
-inject_glass_css()  # Apply glass skin AFTER base theme so it wins the cascade
+inject_clean_css()  # Apply clean neutral skin
 
 # ── Sidebar ────────────────────────────────────────────────────────────────
 with st.sidebar:
