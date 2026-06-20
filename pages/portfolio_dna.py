@@ -167,4 +167,11 @@ SECTOR_SEED = {
     "SYRMA":      {"sector": "Information Technology", "industry": "Consumer Electronics Companies", "niche": "Electronic Manufacturing Services"},
     "OIL":        {"sector": "Energy",             "industry": "Oil Exploration Companies",       "niche": "Oil & Gas E&P"},
     "MEDPLUS":    {"sector": "Healthcare",         "industry": "Speciality Retail Companies",     "niche": "Pharmacy Retail"},
+    "CDSL":       {"sector": "Financial Services", "industry": "Capital Markets Companies",       "niche": "Depository Services"},
+    "EVEREADY":   {"sector": "Consumer Discretionary", "industry": "Consumer Electronics Companies", "niche": "Batteries & Lighting"},
+    "GARUDA":     {"sector": "Industrials",        "industry": "Construction & Engineering Companies", "niche": "Civil Construction - EPC"},
+    "JMFINANCIL": {"sector": "Financial Services", "industry": "Financial Services Companies",     "niche": "Diversified Financial Services"},
+    "JNKINDIA":   {"sector": "Industrials",        "industry": "Industrial Products Companies",   "niche": "Process Heaters & Furnaces"},
+    "KPEL":       {"sector": "Utilities",          "industry": "Renewable Energy Companies",      "niche": "Wind Energy EPC/BOP"},
+    "KPIGREEN":   {"sector": "Utilities",          "industry": "Renewable Energy Companies",      "niche": "Solar & Wind IPP"},
 }
