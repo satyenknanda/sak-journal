@@ -451,6 +451,7 @@ with st.sidebar:
         "tax_analytics":   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
         "portfolio_dna":   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>',
         "fund_management": '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v16"/></svg>',
+        "thematic_heatmap": '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
     }
 
     # Add Trade button - functional
@@ -483,6 +484,8 @@ with st.sidebar:
         ("tax_analytics",   "Tax Analytics"),
         ("portfolio_dna",   "Portfolio DNA"),
         ("fund_management", "Fund Management"),
+        None,
+        ("thematic_heatmap", "Thematic Heatmap"),
         ("import",   "Import Excel"),
         ("terminal", "Terminal"),
     ]
@@ -550,6 +553,7 @@ try:
     elif p=="tax_analytics":   from pages.tax_analytics     import render; render()
     elif p=="portfolio_dna":   from pages.portfolio_dna     import render; render()
     elif p=="fund_management": from pages.fund_management   import render; render()
+    elif p=="thematic_heatmap": from pages.thematic_heatmap import render; render()
     else:                from pages.dashboard          import render; render()
 except Exception as _err:
     import traceback
