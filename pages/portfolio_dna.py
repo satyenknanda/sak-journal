@@ -79,7 +79,7 @@ def render():
 
             colL, colR = st.columns([1, 1.3])
             with colL:
-                st.markdown(section_label(f"{level.upper()} BREAKDOWN"))
+                st.markdown(section_label(f"{level.upper()} BREAKDOWN"), unsafe_allow_html=True)
                 for i, (name, w) in enumerate(grp.items()):
                     color = DNA_COLORS[i % len(DNA_COLORS)]
                     st.markdown(f"""<div style="display:flex;align-items:center;justify-content:space-between;
