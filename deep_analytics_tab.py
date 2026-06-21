@@ -7,7 +7,7 @@
         if not closed:
             st.info("No closed trades yet.")
         else:
-            da_sub1, da_sub2, da_sub3 = st.tabs(["📊 Position & P&L", "🔥 Streaks", "⚖️ Risk & Expectancy"])
+            da_sub1, da_sub2, da_sub3, da_sub4, da_sub5 = st.tabs(["📊 Position & P&L", "🔥 Streaks", "⚖️ Risk & Expectancy", "📈 Pareto / Asymmetry", "⏱ Duration Matrix"])
 
             # ════════════════════════════════════════════════════════════
             # SUB-TAB 1: POSITION & P&L (existing content)
@@ -67,29 +67,43 @@
                 lowest_r = min(r_vals) if r_vals else 0
                 avg_r = np.mean(r_vals) if r_vals else 0
 
+                def kpi_card_accent(label, value, color, sub=None):
+                    """KPI card with a colored top-border accent (Nexus multi-color style)."""
+                    sub_html = f'<div style="font-size:11px;color:{TEXT_SUBTLE};margin-top:3px">{sub}</div>' if sub else ""
+                    return f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {color};
+                        border-radius:10px;padding:14px 16px;box-shadow:{SHADOW_SM};min-height:78px">
+                        <div style="font-size:10.5px;color:{TEXT_SUBTLE};text-transform:uppercase;
+                            letter-spacing:0.07em;font-weight:500;margin-bottom:6px">{label}</div>
+                        <div style="font-size:1.35rem;font-weight:700;color:{TEXT_H};letter-spacing:-0.02em;
+                            font-variant-numeric:tabular-nums;line-height:1.2">{value}</div>
+                        {sub_html}
+                    </div>"""
+
+                AC = DNA_COLORS  # 12-color accent cycle
+
                 st.markdown(f'<p style="font-size:13px;font-weight:600;color:{TEXT_H};margin:8px 0">Key Performance Metrics</p>', unsafe_allow_html=True)
                 d1, d2, d3, d4 = st.columns(4)
-                d1.markdown(kpi_card("Avg PnL/Day", fmt_pnl(avg_pnl_day), color=pnl_color(avg_pnl_day),
+                d1.markdown(kpi_card_accent("Avg PnL/Day", fmt_pnl(avg_pnl_day), AC[0],
                                       sub="Average daily profit/loss"), unsafe_allow_html=True)
-                d2.markdown(kpi_card("Sharpe Ratio", f"{sharpe:.2f}", color=TEAL if sharpe >= 0 else RED,
+                d2.markdown(kpi_card_accent("Sharpe Ratio", f"{sharpe:.2f}", AC[1],
                                       sub="Risk-adjusted return (daily)"), unsafe_allow_html=True)
-                d3.markdown(kpi_card("Expectancy", fmt_pnl(expectancy_inr), color=pnl_color(expectancy_inr),
+                d3.markdown(kpi_card_accent("Expectancy", fmt_pnl(expectancy_inr), AC[2],
                                       sub="Expected profit per trade"), unsafe_allow_html=True)
-                d4.markdown(kpi_card("Avg Risk/Trade", fmt_pnl(avg_risk_inr), sub="Average initial rupee risk"), unsafe_allow_html=True)
+                d4.markdown(kpi_card_accent("Avg Risk/Trade", fmt_pnl(avg_risk_inr), AC[3], sub="Average initial rupee risk"), unsafe_allow_html=True)
 
                 st.markdown("<br>", unsafe_allow_html=True)
                 d5, d6, d7, d8 = st.columns(4)
-                d5.markdown(kpi_card("Win Streak", str(win_streak), color=TEAL, sub=f"Avg Win: {fmt_pnl(avg_win_inr)}"), unsafe_allow_html=True)
-                d6.markdown(kpi_card("Loss Streak", str(loss_streak), color=RED, sub=f"Avg Loss: {fmt_pnl(avg_loss_inr)}"), unsafe_allow_html=True)
-                d7.markdown(kpi_card("Avg PF Risk/Trade", f"{avg_pf_risk:.2f}%", sub="Average risk vs entry price"), unsafe_allow_html=True)
-                d8.markdown(kpi_card("Best / Worst Trade", f"{fmt_pnl(best_trade)} / {fmt_pnl(worst_trade)}",
+                d5.markdown(kpi_card_accent("Win Streak", str(win_streak), AC[4], sub=f"Avg Win: {fmt_pnl(avg_win_inr)}"), unsafe_allow_html=True)
+                d6.markdown(kpi_card_accent("Loss Streak", str(loss_streak), AC[5], sub=f"Avg Loss: {fmt_pnl(avg_loss_inr)}"), unsafe_allow_html=True)
+                d7.markdown(kpi_card_accent("Avg PF Risk/Trade", f"{avg_pf_risk:.2f}%", AC[6], sub="Average risk vs entry price"), unsafe_allow_html=True)
+                d8.markdown(kpi_card_accent("Best / Worst Trade", f"{fmt_pnl(best_trade)} / {fmt_pnl(worst_trade)}", AC[7],
                                       sub="Highest profit / Biggest loss"), unsafe_allow_html=True)
 
                 st.markdown("<br>", unsafe_allow_html=True)
                 d9, d10, d11 = st.columns(3)
-                d9.markdown(kpi_card("Highest R", f"{highest_r:.2f}R", color=TEAL, sub="Best risk:reward"), unsafe_allow_html=True)
-                d10.markdown(kpi_card("Lowest R", f"{lowest_r:.2f}R", color=RED, sub="Worst risk:reward"), unsafe_allow_html=True)
-                d11.markdown(kpi_card("Avg R", f"{avg_r:.2f}R", color=pnl_color(avg_r), sub="Average risk:reward"), unsafe_allow_html=True)
+                d9.markdown(kpi_card_accent("Highest R", f"{highest_r:.2f}R", AC[8], sub="Best risk:reward"), unsafe_allow_html=True)
+                d10.markdown(kpi_card_accent("Lowest R", f"{lowest_r:.2f}R", AC[9], sub="Worst risk:reward"), unsafe_allow_html=True)
+                d11.markdown(kpi_card_accent("Avg R", f"{avg_r:.2f}R", AC[10], sub="Average risk:reward"), unsafe_allow_html=True)
 
                 st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
@@ -516,3 +530,232 @@
                         <tbody>{rows_html}</tbody>
                         </table>
                     </div>""", unsafe_allow_html=True)
+            # ════════════════════════════════════════════════════════════
+            # SUB-TAB 4: PARETO / ASYMMETRY
+            # ════════════════════════════════════════════════════════════
+            with da_sub4:
+                st.caption("How concentrated is your profit? This is the structural-asymmetry lens on your MFE-capture problem.")
+
+                def stock_move_pct_pareto(t):
+                    ep = safe_float(t.get("entry_price"))
+                    xp = safe_float(t.get("exit_price"))
+                    if ep <= 0:
+                        return 0.0
+                    side = str(t.get("side","") or "").upper()
+                    raw = (xp - ep) / ep * 100
+                    return raw if side != "SHORT" else -raw
+
+                pc1, pc2 = st.columns([1,3])
+                with pc1:
+                    pareto_strat_opts = ["All Strategies"] + sorted({t.get("strategy","") for t in closed if t.get("strategy")})
+                    pareto_strat_sel = st.selectbox("Strategy", pareto_strat_opts, key="deep_pareto_strat")
+                pareto_closed = closed if pareto_strat_sel == "All Strategies" else [t for t in closed if t.get("strategy") == pareto_strat_sel]
+
+                pareto_wins = [t for t in pareto_closed if safe_float(t.get("pnl")) > 0]
+                pareto_total_gross = sum(safe_float(t.get("pnl")) for t in pareto_wins)
+
+                if not pareto_wins or pareto_total_gross <= 0:
+                    st.info("No winning trades yet to analyze.")
+                else:
+                    pareto_wins_sorted = sorted(pareto_wins, key=lambda t: safe_float(t.get("pnl")), reverse=True)
+
+                    pareto_cum_pct = []
+                    pareto_running = 0.0
+                    for t in pareto_wins_sorted:
+                        pareto_running += safe_float(t.get("pnl"))
+                        pareto_cum_pct.append(pareto_running / pareto_total_gross * 100)
+
+                    pn = len(pareto_wins_sorted)
+                    p_top1 = pareto_cum_pct[0] if pn >= 1 else 0
+                    p_top3 = pareto_cum_pct[min(2, pn-1)] if pn >= 1 else 0
+                    p_top5 = pareto_cum_pct[min(4, pn-1)] if pn >= 1 else 0
+
+                    pareto_n = next((i+1 for i, c in enumerate(pareto_cum_pct) if c >= 80), pn)
+                    pareto_share = pareto_cum_pct[pareto_n-1] if pareto_n <= pn else 100.0
+
+                    pleft, pright = st.columns([1, 2])
+                    with pleft:
+                        st.markdown(f"""<div style="background:{TEAL_BG};border:1px solid {TEAL_BORDER};border-radius:12px;padding:18px 20px;">
+                            <div style="display:inline-flex;align-items:center;gap:6px;background:{CARD_BG};border:1px solid {TEAL_BORDER};
+                                border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;color:{TEAL_DARK};margin-bottom:10px">
+                                ⚡ ASYMMETRY {"FOUND" if pareto_share >= 70 else "MODERATE"}
+                            </div>
+                            <div style="font-size:11px;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;font-weight:500;margin-bottom:6px">
+                                Statistical Narrative
+                            </div>
+                            <div style="font-size:14px;color:{TEXT_BODY};line-height:1.5">
+                                A significant <b style="color:{TEXT_H};font-size:16px">{pareto_share:.1f}%</b> of your gross profit comes
+                                from just <b style="color:{TEXT_H};font-size:16px">{pareto_n}</b> trades (out of {pn} winners, {len(pareto_closed)} closed total).
+                            </div>
+                        </div>""", unsafe_allow_html=True)
+
+                        st.markdown("<br>", unsafe_allow_html=True)
+                        pk1, pk2, pk3 = st.columns(3)
+                        pk1.markdown(kpi_card("TOP 1", f"{p_top1:.0f}%"), unsafe_allow_html=True)
+                        pk2.markdown(kpi_card("TOP 3", f"{p_top3:.0f}%"), unsafe_allow_html=True)
+                        pk3.markdown(kpi_card("TOP 5", f"{p_top5:.0f}%"), unsafe_allow_html=True)
+
+                    with pright:
+                        fig_pareto = go.Figure()
+                        px = list(range(1, pn+1))
+                        fig_pareto.add_trace(go.Scatter(
+                            x=px, y=pareto_cum_pct, mode="lines+markers", fill="tozeroy",
+                            fillcolor="rgba(16,185,129,0.20)",
+                            line=dict(color=TEAL, width=2.5, shape="spline"),
+                            marker=dict(size=5, color=TEAL),
+                            hovertemplate="Top %{x} trades<br>%{y:.1f}% of profit<extra></extra>",
+                        ))
+                        fig_pareto.add_hline(y=80, line=dict(color=AMBER, width=1, dash="dash"),
+                                       annotation_text="80%", annotation_font=dict(color=AMBER, size=9))
+                        l_pareto = chart_layout(height=280, title="Cumulative Gross Profit Share — Top N Winners")
+                        l_pareto["yaxis"]["range"] = [0, 105]
+                        l_pareto["yaxis"]["ticksuffix"] = "%"
+                        l_pareto["xaxis"]["title"] = dict(text="N winning trades", font=dict(size=10, color=TEXT_SUBTLE))
+                        fig_pareto.update_layout(**l_pareto)
+                        st.plotly_chart(fig_pareto, use_container_width=True)
+
+                    st.markdown(section_label("Top Winners Breakdown"), unsafe_allow_html=True)
+
+                    pareto_rows = []
+                    for i, t in enumerate(pareto_wins_sorted[:15]):
+                        p = safe_float(t.get("pnl"))
+                        pareto_rows.append({
+                            "#": f"#{i+1}",
+                            "Symbol": t.get("ticker",""),
+                            "Strategy": t.get("strategy",""),
+                            "Stock Move %": f"{stock_move_pct_pareto(t):+.1f}%",
+                            "P&L": fmt_pnl(p),
+                            "PF Impact %": f"{p/pareto_total_gross*100:+.1f}%",
+                            "Exit Date": str(t.get("exit_date",""))[:10],
+                        })
+                    pareto_df = pd.DataFrame(pareto_rows)
+                    st.dataframe(pareto_df, use_container_width=True, hide_index=True)
+
+                    st.markdown(section_label("What this means"), unsafe_allow_html=True)
+                    st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6">
+                        If a small number of trades drive most of your profit, your exit execution on the <i>rest</i> of your winners is likely
+                        cutting them short — i.e. an MFE-capture problem, not a stop-loss problem. The fix is usually trailing/scale-out discipline
+                        on trades that are already working, not finding more setups.
+                    </div>""", unsafe_allow_html=True)
+            # ════════════════════════════════════════════════════════════
+            # SUB-TAB 5: DURATION MATRIX
+            # ════════════════════════════════════════════════════════════
+            with da_sub5:
+                from plotly.subplots import make_subplots
+                from datetime import datetime as _dt
+
+                st.caption("Correlation between holding period and profitability — sharpens stop/exit timing across strategies.")
+
+                DUR_BUCKETS = ["Intraday", "1-3 Days", "4-7 Days", "1-2 Weeks", "2-4 Weeks", "1-2 Months", "2+ Months"]
+
+                def dur_holding_days(t):
+                    try:
+                        ed = _dt.strptime(str(t.get("entry_date",""))[:10], "%Y-%m-%d")
+                        xd = _dt.strptime(str(t.get("exit_date",""))[:10], "%Y-%m-%d")
+                        return (xd - ed).days
+                    except Exception:
+                        return None
+
+                def dur_bucket_for(days):
+                    if days is None: return None
+                    if days <= 0: return "Intraday"
+                    if days <= 3: return "1-3 Days"
+                    if days <= 7: return "4-7 Days"
+                    if days <= 14: return "1-2 Weeks"
+                    if days <= 28: return "2-4 Weeks"
+                    if days <= 60: return "1-2 Months"
+                    return "2+ Months"
+
+                dc1, dc2 = st.columns([1,3])
+                with dc1:
+                    dur_strat_opts = ["All Strategies"] + sorted({t.get("strategy","") for t in closed if t.get("strategy")})
+                    dur_strat_sel = st.selectbox("Strategy", dur_strat_opts, key="deep_dur_strat")
+                dur_closed = closed if dur_strat_sel == "All Strategies" else [t for t in closed if t.get("strategy") == dur_strat_sel]
+
+                dur_data = []
+                for t in dur_closed:
+                    d = dur_holding_days(t)
+                    b = dur_bucket_for(d)
+                    if b is None: continue
+                    dur_data.append({"bucket": b, "pnl": safe_float(t.get("pnl")), "days": d})
+
+                if not dur_data:
+                    st.info("No closed trades with valid entry/exit dates found.")
+                else:
+                    dur_df = pd.DataFrame(dur_data)
+                    dur_df["bucket"] = pd.Categorical(dur_df["bucket"], categories=DUR_BUCKETS, ordered=True)
+                    dur_grp = dur_df.groupby("bucket", observed=True).agg(
+                        trades=("pnl","count"),
+                        avg_pnl=("pnl","mean"),
+                        total_pnl=("pnl","sum"),
+                        win_rate=("pnl", lambda s: (s>0).mean()*100),
+                    ).reindex(DUR_BUCKETS).fillna(0)
+
+                    dur_best_bucket = dur_grp["avg_pnl"].idxmax() if dur_grp["trades"].sum() > 0 else "—"
+                    dur_worst_bucket = dur_grp["avg_pnl"].idxmin() if dur_grp["trades"].sum() > 0 else "—"
+                    dk1, dk2, dk3, dk4 = st.columns(4)
+                    dk1.markdown(kpi_card("TOTAL CLOSED TRADES", f"{int(dur_grp['trades'].sum())}"), unsafe_allow_html=True)
+                    dk2.markdown(kpi_card("BEST AVG P/L BUCKET", dur_best_bucket, color=TEAL), unsafe_allow_html=True)
+                    dk3.markdown(kpi_card("WORST AVG P/L BUCKET", dur_worst_bucket, color=RED), unsafe_allow_html=True)
+                    dk4.markdown(kpi_card("MEDIAN HOLDING DAYS", f"{dur_df['days'].median():.0f}d"), unsafe_allow_html=True)
+
+                    st.markdown("<br>", unsafe_allow_html=True)
+
+                    ducol1, ducol2 = st.columns(2)
+                    with ducol1:
+                        st.markdown(section_label("Volume by Duration"), unsafe_allow_html=True)
+                        fig_vol = go.Figure()
+                        fig_vol.add_trace(go.Bar(x=DUR_BUCKETS, y=dur_grp["trades"], marker=dict(color=BLUE, opacity=0.85),
+                                              hovertemplate="%{x}<br>%{y} trades<extra></extra>"))
+                        l_vol = chart_layout(height=260)
+                        l_vol["yaxis"]["title"] = dict(text="Trades", font=dict(size=10, color=TEXT_SUBTLE))
+                        fig_vol.update_layout(**l_vol)
+                        st.plotly_chart(fig_vol, use_container_width=True)
+
+                    with ducol2:
+                        st.markdown(section_label("Returns by Duration"), unsafe_allow_html=True)
+                        fig_ret = go.Figure()
+                        dur_colors = [TEAL if v>=0 else RED for v in dur_grp["avg_pnl"]]
+                        fig_ret.add_trace(go.Bar(x=DUR_BUCKETS, y=dur_grp["avg_pnl"], marker=dict(color=dur_colors, opacity=0.9),
+                                              hovertemplate="%{x}<br>₹%{y:,.0f} avg<extra></extra>"))
+                        l_ret = chart_layout(height=260)
+                        l_ret["yaxis"]["title"] = dict(text="Avg P/L (₹)", font=dict(size=10, color=TEXT_SUBTLE))
+                        l_ret["yaxis"]["tickprefix"] = "₹"
+                        fig_ret.update_layout(**l_ret)
+                        st.plotly_chart(fig_ret, use_container_width=True)
+
+                    st.markdown(section_label("Duration Performance Matrix — Correlation Between Frequency & Profitability"), unsafe_allow_html=True)
+                    fig_combo = make_subplots(specs=[[{"secondary_y": True}]])
+                    fig_combo.add_trace(go.Bar(x=DUR_BUCKETS, y=dur_grp["trades"], name="# Trades",
+                                          marker=dict(color=BLUE, opacity=0.55),
+                                          hovertemplate="%{x}<br>%{y} trades<extra></extra>"), secondary_y=False)
+                    fig_combo.add_trace(go.Scatter(x=DUR_BUCKETS, y=dur_grp["avg_pnl"], name="Avg P/L", mode="lines+markers",
+                                              line=dict(color=TEAL, width=2.5, shape="spline"),
+                                              marker=dict(size=7, color=TEAL, line=dict(color="white", width=1.5)),
+                                              hovertemplate="%{x}<br>₹%{y:,.0f}<extra></extra>"), secondary_y=True)
+                    l_combo = chart_layout(height=320, title="")
+                    l_combo["legend"] = dict(orientation="h", y=-0.18, x=0, font=dict(size=10, color=TEXT_MUTED))
+                    l_combo["showlegend"] = True
+                    fig_combo.update_layout(**l_combo)
+                    fig_combo.update_yaxes(title_text="# Trades", secondary_y=False, gridcolor=CHART_GRID,
+                                      tickfont=dict(size=10, color=TEXT_SUBTLE))
+                    fig_combo.update_yaxes(title_text="Avg P/L (₹)", secondary_y=True, showgrid=False,
+                                      tickfont=dict(size=10, color=TEAL), tickprefix="₹")
+                    st.plotly_chart(fig_combo, use_container_width=True)
+
+                    st.markdown(section_label("Bucket Detail"), unsafe_allow_html=True)
+                    dur_out = dur_grp.reset_index().rename(columns={"bucket": "Duration"})
+                    dur_out["Trades"] = dur_out["trades"].astype(int)
+                    dur_out["Win Rate"] = dur_out["win_rate"].map(lambda v: f"{v:.1f}%")
+                    dur_out["Avg P/L"] = dur_out["avg_pnl"].map(fmt_pnl)
+                    dur_out["Total P/L"] = dur_out["total_pnl"].map(fmt_pnl)
+                    st.dataframe(dur_out[["Duration","Trades","Win Rate","Avg P/L","Total P/L"]],
+                                 use_container_width=True, hide_index=True)
+
+                    if dur_strat_sel in ("VCP", "REVERSAL", "All Strategies"):
+                        st.markdown(section_label("Notes"), unsafe_allow_html=True)
+                        st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6">
+                            Use this to sanity-check your strategy-specific stop levels: VCP at 2.5–3% and REVERSAL at technical stop with a 2.5% floor
+                            should show their best Avg P/L in the 4-7 Day to 2-4 Week buckets if exits are working as designed. If the Intraday or 1-3 Day
+                            buckets are dragging the average down, that's premature stop-outs rather than the setup failing.
+                        </div>""", unsafe_allow_html=True)
