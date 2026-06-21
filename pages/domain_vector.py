@@ -86,6 +86,9 @@ def render():
     selected_group = st.session_state.get("domain_selected_group")
     selected_mode = st.session_state.get("domain_selected_mode")
 
+    st.caption(f"DEBUG: selected_group={selected_group!r}, selected_mode={selected_mode!r}, "
+               f"view_mode={view_mode!r}, in_groups={selected_group in groups if selected_group else 'N/A'}")
+
     if selected_group and selected_mode == view_mode and selected_group in groups:
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(section_label(f"{selected_group} — Industries"), unsafe_allow_html=True)
