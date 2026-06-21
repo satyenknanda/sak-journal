@@ -246,27 +246,82 @@ def render():
     </div>""", unsafe_allow_html=True)
 
     # ════════════════════════════════════════════════════════════════════
-    # MTF ANALYTICS — Interest Cost, MTF vs Cash P&L, Leverage Trend
+    # MTF ANALYTICS — Interest Cost (auto-calculated), MTF vs Cash P&L, Leverage Trend
     # ════════════════════════════════════════════════════════════════════
     import plotly.graph_objects as go
+    from datetime import date as _date, timedelta as _timedelta
+
+    ZERODHA_MTF_DAILY_RATE = 0.0004  # 0.04% per day = ₹40 per lakh, per Zerodha's published MTF rate
+
+    def calc_mtf_interest_for_trade(t, year_filter=None):
+        """Auto-calculated MTF interest for one trade, per Zerodha's formula:
+        0.04%/day on the BORROWED amount, from T+1 (entry+1 day) until exit
+        (or today, for still-open positions). Returns {month: interest_amount}
+        for the given year, splitting interest across months if the holding
+        period spans multiple months."""
+        if str(t.get("funding_type", "CASH") or "CASH").upper() != "MTF":
+            return {}
+        qty = safe_float(t.get("qty"))
+        price = safe_float(t.get("entry_price"))
+        margin_pct = safe_float(t.get("mtf_margin_pct")) or 50.0
+        position_value = qty * price
+        borrowed = position_value * (1 - margin_pct / 100)
+        if borrowed <= 0:
+            return {}
+
+        try:
+            entry_dt = datetime.strptime(str(t.get("entry_date", ""))[:10], "%Y-%m-%d").date()
+        except Exception:
+            return {}
+
+        if t.get("status") == "CLOSED" and t.get("exit_date"):
+            try:
+                exit_dt = datetime.strptime(str(t.get("exit_date", ""))[:10], "%Y-%m-%d").date()
+            except Exception:
+                exit_dt = _date.today()
+        else:
+            exit_dt = _date.today()  # still open — interest accrued to date
+
+        start = entry_dt + _timedelta(days=1)  # T+1
+        if start > exit_dt:
+            return {}  # held less than a day, no interest yet
+
+        daily_interest = borrowed * ZERODHA_MTF_DAILY_RATE
+        by_month = {}
+        cur = start
+        while cur <= exit_dt:
+            if year_filter is None or cur.year == year_filter:
+                by_month[cur.month] = by_month.get(cur.month, 0.0) + daily_interest
+            cur += _timedelta(days=1)
+        return by_month
+
+    # Aggregate auto-calculated interest across all trades for the selected year
+    auto_interest_by_month = {m: 0.0 for m in range(1, 13)}
+    for t in trades:
+        per_trade = calc_mtf_interest_for_trade(t, year_filter=year_sel)
+        for m, amt in per_trade.items():
+            auto_interest_by_month[m] += amt
+    total_mtf_interest_auto = sum(auto_interest_by_month.values())
 
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
     st.markdown(section_label("MTF Analytics"), unsafe_allow_html=True)
 
     mtf_tab1, mtf_tab2, mtf_tab3 = st.tabs(["💸 Interest Cost", "⚖️ MTF vs Cash P&L", "📈 Leverage Trend"])
 
-    # ── 1. MTF Interest Cost Over Time ───────────────────────────────────
+    # ── 1. MTF Interest Cost Over Time (auto-calculated) ─────────────────
     with mtf_tab1:
-        st.caption(f"Monthly MTF interest paid in {year_sel}, from the flows table above.")
-        interest_months = [r["month"] for r in rows]
-        interest_vals = [r["mtf_interest"] for r in rows]
+        st.caption("Auto-calculated per Zerodha's MTF rate: 0.04%/day (₹40 per lakh) on the borrowed amount, "
+                   "from T+1 until exit (or today, for open positions). No manual entry needed.")
 
-        if total_mtf_interest == 0:
-            st.info("No MTF interest recorded yet. Enter monthly figures in the table above (from your Zerodha contract notes) to see this chart populate.")
+        interest_months_auto = MONTHS
+        interest_vals_auto = [auto_interest_by_month[m] for m in range(1, 13)]
+
+        if total_mtf_interest_auto == 0:
+            st.info("No MTF interest accrued yet — either no MTF trades this year, or all MTF positions were entered today.")
         else:
             fig_int = go.Figure()
             fig_int.add_trace(go.Bar(
-                x=interest_months, y=interest_vals,
+                x=interest_months_auto, y=interest_vals_auto,
                 marker=dict(color=AMBER, opacity=0.85, line=dict(width=0)),
                 hovertemplate="%{x}<br>₹%{y:,.0f}<extra></extra>",
             ))
@@ -276,42 +331,56 @@ def render():
             st.plotly_chart(fig_int, use_container_width=True, config={"displayModeBar": False})
 
             ic1, ic2, ic3 = st.columns(3)
-            avg_monthly_interest = total_mtf_interest / max(1, sum(1 for v in interest_vals if v > 0))
-            ic1.markdown(kpi_card("TOTAL MTF INTEREST", fmt_inr(total_mtf_interest), color=AMBER), unsafe_allow_html=True)
+            active_months_count = sum(1 for v in interest_vals_auto if v > 0)
+            avg_monthly_interest = total_mtf_interest_auto / max(1, active_months_count)
+            ic1.markdown(kpi_card("TOTAL MTF INTEREST (auto)", fmt_inr(total_mtf_interest_auto), color=AMBER), unsafe_allow_html=True)
             ic2.markdown(kpi_card("AVG MONTHLY (active months)", fmt_inr(avg_monthly_interest)), unsafe_allow_html=True)
-            interest_pct_of_gross = (total_mtf_interest / total_pnl * 100) if total_pnl else 0
+            interest_pct_of_gross = (total_mtf_interest_auto / total_pnl * 100) if total_pnl else 0
             ic3.markdown(kpi_card("% OF GROSS P&L", f"{interest_pct_of_gross:.1f}%",
                                    color=(RED if interest_pct_of_gross > 15 else AMBER if interest_pct_of_gross > 5 else TEAL),
                                    sub="interest cost as a share of gross profit"), unsafe_allow_html=True)
 
+        st.caption("⚠️ Excludes brokerage (0.3% or ₹20/order, whichever lower), pledge/unpledge charges (₹15+GST each), "
+                   "and square-off charges (₹50+GST) — interest only. Check console.zerodha.com/funds/interest-statement "
+                   "for the exact billed figure if you need precision for tax purposes.")
+
     # ── 2. MTF vs Cash P&L Comparison ────────────────────────────────────
     with mtf_tab2:
-        st.caption(f"Is leverage actually paying for itself? Gross P&L by funding type, {year_sel}, net of MTF interest where applicable.")
+        st.caption(f"Is leverage actually paying for itself? Gross P&L by funding type, {year_sel}, net of auto-calculated MTF interest.")
 
         cash_total = sum(monthly_pnl_cash.values())
         mtf_total_gross = sum(monthly_pnl_mtf.values())
-        mtf_total_net = mtf_total_gross - total_mtf_interest
+        mtf_total_net = mtf_total_gross - total_mtf_interest_auto
 
         cash_trades_n = sum(1 for t in closed if str(t.get("funding_type", "CASH") or "CASH").upper() != "MTF"
                              and str(t.get("exit_date", ""))[:4].isdigit() and int(str(t.get("exit_date", ""))[:4]) == year_sel)
         mtf_trades_n = sum(1 for t in closed if str(t.get("funding_type", "CASH") or "CASH").upper() == "MTF"
                             and str(t.get("exit_date", ""))[:4].isdigit() and int(str(t.get("exit_date", ""))[:4]) == year_sel)
+        mtf_open_n = sum(1 for t in trades if t.get("status") == "OPEN"
+                          and str(t.get("funding_type", "CASH") or "CASH").upper() == "MTF")
 
         if cash_trades_n == 0 and mtf_trades_n == 0:
             st.info("No closed trades this year to compare.")
         else:
+            if mtf_trades_n == 0 and mtf_open_n > 0:
+                st.markdown(f"""<div style="background:{AMBER_BG};border:1px solid {AMBER_BORDER};border-radius:8px;
+                    padding:8px 12px;font-size:11px;color:{TEXT_BODY};margin-bottom:10px">
+                    ℹ️ You have {mtf_open_n} open MTF position(s), but none closed yet this year — MTF P&L will show
+                    ₹0 until at least one MTF trade is exited. Interest is still accruing (see Interest Cost tab).
+                </div>""", unsafe_allow_html=True)
+
             mc1, mc2, mc3 = st.columns(3)
             mc1.markdown(kpi_card("CASH P&L", fmt_pnl(cash_total), color=pnl_color(cash_total),
                                    sub=f"{cash_trades_n} trade(s)"), unsafe_allow_html=True)
             mc2.markdown(kpi_card("MTF P&L (GROSS)", fmt_pnl(mtf_total_gross), color=pnl_color(mtf_total_gross),
-                                   sub=f"{mtf_trades_n} trade(s)"), unsafe_allow_html=True)
+                                   sub=f"{mtf_trades_n} closed trade(s)"), unsafe_allow_html=True)
             mc3.markdown(kpi_card("MTF P&L (NET OF INTEREST)", fmt_pnl(mtf_total_net), color=pnl_color(mtf_total_net),
-                                   sub=f"after -{fmt_inr(total_mtf_interest)} interest"), unsafe_allow_html=True)
+                                   sub=f"after -{fmt_inr(total_mtf_interest_auto)} interest"), unsafe_allow_html=True)
 
             st.markdown("<br>", unsafe_allow_html=True)
 
             fig_cmp = go.Figure()
-            cmp_months = [r["month"] for r in rows]
+            cmp_months = MONTHS
             fig_cmp.add_trace(go.Bar(
                 x=cmp_months, y=[monthly_pnl_cash[i+1] for i in range(12)],
                 name="Cash", marker=dict(color=BLUE, opacity=0.85),
@@ -322,7 +391,7 @@ def render():
                 name="MTF (gross)", marker=dict(color=AMBER, opacity=0.85),
                 hovertemplate="%{x}<br>MTF: ₹%{y:,.0f}<extra></extra>",
             ))
-            l_cmp = chart_layout(height=280, title="Monthly P&L — Cash vs MTF (gross)")
+            l_cmp = chart_layout(height=280, title="Monthly P&L — Cash vs MTF (gross, closed trades only)")
             l_cmp["yaxis"]["tickprefix"] = "₹"
             l_cmp["barmode"] = "group"
             l_cmp["legend"] = dict(orientation="h", y=-0.18, x=0, font=dict(size=10, color=TEXT_MUTED))
@@ -333,7 +402,7 @@ def render():
             if mtf_total_gross > 0:
                 st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
                     padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6;margin-top:8px">
-                    MTF interest consumed <b style="color:{TEXT_H}">{(total_mtf_interest/mtf_total_gross*100 if mtf_total_gross else 0):.1f}%</b>
+                    MTF interest consumed <b style="color:{TEXT_H}">{(total_mtf_interest_auto/mtf_total_gross*100 if mtf_total_gross else 0):.1f}%</b>
                     of your gross MTF profit this year. {"Leverage is paying for itself." if mtf_total_net > 0 else "Net MTF result is negative after interest — worth reviewing whether the leverage is adding edge or just risk."}
                 </div>""", unsafe_allow_html=True)
 
