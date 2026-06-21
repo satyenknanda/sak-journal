@@ -1723,7 +1723,7 @@ def render():
         if not closed:
             st.info("No closed trades yet.")
         else:
-            da_sub1, da_sub2, da_sub3, da_sub4, da_sub5 = st.tabs(["📊 Position & P&L", "🔥 Streaks", "⚖️ Risk & Expectancy", "📈 Pareto / Asymmetry", "⏱ Duration Matrix"])
+            da_sub1, da_sub2, da_sub3, da_sub4, da_sub5, da_sub6, da_sub7, da_sub8, da_sub9, da_sub10 = st.tabs(["📊 Position & P&L", "🔥 Streaks", "⚖️ Risk & Expectancy", "📈 Pareto / Asymmetry", "⏱ Duration Matrix", "🏭 Sector & Industry", "🎨 Visual Analytics", "🎯 Performance Attribution", "🧬 Multi-Dimension", "📰 Learning Feed"])
 
             # ════════════════════════════════════════════════════════════
             # SUB-TAB 1: POSITION & P&L (existing content)
@@ -2475,6 +2475,440 @@ def render():
                             should show their best Avg P/L in the 4-7 Day to 2-4 Week buckets if exits are working as designed. If the Intraday or 1-3 Day
                             buckets are dragging the average down, that's premature stop-outs rather than the setup failing.
                         </div>""", unsafe_allow_html=True)
+
+            # ════════════════════════════════════════════════════════════
+            # SUB-TAB 6: SECTOR & INDUSTRY
+            # ════════════════════════════════════════════════════════════
+            with da_sub6:
+                st.caption("Sector / industry concentration and performance across your trades.")
+                try:
+                    from pages.portfolio_dna import _get_sector_map
+                    sector_map = _get_sector_map()
+                except Exception:
+                    sector_map = {}
+
+                sec_d = defaultdict(lambda: {"pnl":0,"wins":0,"count":0})
+                ind_d = defaultdict(lambda: {"pnl":0,"wins":0,"count":0})
+                for t in closed:
+                    tk = t.get("ticker","")
+                    info = sector_map.get(tk, {"sector":"Unclassified","industry":"Unclassified"})
+                    p = safe_float(t.get("pnl"))
+                    s = info.get("sector","Unclassified") or "Unclassified"
+                    i = info.get("industry","Unclassified") or "Unclassified"
+                    sec_d[s]["pnl"] += p; sec_d[s]["count"] += 1
+                    if p > 0: sec_d[s]["wins"] += 1
+                    ind_d[i]["pnl"] += p; ind_d[i]["count"] += 1
+                    if p > 0: ind_d[i]["wins"] += 1
+
+                if not sec_d:
+                    st.info("No sector data available.")
+                else:
+                    sectors_sorted = sorted(sec_d.keys(), key=lambda k: sec_d[k]["count"], reverse=True)
+                    industries_sorted = sorted(ind_d.keys(), key=lambda k: ind_d[k]["count"], reverse=True)
+                    top_sector = max(sec_d, key=lambda k: sec_d[k]["count"])
+                    least_sector = min(sec_d, key=lambda k: sec_d[k]["count"])
+                    top_industry = max(ind_d, key=lambda k: ind_d[k]["count"])
+                    least_industry = min(ind_d, key=lambda k: ind_d[k]["count"])
+
+                    sk1, sk2, sk3, sk4 = st.columns(4)
+                    sk1.markdown(kpi_card("TOP SECTOR", top_sector, color=TEAL), unsafe_allow_html=True)
+                    sk2.markdown(kpi_card("LEAST SECTOR", least_sector, color=RED), unsafe_allow_html=True)
+                    sk3.markdown(kpi_card("TOP INDUSTRY", top_industry, color=TEAL), unsafe_allow_html=True)
+                    sk4.markdown(kpi_card("LEAST INDUSTRY", least_industry, color=RED), unsafe_allow_html=True)
+
+                    st.markdown("<div style=\'height:14px\'></div>", unsafe_allow_html=True)
+                    st.markdown(section_label(f"Sector Allocation Distribution — {len(closed)} Trades"), unsafe_allow_html=True)
+
+                    sc1, sc2 = st.columns(2)
+                    with sc1:
+                        fig_sec_pie = go.Figure(go.Pie(
+                            labels=sectors_sorted, values=[sec_d[s]["count"] for s in sectors_sorted],
+                            hole=0.55, marker=dict(colors=[DNA_COLORS[i % len(DNA_COLORS)] for i in range(len(sectors_sorted))]),
+                            textinfo="percent", textfont=dict(size=10),
+                            hovertemplate="%{label}<br>%{value} trades (%{percent})<extra></extra>"))
+                        l_sp = chart_layout(height=300, title="")
+                        l_sp["showlegend"] = True
+                        l_sp["legend"] = dict(orientation="v", x=1.0, y=0.5, font=dict(size=10))
+                        fig_sec_pie.update_layout(**l_sp)
+                        st.plotly_chart(fig_sec_pie, use_container_width=True, config={"displayModeBar":False})
+                    with sc2:
+                        sec_pnls = [sec_d[s]["pnl"] for s in sectors_sorted]
+                        fig_sec_bar = go.Figure(go.Bar(
+                            x=sec_pnls, y=sectors_sorted, orientation="h",
+                            marker=dict(color=[TEAL if v>=0 else RED for v in sec_pnls], opacity=0.85),
+                            hovertemplate="%{y}<br>₹%{x:,.0f}<extra></extra>"))
+                        l_sb = chart_layout(height=300, title="Sector Performance (Net P&L)")
+                        l_sb["xaxis"]["tickprefix"] = "₹"
+                        fig_sec_bar.update_layout(**l_sb)
+                        st.plotly_chart(fig_sec_bar, use_container_width=True, config={"displayModeBar":False})
+
+                    st.markdown("<div style=\'height:14px\'></div>", unsafe_allow_html=True)
+                    st.markdown(section_label(f"Industry Allocation Distribution — {len(closed)} Trades"), unsafe_allow_html=True)
+                    ic1, ic2 = st.columns(2)
+                    with ic1:
+                        fig_ind_pie = go.Figure(go.Pie(
+                            labels=industries_sorted, values=[ind_d[s]["count"] for s in industries_sorted],
+                            hole=0.55, marker=dict(colors=[DNA_COLORS[i % len(DNA_COLORS)] for i in range(len(industries_sorted))]),
+                            textinfo="percent", textfont=dict(size=9),
+                            hovertemplate="%{label}<br>%{value} trades (%{percent})<extra></extra>"))
+                        l_ip = chart_layout(height=300, title="")
+                        l_ip["showlegend"] = True
+                        l_ip["legend"] = dict(orientation="v", x=1.0, y=0.5, font=dict(size=9))
+                        fig_ind_pie.update_layout(**l_ip)
+                        st.plotly_chart(fig_ind_pie, use_container_width=True, config={"displayModeBar":False})
+                    with ic2:
+                        ind_pnls = [ind_d[s]["pnl"] for s in industries_sorted]
+                        fig_ind_bar = go.Figure(go.Bar(
+                            x=ind_pnls, y=industries_sorted, orientation="h",
+                            marker=dict(color=[TEAL if v>=0 else RED for v in ind_pnls], opacity=0.85),
+                            hovertemplate="%{y}<br>₹%{x:,.0f}<extra></extra>"))
+                        l_ib = chart_layout(height=300, title="Industry Performance (Net P&L)")
+                        l_ib["xaxis"]["tickprefix"] = "₹"
+                        fig_ind_bar.update_layout(**l_ib)
+                        st.plotly_chart(fig_ind_bar, use_container_width=True, config={"displayModeBar":False})
+
+                    st.markdown(section_label("Sector Detail Table"), unsafe_allow_html=True)
+                    sec_rows = [{"Sector":s,"Trades":sec_d[s]["count"],
+                                 "Win %":f"{sec_d[s][\'wins\']/sec_d[s][\'count\']*100:.1f}%" if sec_d[s]["count"] else "—",
+                                 "Net P&L":sec_d[s]["pnl"]} for s in sectors_sorted]
+                    st.dataframe(summary_df(sec_rows, pnl_cols=("Net P&L",)), use_container_width=True, hide_index=True)
+
+            # ════════════════════════════════════════════════════════════
+            # SUB-TAB 7: VISUAL ANALYTICS
+            # ════════════════════════════════════════════════════════════
+            with da_sub7:
+                st.caption("Distribution of setups, entry types, growth areas, and exit triggers across your trades.")
+
+                def _explode_field(trades_list, field):
+                    d = defaultdict(lambda: {"pnl":0,"wins":0,"count":0})
+                    for t in trades_list:
+                        raw = t.get(field,"") or ""
+                        tags = [s.strip() for s in str(raw).split(",") if s.strip()]
+                        if not tags: continue
+                        p = safe_float(t.get("pnl"))
+                        for tag in tags:
+                            d[tag]["pnl"] += p; d[tag]["count"] += 1
+                            if p > 0: d[tag]["wins"] += 1
+                    return d
+
+                playbook_d = defaultdict(lambda: {"pnl":0,"wins":0,"count":0})
+                for t in closed:
+                    pb = t.get("playbook","") or "Untagged"
+                    p = safe_float(t.get("pnl"))
+                    playbook_d[pb]["pnl"] += p; playbook_d[pb]["count"] += 1
+                    if p > 0: playbook_d[pb]["wins"] += 1
+
+                entry_type_d = _explode_field(closed, "entry_type")
+                growth_d     = _explode_field(closed, "mistakes")
+                exit_trig_d  = _explode_field(closed, "exit_trigger")
+
+                def _donut_block(d, title, key):
+                    if not d:
+                        st.markdown(f\'<p style="font-size:12px;font-weight:600;color:{TEXT_H};margin-bottom:6px">{title}</p>\', unsafe_allow_html=True)
+                        st.info("No data yet — start tagging trades.")
+                        return
+                    labels = sorted(d.keys(), key=lambda k: d[k]["count"], reverse=True)
+                    vals = [d[k]["count"] for k in labels]
+                    fig = go.Figure(go.Pie(labels=labels, values=vals, hole=0.6,
+                        marker=dict(colors=[DNA_COLORS[i % len(DNA_COLORS)] for i in range(len(labels))]),
+                        textinfo="percent", textfont=dict(size=9),
+                        hovertemplate="%{label}<br>%{value} trades (%{percent})<extra></extra>"))
+                    l = chart_layout(height=260, title=title)
+                    l["showlegend"] = True
+                    l["legend"] = dict(orientation="v", x=1.0, y=0.5, font=dict(size=9))
+                    fig.update_layout(**l)
+                    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar":False}, key=f"viz_{key}")
+
+                vc1, vc2 = st.columns(2)
+                with vc1: _donut_block(playbook_d, "Setup Distribution (Playbook)", "setup")
+                with vc2: _donut_block(entry_type_d, "Entry Type Distribution", "entry")
+
+                vc3, vc4 = st.columns(2)
+                with vc3: _donut_block(growth_d, "Growth Areas (Behavioral Issues)", "growth")
+                with vc4: _donut_block(exit_trig_d, "Exit Trigger Frequency", "exit")
+
+                st.markdown("<div style=\'height:16px\'></div>", unsafe_allow_html=True)
+                st.markdown(section_label("Monthly Trading Performance"), unsafe_allow_html=True)
+
+                mon_perf = defaultdict(lambda: {"count":0,"wins":0,"pos_size_sum":0})
+                for t in closed:
+                    m = str(t.get("exit_date","") or "")[:7]
+                    if not m or m == "nan": continue
+                    p = safe_float(t.get("pnl"))
+                    try:
+                        ps = float(t.get("position_size") or 0) or float(t.get("entry_price") or 0)*float(t.get("qty") or 0)
+                    except: ps = 0
+                    mon_perf[m]["count"] += 1
+                    if p > 0: mon_perf[m]["wins"] += 1
+                    mon_perf[m]["pos_size_sum"] += ps
+
+                months_mp = sorted(mon_perf.keys())
+                if months_mp:
+                    from plotly.subplots import make_subplots
+                    mp_labels = [fmt_month(m) for m in months_mp]
+                    mp_counts = [mon_perf[m]["count"] for m in months_mp]
+                    mp_wr = [mon_perf[m]["wins"]/mon_perf[m]["count"]*100 if mon_perf[m]["count"] else 0 for m in months_mp]
+                    mp_avgpos = [mon_perf[m]["pos_size_sum"]/mon_perf[m]["count"] if mon_perf[m]["count"] else 0 for m in months_mp]
+
+                    fig_mp = make_subplots(specs=[[{"secondary_y": True}]])
+                    fig_mp.add_trace(go.Bar(x=mp_labels, y=mp_counts, name="Trade Count",
+                        marker=dict(color=BLUE, opacity=0.55),
+                        hovertemplate="%{x}<br>%{y} trades<extra></extra>"), secondary_y=False)
+                    fig_mp.add_trace(go.Scatter(x=mp_labels, y=mp_wr, name="Win Rate (%)", mode="lines+markers",
+                        line=dict(color=TEAL, width=2.5, shape="spline"),
+                        marker=dict(size=7, color=TEAL, line=dict(color="white", width=1.5)),
+                        hovertemplate="%{x}<br>%{y:.1f}%<extra></extra>"), secondary_y=True)
+                    fig_mp.add_trace(go.Scatter(x=mp_labels, y=mp_avgpos, name="Avg Pos. Size", mode="lines",
+                        line=dict(color=AMBER, width=1.5, dash="dot"),
+                        hovertemplate="%{x}<br>₹%{y:,.0f}<extra></extra>"), secondary_y=False)
+                    l_mp = chart_layout(height=320, title="")
+                    l_mp["legend"] = dict(orientation="h", y=-0.18, x=0, font=dict(size=10, color=TEXT_MUTED))
+                    l_mp["showlegend"] = True
+                    fig_mp.update_layout(**l_mp)
+                    fig_mp.update_yaxes(title_text="Trades / Avg Pos. (₹)", secondary_y=False, gridcolor=CHART_GRID, tickfont=dict(size=10, color=TEXT_SUBTLE))
+                    fig_mp.update_yaxes(title_text="Win Rate (%)", secondary_y=True, showgrid=False, tickfont=dict(size=10, color=TEAL), ticksuffix="%")
+                    st.plotly_chart(fig_mp, use_container_width=True, config={"displayModeBar":False})
+                else:
+                    st.info("No monthly data available.")
+
+            # ════════════════════════════════════════════════════════════
+            # SUB-TAB 8: PERFORMANCE ATTRIBUTION
+            # ════════════════════════════════════════════════════════════
+            with da_sub8:
+                st.caption("Attributed metrics aggregated by execution attributes — Setup, Entry Type, Exit Trigger, Growth Areas.")
+
+                def _attr_table(d, label, total_pnl_all):
+                    if not d:
+                        st.info(f"No {label} data yet.")
+                        return
+                    rows = []
+                    for k in sorted(d.keys(), key=lambda x: d[x]["pnl"], reverse=True):
+                        v = d[k]
+                        wr = v["wins"]/v["count"]*100 if v["count"] else 0
+                        pf_impact = (v["pnl"]/total_pnl_all*100) if total_pnl_all else 0
+                        rows.append({
+                            label: k, "Trades": v["count"], "Win Rate": f"{wr:.1f}%",
+                            "Net P&L": v["pnl"], "PF Impact %": f"{pf_impact:+.1f}%",
+                        })
+                    df_a = pd.DataFrame(rows)
+                    def _asty(row):
+                        idx = df_a.columns.tolist(); styles = [""]*len(row)
+                        if "Net P&L" in idx:
+                            v = row.get("Net P&L", 0)
+                            if isinstance(v,(int,float)):
+                                styles[idx.index("Net P&L")] = f"color:{TEAL};font-weight:600" if v>0 else f"color:{RED};font-weight:600" if v<0 else ""
+                        return styles
+                    fmt_a = {"Net P&L": lambda v: f"{\'+\'if v>=0 else \'\'}₹{abs(v):,.0f}" if isinstance(v,(int,float)) else v}
+                    st.dataframe(df_a.style.apply(_asty, axis=1).format(fmt_a)
+                        .set_properties(**{"font-size":"12.5px"}).set_table_styles(TABLE_STYLES),
+                        use_container_width=True, hide_index=True)
+
+                total_pnl_all = sum(safe_float(t.get("pnl")) for t in closed)
+
+                playbook_d2 = defaultdict(lambda: {"pnl":0,"wins":0,"count":0})
+                for t in closed:
+                    pb = t.get("playbook","") or "Untagged"
+                    p = safe_float(t.get("pnl"))
+                    playbook_d2[pb]["pnl"] += p; playbook_d2[pb]["count"] += 1
+                    if p > 0: playbook_d2[pb]["wins"] += 1
+
+                def _explode_field2(trades_list, field):
+                    d = defaultdict(lambda: {"pnl":0,"wins":0,"count":0})
+                    for t in trades_list:
+                        raw = t.get(field,"") or ""
+                        tags = [s.strip() for s in str(raw).split(",") if s.strip()]
+                        p = safe_float(t.get("pnl"))
+                        for tag in tags:
+                            d[tag]["pnl"] += p; d[tag]["count"] += 1
+                            if p > 0: d[tag]["wins"] += 1
+                    return d
+
+                entry_type_d2 = _explode_field2(closed, "entry_type")
+                growth_d2     = _explode_field2(closed, "mistakes")
+                exit_trig_d2  = _explode_field2(closed, "exit_trigger")
+
+                at1, at2 = st.columns(2)
+                with at1:
+                    st.markdown(section_label("Performance by Setup (Playbook)"), unsafe_allow_html=True)
+                    _attr_table(playbook_d2, "Setup", total_pnl_all)
+                with at2:
+                    st.markdown(section_label("Performance by Entry Type"), unsafe_allow_html=True)
+                    _attr_table(entry_type_d2, "Entry Type", total_pnl_all)
+
+                at3, at4 = st.columns(2)
+                with at3:
+                    st.markdown(section_label("Performance by Exit Trigger"), unsafe_allow_html=True)
+                    _attr_table(exit_trig_d2, "Exit Trigger", total_pnl_all)
+                with at4:
+                    st.markdown(section_label("Performance by Growth Area"), unsafe_allow_html=True)
+                    _attr_table(growth_d2, "Growth Area", total_pnl_all)
+
+            # ════════════════════════════════════════════════════════════
+            # SUB-TAB 9: MULTI-DIMENSION COMBINATIONS
+            # ════════════════════════════════════════════════════════════
+            with da_sub9:
+                st.caption("Attributed performance matrix matching multiple tag dimensions at once.")
+
+                def _tags_of(t, field):
+                    raw = t.get(field,"") or ""
+                    return [s.strip() for s in str(raw).split(",") if s.strip()] or ["—"]
+
+                DIM_OPTS = {
+                    "Setup (Playbook)": lambda t: [t.get("playbook","") or "—"],
+                    "Entry Type": lambda t: _tags_of(t, "entry_type"),
+                    "Exit Trigger": lambda t: _tags_of(t, "exit_trigger"),
+                    "Growth Area": lambda t: _tags_of(t, "mistakes"),
+                    "Strategy": lambda t: [t.get("strategy","") or "—"],
+                }
+
+                mc1, mc2 = st.columns(2)
+                dim_a = mc1.selectbox("Dimension 1", list(DIM_OPTS.keys()), index=0, key="mdim_a")
+                dim_b = mc2.selectbox("Dimension 2", list(DIM_OPTS.keys()), index=1, key="mdim_b")
+
+                combo_d = defaultdict(lambda: {"pnl":0,"wins":0,"count":0,"r_sum":0})
+                for t in closed:
+                    a_tags = DIM_OPTS[dim_a](t)
+                    b_tags = DIM_OPTS[dim_b](t)
+                    p = safe_float(t.get("pnl")); r = safe_float(t.get("r_multiple"))
+                    for a in a_tags:
+                        for b in b_tags:
+                            key = f"{a} • {b}"
+                            combo_d[key]["pnl"] += p; combo_d[key]["count"] += 1; combo_d[key]["r_sum"] += r
+                            if p > 0: combo_d[key]["wins"] += 1
+
+                if not combo_d:
+                    st.info("No combination data available yet.")
+                else:
+                    total_pnl_combo = sum(safe_float(t.get("pnl")) for t in closed)
+
+                    mcc1, mcc2 = st.columns(2)
+                    with mcc1:
+                        st.markdown(section_label("Top Combos by Win Rate %"), unsafe_allow_html=True)
+                        wr_rows = sorted(combo_d.items(), key=lambda kv: kv[1]["wins"]/kv[1]["count"] if kv[1]["count"] else 0, reverse=True)[:10]
+                        wr_df = pd.DataFrame([{"Combination":k,"Trades":v["count"],
+                                                "Win Rate":f"{v[\'wins\']/v[\'count\']*100:.1f}%" if v["count"] else "—"}
+                                               for k,v in wr_rows])
+                        st.dataframe(wr_df, use_container_width=True, hide_index=True)
+                    with mcc2:
+                        st.markdown(section_label("Top Combos by Avg R"), unsafe_allow_html=True)
+                        r_rows = sorted(combo_d.items(), key=lambda kv: kv[1]["r_sum"]/kv[1]["count"] if kv[1]["count"] else 0, reverse=True)[:10]
+                        r_df = pd.DataFrame([{"Combination":k,"Trades":v["count"],
+                                               "Avg R":f"{v[\'r_sum\']/v[\'count\']:.2f}R" if v["count"] else "—"}
+                                              for k,v in r_rows])
+                        st.dataframe(r_df, use_container_width=True, hide_index=True)
+
+                    mcc3, mcc4 = st.columns(2)
+                    with mcc3:
+                        st.markdown(section_label("Top Combos by Total PF Impact %"), unsafe_allow_html=True)
+                        pf_rows = sorted(combo_d.items(), key=lambda kv: kv[1]["pnl"], reverse=True)[:10]
+                        pf_df = pd.DataFrame([{"Combination":k,"Trades":v["count"],
+                                                "PF Impact %":f"{v[\'pnl\']/total_pnl_combo*100:+.1f}%" if total_pnl_combo else "—"}
+                                               for k,v in pf_rows])
+                        st.dataframe(pf_df, use_container_width=True, hide_index=True)
+                    with mcc4:
+                        st.markdown(section_label("Top Combos by Realized P&L"), unsafe_allow_html=True)
+                        pl_rows = sorted(combo_d.items(), key=lambda kv: kv[1]["pnl"], reverse=True)[:10]
+                        pl_df = pd.DataFrame([{"Combination":k,"Trades":v["count"],"Total P&L":fmt_pnl(v["pnl"])}
+                                               for k,v in pl_rows])
+                        st.dataframe(pl_df, use_container_width=True, hide_index=True)
+
+            # ════════════════════════════════════════════════════════════
+            # SUB-TAB 10: LEARNING FEED
+            # ════════════════════════════════════════════════════════════
+            with da_sub10:
+                st.caption("Highlights from your selected timeframe — what's working, what's not.")
+
+                lf_period = st.selectbox("Period", ["Last 7 days","Last 30 days","Last 90 days","All time"], index=1, key="lf_period")
+                days_map = {"Last 7 days":7,"Last 30 days":30,"Last 90 days":90,"All time":99999}
+                ndays = days_map[lf_period]
+                cutoff = pd.Timestamp.now() - pd.Timedelta(days=ndays)
+                prior_cutoff = cutoff - pd.Timedelta(days=ndays)
+
+                def _in_window(t, start, end=None):
+                    d = str(t.get("exit_date","") or "")[:10]
+                    if not d or d == "nan": return False
+                    try: dt = pd.Timestamp(d)
+                    except: return False
+                    if end is not None: return start <= dt < end
+                    return dt >= start
+
+                recent_trades  = [t for t in closed if _in_window(t, cutoff)]
+                prior_trades   = [t for t in closed if _in_window(t, prior_cutoff, cutoff)]
+
+                def _best_combo(trades_list):
+                    d = defaultdict(lambda: {"pnl":0,"wins":0,"count":0})
+                    for t in trades_list:
+                        pb = t.get("playbook","") or "—"
+                        p = safe_float(t.get("pnl"))
+                        d[pb]["pnl"] += p; d[pb]["count"] += 1
+                        if p > 0: d[pb]["wins"] += 1
+                    if not d: return None
+                    best_k = max(d, key=lambda k: d[k]["wins"]/d[k]["count"] if d[k]["count"] else 0)
+                    v = d[best_k]
+                    wr = v["wins"]/v["count"]*100 if v["count"] else 0
+                    pf = v["pnl"]
+                    return best_k, wr, pf
+
+                recent_best = _best_combo(recent_trades)
+
+                if recent_best:
+                    k, wr, pf = recent_best
+                    prior_pf_for_same = 0
+                    if prior_trades:
+                        prior_pf_for_same = sum(safe_float(t.get("pnl")) for t in prior_trades if (t.get("playbook","") or "—") == k)
+                    st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:16px 20px;margin-bottom:16px">
+                        <p style="font-size:13px;color:{TEXT_BODY};line-height:1.6;margin:0">
+                        In the <b>{lf_period.lower()}</b> your best setup was <b style="color:{TEAL}">{k}</b> with
+                        <b>{wr:.1f}% win rate</b> and <b style="color:{pnl_color(pf)}">{fmt_pnl(pf)}</b> net P&L,
+                        vs <b style="color:{pnl_color(prior_pf_for_same)}">{fmt_pnl(prior_pf_for_same)}</b> in the prior {lf_period.lower().replace(\'last \',\'\')}.
+                        </p>
+                    </div>""", unsafe_allow_html=True)
+                else:
+                    st.info("Not enough trade data in this window for a learning summary.")
+
+                st.markdown(section_label("What's Working For You"), unsafe_allow_html=True)
+
+                def _tags_of2(t, field):
+                    raw = t.get(field,"") or ""
+                    return [s.strip() for s in str(raw).split(",") if s.strip()]
+
+                def _factor_stats(trades_list, getter):
+                    d = defaultdict(lambda: {"pnl":0,"wins":0,"count":0,"r_sum":0})
+                    for t in trades_list:
+                        vals = getter(t)
+                        p = safe_float(t.get("pnl")); r = safe_float(t.get("r_multiple"))
+                        for v in vals:
+                            d[v]["pnl"] += p; d[v]["count"] += 1; d[v]["r_sum"] += r
+                            if p > 0: d[v]["wins"] += 1
+                    return d
+
+                setup_stats = defaultdict(lambda: {"pnl":0,"wins":0,"count":0,"r_sum":0})
+                for t in recent_trades:
+                    pb = t.get("playbook","") or "—"
+                    p = safe_float(t.get("pnl")); r = safe_float(t.get("r_multiple"))
+                    setup_stats[pb]["pnl"] += p; setup_stats[pb]["count"] += 1; setup_stats[pb]["r_sum"] += r
+                    if p > 0: setup_stats[pb]["wins"] += 1
+
+                entry_stats  = _factor_stats(recent_trades, lambda t: _tags_of2(t,"entry_type"))
+                exit_stats   = _factor_stats(recent_trades, lambda t: _tags_of2(t,"exit_trigger"))
+                growth_stats = _factor_stats(recent_trades, lambda t: _tags_of2(t,"mistakes"))
+
+                def _top_factor_card(d, label):
+                    if not d:
+                        return kpi_card(label, "—", sub="no data")
+                    best_k = max(d, key=lambda k: d[k]["wins"]/d[k]["count"] if d[k]["count"] else 0)
+                    v = d[best_k]
+                    wr = v["wins"]/v["count"]*100 if v["count"] else 0
+                    avg_r = v["r_sum"]/v["count"] if v["count"] else 0
+                    return kpi_card(f"{label}: {best_k}", f"{wr:.1f}% WR",
+                                     sub=f"{fmt_pnl(v[\'pnl\'])} · {avg_r:.2f}R · {v[\'count\']} trades",
+                                     color=TEAL if v["pnl"]>=0 else RED)
+
+                f1, f2, f3, f4 = st.columns(4)
+                f1.markdown(_top_factor_card(setup_stats, "Setup"), unsafe_allow_html=True)
+                f2.markdown(_top_factor_card(entry_stats, "Entry"), unsafe_allow_html=True)
+                f3.markdown(_top_factor_card(exit_stats, "Exit"), unsafe_allow_html=True)
+                f4.markdown(_top_factor_card(growth_stats, "Growth"), unsafe_allow_html=True)
 
     with tab_cmp:
         st.markdown(
