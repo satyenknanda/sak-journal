@@ -22,6 +22,14 @@ SHADOW  = SHADOW_SM
 # ─────────────────────────────────────────────────────────────────────────
 
 
+def _strategy_color(name, all_names):
+    """Deterministic per-strategy identity color from the shared DNA_COLORS
+    palette — same strategy name always gets the same color across pages."""
+    sorted_names = sorted(all_names)
+    idx = sorted_names.index(name) if name in sorted_names else 0
+    return DNA_COLORS[idx % len(DNA_COLORS)]
+
+
 def render():
     st.markdown("## Strategy Dashboard")
     st.markdown(f'<p style="color:{MUTED};margin-top:-8px;margin-bottom:20px;font-size:0.85rem">FY 2026-27 · Per-strategy breakdown</p>', unsafe_allow_html=True)
@@ -50,6 +58,7 @@ def render():
 
     active = [(s,d) for s,d in strat_map.items() if d["closed"]>=1]
     sorted_s = sorted(active, key=lambda x: ss(x[1])[3], reverse=True)
+    all_strategy_names = [s for s,_ in active]
 
     top_s = sorted_s[0][0] if sorted_s else "—"
     bot_s = sorted_s[-1][0] if sorted_s else "—"
@@ -87,12 +96,16 @@ def render():
             wr,aw,al,exp = ss(d)
             bar_w = int(abs(d["pnl"])/max_abs_pnl*100)
             bar_c = TEAL if d["pnl"]>=0 else RED
+            id_color = _strategy_color(s, all_strategy_names)
             with col:
                 st.markdown(f"""
-                <div style="background:{CARD};border:1px solid {BORDER};border-radius:12px;
+                <div style="background:{CARD};border:1px solid {BORDER};border-top:3px solid {id_color};border-radius:12px;
                     padding:16px 18px;margin-bottom:10px;box-shadow:{SHADOW}">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-                        <span style="font-size:1rem;font-weight:700;color:{TEXT}">{s}</span>
+                        <span style="display:inline-flex;align-items:center;gap:7px">
+                            <span style="width:9px;height:9px;border-radius:50%;background:{id_color};display:inline-block"></span>
+                            <span style="font-size:1rem;font-weight:700;color:{TEXT}">{s}</span>
+                        </span>
                         {badge(exp)}
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:13px">
@@ -127,8 +140,9 @@ def render():
         fig = go.Figure()
         fig.add_hline(y=0, line=dict(color=DIM, width=1))
         for s,e in zip(snames,exps):
+            id_color = _strategy_color(s, all_strategy_names)
             fig.add_trace(go.Bar(x=[s],y=[e],
-                marker=dict(color=TEAL if e>=0 else RED, opacity=0.85, line=dict(width=0)),
+                marker=dict(color=id_color, opacity=0.85, line=dict(width=2, color=(TEAL if e>=0 else RED))),
                 showlegend=False,
                 hovertemplate=f"<b>{s}</b><br>Expectancy: %{{y:.2f}}R<extra></extra>"))
         l=chart_layout(height=240,title="Expectancy per Strategy")
@@ -141,8 +155,9 @@ def render():
         fig2.add_hline(y=0.4, line=dict(color=BLUE, width=1.5, dash="dash"),
             annotation_text="40% break-even", annotation_font_color=BLUE, annotation_font_size=9)
         for s,w in zip(snames,wrs):
+            id_color = _strategy_color(s, all_strategy_names)
             fig2.add_trace(go.Bar(x=[s],y=[w*100],
-                marker=dict(color=TEAL if w>=0.4 else RED, opacity=0.85, line=dict(width=0)),
+                marker=dict(color=id_color, opacity=0.85, line=dict(width=2, color=(TEAL if w>=0.4 else RED))),
                 showlegend=False,
                 hovertemplate=f"<b>{s}</b><br>Win Rate: %{{y:.1f}}%<extra></extra>"))
         l2=chart_layout(height=240,title="Win Rate per Strategy")
