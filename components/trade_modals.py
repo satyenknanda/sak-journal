@@ -179,17 +179,25 @@ def render_edit_trade_modal(trade: dict):
                                      key=f"edit_trade_funding_{trade['id']}",
                                      help="MTF = Zerodha Margin Trading Facility (leveraged/borrowed funds)")
 
-    # Default: use the trade's own saved margin% if set, else look up by ticker, else 50%
+    # Default priority: lookup table FIRST (it's your authoritative, deliberately-saved
+    # value), then the trade's own stored margin% as fallback, then 50% generic default.
+    # Previously this checked the trade's stored value first, which meant a stale/default
+    # value already on the row (e.g. from briefly toggling MTF earlier) would silently
+    # shadow your real saved lookup entry — this was the actual bug.
+    trade_ticker = (trade.get("ticker") or "").upper().strip()
+    margins = get_mtf_margins()
+    match = next((m for m in margins if m["ticker"] == trade_ticker), None)
     existing_margin = trade.get("mtf_margin_pct")
-    if existing_margin:
+
+    if match:
+        mtf_margin_pct = float(match.get("margin_pct") or 50.0)
+        lookup_note = f"📋 Auto-filled from saved lookup for {trade_ticker}"
+    elif existing_margin:
         mtf_margin_pct = float(existing_margin)
         lookup_note = None
     else:
-        trade_ticker = (trade.get("ticker") or "").upper().strip()
-        margins = get_mtf_margins()
-        match = next((m for m in margins if m["ticker"] == trade_ticker), None)
-        mtf_margin_pct = float(match.get("margin_pct")) if match else 50.0
-        lookup_note = f"📋 Auto-filled from saved lookup for {trade_ticker}" if match else None
+        mtf_margin_pct = 50.0
+        lookup_note = None
 
     if funding_type == "MTF":
         with fc2:
