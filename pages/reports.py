@@ -2778,21 +2778,46 @@ def render():
                 dim_a = mc1.selectbox("Dimension 1", list(DIM_OPTS.keys()), index=0, key="mdim_a")
                 dim_b = mc2.selectbox("Dimension 2", list(DIM_OPTS.keys()), index=1, key="mdim_b")
 
-                combo_d = defaultdict(lambda: {"pnl":0,"wins":0,"count":0,"r_sum":0})
+                combo_d = defaultdict(lambda: {"pnl":0,"wins":0,"count":0,"r_sum":0,"move_sum":0,"move_count":0})
+
+                def _stock_move_pct_combo(t):
+                    ep = safe_float(t.get("entry_price"))
+                    xp = safe_float(t.get("exit_price"))
+                    if ep <= 0: return None
+                    side = str(t.get("side","") or "").upper()
+                    raw = (xp - ep) / ep * 100
+                    return raw if side not in ("SHORT","SELL") else -raw
+
                 for t in closed:
                     a_tags = DIM_OPTS[dim_a](t)
                     b_tags = DIM_OPTS[dim_b](t)
                     p = safe_float(t.get("pnl")); r = safe_float(t.get("r_multiple"))
+                    mv = _stock_move_pct_combo(t)
                     for a in a_tags:
                         for b in b_tags:
                             key = f"{a} • {b}"
                             combo_d[key]["pnl"] += p; combo_d[key]["count"] += 1; combo_d[key]["r_sum"] += r
                             if p > 0: combo_d[key]["wins"] += 1
+                            if mv is not None:
+                                combo_d[key]["move_sum"] += mv; combo_d[key]["move_count"] += 1
 
                 if not combo_d:
                     st.info("No combination data available yet.")
                 else:
                     total_pnl_combo = sum(safe_float(t.get("pnl")) for t in closed)
+
+                    st.markdown(section_label("Top Combos by Avg Stock Move %"), unsafe_allow_html=True)
+                    move_rows = sorted(
+                        [(k,v) for k,v in combo_d.items() if v["move_count"] > 0],
+                        key=lambda kv: kv[1]["move_sum"]/kv[1]["move_count"], reverse=True
+                    )[:10]
+                    if move_rows:
+                        move_df = pd.DataFrame([{"Combination":k,"Trades":v["count"],
+                                                  "Avg Move %":f"{v['move_sum']/v['move_count']:+.2f}%"}
+                                                 for k,v in move_rows])
+                        st.dataframe(move_df, use_container_width=True, hide_index=True)
+                    else:
+                        st.info("No entry/exit price data available to compute stock move %.")
 
                     mcc1, mcc2 = st.columns(2)
                     with mcc1:
@@ -2917,11 +2942,30 @@ def render():
                                      TEAL if v["pnl"]>=0 else RED,
                                      sub=f"{fmt_pnl(v['pnl'])} · {avg_r:.2f}R · {v['count']} trades")
 
-                f1, f2, f3, f4 = st.columns(4)
-                f1.markdown(_top_factor_card(setup_stats, "Setup"), unsafe_allow_html=True)
-                f2.markdown(_top_factor_card(entry_stats, "Entry"), unsafe_allow_html=True)
-                f3.markdown(_top_factor_card(exit_stats, "Exit"), unsafe_allow_html=True)
-                f4.markdown(_top_factor_card(growth_stats, "Growth"), unsafe_allow_html=True)
+                def _top_n_factor_cards(d, label, n=3):
+                    keys_sorted = sorted(d.keys(), key=lambda k: d[k]["wins"]/d[k]["count"] if d[k]["count"] else 0, reverse=True)[:n]
+                    cards = []
+                    for k in keys_sorted:
+                        v = d[k]
+                        wr = v["wins"]/v["count"]*100 if v["count"] else 0
+                        avg_r = v["r_sum"]/v["count"] if v["count"] else 0
+                        cards.append(kpi_card_accent(f"{label}: {k}", f"{wr:.1f}% WR",
+                                         TEAL if v["pnl"]>=0 else RED,
+                                         sub=f"{fmt_pnl(v['pnl'])} · {avg_r:.2f}R · {v['count']} trades"))
+                    while len(cards) < n:
+                        cards.append(kpi_card_accent(label, "—", TEXT_DIM, sub="no data"))
+                    return cards
+
+                setup_cards = _top_n_factor_cards(setup_stats, "Setup", n=3)
+                f1, f2, f3 = st.columns(3)
+                f1.markdown(setup_cards[0], unsafe_allow_html=True)
+                f2.markdown(setup_cards[1], unsafe_allow_html=True)
+                f3.markdown(setup_cards[2], unsafe_allow_html=True)
+
+                f4, f5, f6 = st.columns(3)
+                f4.markdown(_top_factor_card(entry_stats, "Entry"), unsafe_allow_html=True)
+                f5.markdown(_top_factor_card(exit_stats, "Exit"), unsafe_allow_html=True)
+                f6.markdown(_top_factor_card(growth_stats, "Growth"), unsafe_allow_html=True)
 
     with tab_cmp:
         st.markdown(
