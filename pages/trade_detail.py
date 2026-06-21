@@ -375,6 +375,19 @@ def render():
             elif new_setup!=cur_setup:
                 _save_trade_field(trade_id,setup=",".join(new_setup)); st.rerun()
 
+            # Colored setup chips — deterministic DNA_COLORS identity per setup name
+            if new_setup:
+                _sorted_setups = sorted(SETUP_OPTS)
+                def _setup_color(name):
+                    idx = _sorted_setups.index(name) if name in _sorted_setups else 0
+                    return DNA_COLORS[idx % len(DNA_COLORS)]
+                _chips_html = '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">'
+                for _s in new_setup:
+                    _c = _setup_color(_s)
+                    _chips_html += f'<span style="background:{_c}1A;color:{_c};border:1px solid {_c}44;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:600">{_s}</span>'
+                _chips_html += '</div>'
+                st.markdown(_chips_html, unsafe_allow_html=True)
+
             # Mistakes tags
             st.markdown(f'<div style="font-size:11px;font-weight:600;color:{TEXT};margin:8px 0 4px">Mistakes</div>',unsafe_allow_html=True)
             MISTAKE_OPTS=["Early Entry","Early Exit","Late Entry","Late Exit","Oversized","FOMO","Revenge Trade","Ignored SL","No Stop Set","Chased","Wrong Setup"]
