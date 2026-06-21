@@ -4,23 +4,13 @@ from data.db import _sb
 from theme import *
 from market_universe.thematic_clusters import get_cluster
 
-SECTOR_COLORS = {
-    "Financial Services": "#7C3AED", "Information Technology": "#3B82F6",
-    "Healthcare": "#10B981", "Materials": "#F59E0B", "Industrials": "#EC4899",
-    "Utilities": "#14B8A6", "Consumer Discretionary": "#F97316", "Energy": "#06B6D4",
-}
 
-CLUSTER_COLORS = {
-    "Banking & Financial Services": "#7C3AED",
-    "Information Technology & Software": "#3B82F6",
-    "Healthcare & Pharma": "#10B981",
-    "Metals & Mining": "#F59E0B",
-    "Defense, Aerospace & Engineering": "#EC4899",
-    "Energy & Utilities": "#14B8A6",
-    "Automotive & Components": "#F97316",
-    "Lifestyle & Retail": "#06B6D4",
-    "Other": "#94A3B8",
-}
+def _color_for(name, all_names):
+    """Deterministic color assignment from the shared DNA_COLORS palette —
+    same name always gets the same color, regardless of dict iteration order."""
+    sorted_names = sorted(all_names)
+    idx = sorted_names.index(name) if name in sorted_names else 0
+    return DNA_COLORS[idx % len(DNA_COLORS)]
 
 
 def render():
@@ -43,7 +33,7 @@ def render():
 
     view_mode = st.radio("Group by", ["Sector", "Thematic Cluster"], key="domain_view_mode", horizontal=True)
     group_col = "sector" if view_mode == "Sector" else "cluster"
-    color_map = SECTOR_COLORS if view_mode == "Sector" else CLUSTER_COLORS
+    all_group_names = sorted(uni_df[group_col].unique())
 
     search = st.text_input("🔍 Search sectors, clusters, industries, or tickers", key="domain_search")
 
@@ -74,7 +64,7 @@ def render():
         cols = st.columns(n_cols)
         for j, group_name in enumerate(groups[row_start:row_start+n_cols]):
             row = group_counts[group_counts[group_col] == group_name].iloc[0]
-            color = color_map.get(group_name, TEXT_MUTED)
+            color = _color_for(group_name, all_group_names)
             with cols[j]:
                 if st.button(f"{group_name}\n{int(row['tickers'])} tickers · {int(row['industries'])} industries",
                              key=f"group_btn_{view_mode}_{group_name}", use_container_width=True):

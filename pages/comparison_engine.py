@@ -90,7 +90,7 @@ def render():
 
     # ── Build normalized series ──────────────────────────────────────────
     fig = go.Figure()
-    colors = STRAT_COLORS
+    colors = DNA_COLORS
 
     if mode == "Sector":
         for i, sector in enumerate(selected):

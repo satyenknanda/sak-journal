@@ -171,3 +171,6 @@ def badge(label, style="open"):
     return (f'<span style="display:inline-flex;align-items:center;padding:2px 9px;'
             f'border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap;'
             f'background:{bg};color:{fg};border:1px solid {br};font-family:Inter,sans-serif">{label}</span>')
+
+DNA_COLORS = ["#7C3AED","#EC4899","#10B981","#F59E0B","#3B82F6","#14B8A6",
+              "#F97316","#06B6D4","#8B5CF6","#DC2626","#0D9488","#D97706"]
