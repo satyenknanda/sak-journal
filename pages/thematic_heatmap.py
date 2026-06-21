@@ -76,34 +76,36 @@ def render():
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # ── Industry grid within each sector ──────────────────────────────────
+    # ── Per-sector tabs: industry grid + stock detail ────────────────────
     st.markdown(section_label("Industry Breakdown"), unsafe_allow_html=True)
     sectors = sector_avg.index.tolist()
-    sel_sector = st.selectbox("Filter by sector", ["All"] + sectors, key="heatmap_sector_filter")
+    tabs = st.tabs(sectors)
 
-    plot_df = df if sel_sector == "All" else df[df["sector"] == sel_sector]
-    industry_avg = plot_df.groupby("industry")["ret"].agg(["mean", "count"]).sort_values("mean", ascending=False)
+    for tab, sector in zip(tabs, sectors):
+        with tab:
+            plot_df = df[df["sector"] == sector]
+            industry_avg = plot_df.groupby("industry")["ret"].agg(["mean", "count"]).sort_values("mean", ascending=False)
 
-    n_cols = 4
-    industries = industry_avg.index.tolist()
-    for row_start in range(0, len(industries), n_cols):
-        cols = st.columns(n_cols)
-        for j, ind in enumerate(industries[row_start:row_start+n_cols]):
-            avg = industry_avg.loc[ind, "mean"]
-            cnt = int(industry_avg.loc[ind, "count"])
-            bg, fg = heat_color(avg)
-            with cols[j]:
-                st.markdown(f"""<div style="background:{bg};border-radius:8px;padding:10px;margin-bottom:8px;min-height:70px">
-                    <div style="font-size:10px;color:{fg};opacity:0.85;font-weight:600;line-height:1.3">{ind} ({cnt})</div>
-                    <div style="font-size:16px;font-weight:700;color:{fg};margin-top:4px">{avg:+.1f}%</div>
-                </div>""", unsafe_allow_html=True)
+            n_cols = 4
+            industries = industry_avg.index.tolist()
+            for row_start in range(0, len(industries), n_cols):
+                cols = st.columns(n_cols)
+                for j, ind in enumerate(industries[row_start:row_start+n_cols]):
+                    avg = industry_avg.loc[ind, "mean"]
+                    cnt = int(industry_avg.loc[ind, "count"])
+                    bg, fg = heat_color(avg)
+                    with cols[j]:
+                        st.markdown(f"""<div style="background:{bg};border-radius:8px;padding:10px;margin-bottom:8px;min-height:70px">
+                            <div style="font-size:10px;color:{fg};opacity:0.85;font-weight:600;line-height:1.3">{ind} ({cnt})</div>
+                            <div style="font-size:16px;font-weight:700;color:{fg};margin-top:4px">{avg:+.1f}%</div>
+                        </div>""", unsafe_allow_html=True)
 
-    # ── Stock-level table for drill-down ─────────────────────────────────
-    st.markdown(section_label("Stock Detail"), unsafe_allow_html=True)
-    detail_df = plot_df.dropna(subset=["ret"]).sort_values("ret", ascending=False).copy()
-    detail_df["ret"] = detail_df["ret"].map(lambda v: f"{v:+.2f}%")
-    detail_df = detail_df.rename(columns={"ticker": "Symbol", "sector": "Sector", "industry": "Industry", "ret": tf_key})
-    st.dataframe(detail_df[["Symbol", "Sector", "Industry", tf_key]], use_container_width=True, hide_index=True)
+            # ── Stock-level table for this sector ─────────────────────────
+            st.markdown(section_label(f"{sector} — Stock Detail"), unsafe_allow_html=True)
+            detail_df = plot_df.dropna(subset=["ret"]).sort_values("ret", ascending=False).copy()
+            detail_df["ret"] = detail_df["ret"].map(lambda v: f"{v:+.2f}%")
+            detail_df = detail_df.rename(columns={"ticker": "Symbol", "sector": "Sector", "industry": "Industry", "ret": tf_key})
+            st.dataframe(detail_df[["Symbol", "Industry", tf_key]], use_container_width=True, hide_index=True)
 
     unmapped_in_rets = set(ret_by_ticker.keys()) - set(u["ticker"] for u in uni)
     if unmapped_in_rets:
