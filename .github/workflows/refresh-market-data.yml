@@ -1,0 +1,32 @@
+name: Refresh Market Data
+
+"on":
+  schedule:
+    # 8:30 AM IST = 3:00 AM UTC — before market open
+    - cron: '0 3 * * 1-5'
+    # 4:00 PM IST = 10:30 AM UTC — after market close
+    - cron: '30 10 * * 1-5'
+  workflow_dispatch: {}  # allows manual trigger from the Actions tab too
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install yfinance supabase --break-system-packages || pip install yfinance supabase
+
+      - name: Run market refresh
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          python3 market_universe/market_refresh.py
