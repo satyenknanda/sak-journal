@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from data.db import _sb
 from theme import *
-from thematic_clusters import get_cluster
+from market_universe.thematic_clusters import get_cluster
 
 SECTOR_COLORS = {
     "Financial Services": "#7C3AED", "Information Technology": "#3B82F6",
