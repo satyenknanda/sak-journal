@@ -37,6 +37,54 @@ def render():
 
     flows = get_capital_flows(year_sel)  # {month_num: {"added": x, "withdrawn": y, "mtf_interest": z}}
 
+    # ── Auto-calculated MTF interest (Zerodha formula: 0.04%/day on borrowed
+    # amount, T+1 to exit/today) — computed once here, used by both the
+    # Monthly Flows table below AND the MTF Analytics section further down. ──
+    from datetime import date as _date, timedelta as _timedelta
+    ZERODHA_MTF_DAILY_RATE = 0.0004  # 0.04% per day = ₹40 per lakh, per Zerodha's published MTF rate
+
+    def calc_mtf_interest_for_trade(t, year_filter=None):
+        """Per-trade MTF interest, split by month. See ZERODHA_MTF_DAILY_RATE above."""
+        if str(t.get("funding_type", "CASH") or "CASH").upper() != "MTF":
+            return {}
+        qty = safe_float(t.get("qty"))
+        price = safe_float(t.get("entry_price"))
+        margin_pct = safe_float(t.get("mtf_margin_pct")) or 50.0
+        position_value = qty * price
+        borrowed = position_value * (1 - margin_pct / 100)
+        if borrowed <= 0:
+            return {}
+        try:
+            entry_dt = datetime.strptime(str(t.get("entry_date", ""))[:10], "%Y-%m-%d").date()
+        except Exception:
+            return {}
+        if t.get("status") == "CLOSED" and t.get("exit_date"):
+            try:
+                exit_dt = datetime.strptime(str(t.get("exit_date", ""))[:10], "%Y-%m-%d").date()
+            except Exception:
+                exit_dt = _date.today()
+        else:
+            exit_dt = _date.today()
+        start = entry_dt + _timedelta(days=1)
+        if start > exit_dt:
+            return {}
+        daily_interest = borrowed * ZERODHA_MTF_DAILY_RATE
+        by_month = {}
+        cur = start
+        while cur <= exit_dt:
+            if year_filter is None or cur.year == year_filter:
+                by_month[cur.month] = by_month.get(cur.month, 0.0) + daily_interest
+            cur += _timedelta(days=1)
+        return by_month
+
+    auto_interest_by_month = {m: 0.0 for m in range(1, 13)}
+    for t in trades:
+        per_trade = calc_mtf_interest_for_trade(t, year_filter=year_sel)
+        for m, amt in per_trade.items():
+            auto_interest_by_month[m] += amt
+    total_mtf_interest_auto = sum(auto_interest_by_month.values())
+
+
     # ── Own Capital vs MTF Exposure (current open positions) ────────────
     st.markdown(section_label("Current Exposure — Own Capital vs MTF"), unsafe_allow_html=True)
 
@@ -165,7 +213,7 @@ def render():
         f = flows.get(m, {"added": 0.0, "withdrawn": 0.0, "mtf_interest": 0.0})
         added = f.get("added", 0.0)
         withdrawn = f.get("withdrawn", 0.0)
-        mtf_interest = f.get("mtf_interest", 0.0)
+        mtf_interest = auto_interest_by_month.get(m, 0.0)  # auto-calculated, not manual
         pnl = monthly_pnl.get(m, 0.0)
         net_pnl = pnl - mtf_interest
         start_cap = running_capital
@@ -209,12 +257,12 @@ def render():
     edited = st.data_editor(
         edit_df,
         use_container_width=True, hide_index=True, key=f"fund_editor_{year_sel}",
-        disabled=["Month", "Starting Capital (₹)", "Gross P/L (₹)", "Net P/L (₹)", "Ending Capital (₹)"],
+        disabled=["Month", "MTF Interest (₹)", "Starting Capital (₹)", "Gross P/L (₹)", "Net P/L (₹)", "Ending Capital (₹)"],
         column_config={
             "Added (₹)": st.column_config.NumberColumn(format="₹%.0f", min_value=0.0),
             "Withdrawn (₹)": st.column_config.NumberColumn(format="₹%.0f", min_value=0.0),
-            "MTF Interest (₹)": st.column_config.NumberColumn(format="₹%.0f", min_value=0.0,
-                                                                help="Monthly MTF interest charged by Zerodha — reduces Net P/L"),
+            "MTF Interest (₹)": st.column_config.NumberColumn(format="₹%.0f",
+                                                                help="Auto-calculated from MTF trades (Zerodha's 0.04%/day formula) — not editable here"),
             "Starting Capital (₹)": st.column_config.NumberColumn(format="₹%.0f"),
             "Gross P/L (₹)": st.column_config.NumberColumn(format="₹%.0f"),
             "Net P/L (₹)": st.column_config.NumberColumn(format="₹%.0f"),
@@ -226,8 +274,7 @@ def render():
         for i, m in enumerate(range(1, 13)):
             added = safe_float(edited.iloc[i]["Added (₹)"])
             withdrawn = safe_float(edited.iloc[i]["Withdrawn (₹)"])
-            mtf_interest = safe_float(edited.iloc[i]["MTF Interest (₹)"])
-            save_capital_flow(year_sel, m, added, withdrawn, mtf_interest=mtf_interest)
+            save_capital_flow(year_sel, m, added, withdrawn)  # MTF interest is auto-calculated, not saved manually
         save_capital_flow(year_sel, 0, 0, 0, base_capital=starting_capital)  # month=0 stores the anchor
         st.success("Saved. Reload the page to see updated roll-forward.")
         st.rerun()
@@ -248,63 +295,10 @@ def render():
     # ════════════════════════════════════════════════════════════════════
     # MTF ANALYTICS — Interest Cost (auto-calculated), MTF vs Cash P&L, Leverage Trend
     # ════════════════════════════════════════════════════════════════════
-    import plotly.graph_objects as go
-    from datetime import date as _date, timedelta as _timedelta
-
-    ZERODHA_MTF_DAILY_RATE = 0.0004  # 0.04% per day = ₹40 per lakh, per Zerodha's published MTF rate
-
-    def calc_mtf_interest_for_trade(t, year_filter=None):
-        """Auto-calculated MTF interest for one trade, per Zerodha's formula:
-        0.04%/day on the BORROWED amount, from T+1 (entry+1 day) until exit
-        (or today, for still-open positions). Returns {month: interest_amount}
-        for the given year, splitting interest across months if the holding
-        period spans multiple months."""
-        if str(t.get("funding_type", "CASH") or "CASH").upper() != "MTF":
-            return {}
-        qty = safe_float(t.get("qty"))
-        price = safe_float(t.get("entry_price"))
-        margin_pct = safe_float(t.get("mtf_margin_pct")) or 50.0
-        position_value = qty * price
-        borrowed = position_value * (1 - margin_pct / 100)
-        if borrowed <= 0:
-            return {}
-
-        try:
-            entry_dt = datetime.strptime(str(t.get("entry_date", ""))[:10], "%Y-%m-%d").date()
-        except Exception:
-            return {}
-
-        if t.get("status") == "CLOSED" and t.get("exit_date"):
-            try:
-                exit_dt = datetime.strptime(str(t.get("exit_date", ""))[:10], "%Y-%m-%d").date()
-            except Exception:
-                exit_dt = _date.today()
-        else:
-            exit_dt = _date.today()  # still open — interest accrued to date
-
-        start = entry_dt + _timedelta(days=1)  # T+1
-        if start > exit_dt:
-            return {}  # held less than a day, no interest yet
-
-        daily_interest = borrowed * ZERODHA_MTF_DAILY_RATE
-        by_month = {}
-        cur = start
-        while cur <= exit_dt:
-            if year_filter is None or cur.year == year_filter:
-                by_month[cur.month] = by_month.get(cur.month, 0.0) + daily_interest
-            cur += _timedelta(days=1)
-        return by_month
-
-    # Aggregate auto-calculated interest across all trades for the selected year
-    auto_interest_by_month = {m: 0.0 for m in range(1, 13)}
-    for t in trades:
-        per_trade = calc_mtf_interest_for_trade(t, year_filter=year_sel)
-        for m, amt in per_trade.items():
-            auto_interest_by_month[m] += amt
-    total_mtf_interest_auto = sum(auto_interest_by_month.values())
-
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
     st.markdown(section_label("MTF Analytics"), unsafe_allow_html=True)
+
+    import plotly.graph_objects as go
 
     mtf_tab1, mtf_tab2, mtf_tab3 = st.tabs(["💸 Interest Cost", "⚖️ MTF vs Cash P&L", "📈 Leverage Trend"])
 
@@ -476,4 +470,4 @@ def render():
                                    color=(RED if peak_lev > 30 else AMBER if peak_lev > 15 else TEAL)), unsafe_allow_html=True)
 
     st.caption("Post-tax total is illustrative — wire to your Tax Analytics page output if you want an exact post-STCG/LTCG figure. "
-               "MTF interest is entered manually per month from your Zerodha contract notes / fund statement, since it isn't captured per-trade.")
+               "MTF interest is auto-calculated from your MTF trades using Zerodha's published 0.04%/day rate — excludes brokerage and other charges.")
