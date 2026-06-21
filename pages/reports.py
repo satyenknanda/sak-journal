@@ -2516,7 +2516,7 @@ def render():
                     sk3.markdown(kpi_card("TOP INDUSTRY", top_industry, color=TEAL), unsafe_allow_html=True)
                     sk4.markdown(kpi_card("LEAST INDUSTRY", least_industry, color=RED), unsafe_allow_html=True)
 
-                    st.markdown("<div style=\'height:14px\'></div>", unsafe_allow_html=True)
+                    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
                     st.markdown(section_label(f"Sector Allocation Distribution — {len(closed)} Trades"), unsafe_allow_html=True)
 
                     sc1, sc2 = st.columns(2)
@@ -2542,7 +2542,7 @@ def render():
                         fig_sec_bar.update_layout(**l_sb)
                         st.plotly_chart(fig_sec_bar, use_container_width=True, config={"displayModeBar":False})
 
-                    st.markdown("<div style=\'height:14px\'></div>", unsafe_allow_html=True)
+                    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
                     st.markdown(section_label(f"Industry Allocation Distribution — {len(closed)} Trades"), unsafe_allow_html=True)
                     ic1, ic2 = st.columns(2)
                     with ic1:
@@ -2569,7 +2569,7 @@ def render():
 
                     st.markdown(section_label("Sector Detail Table"), unsafe_allow_html=True)
                     sec_rows = [{"Sector":s,"Trades":sec_d[s]["count"],
-                                 "Win %":f"{sec_d[s][\'wins\']/sec_d[s][\'count\']*100:.1f}%" if sec_d[s]["count"] else "—",
+                                 "Win %":f"{sec_d[s]['wins']/sec_d[s]['count']*100:.1f}%" if sec_d[s]["count"] else "—",
                                  "Net P&L":sec_d[s]["pnl"]} for s in sectors_sorted]
                     st.dataframe(summary_df(sec_rows, pnl_cols=("Net P&L",)), use_container_width=True, hide_index=True)
 
@@ -2604,7 +2604,7 @@ def render():
 
                 def _donut_block(d, title, key):
                     if not d:
-                        st.markdown(f\'<p style="font-size:12px;font-weight:600;color:{TEXT_H};margin-bottom:6px">{title}</p>\', unsafe_allow_html=True)
+                        st.markdown(f'<p style="font-size:12px;font-weight:600;color:{TEXT_H};margin-bottom:6px">{title}</p>', unsafe_allow_html=True)
                         st.info("No data yet — start tagging trades.")
                         return
                     labels = sorted(d.keys(), key=lambda k: d[k]["count"], reverse=True)
@@ -2627,7 +2627,7 @@ def render():
                 with vc3: _donut_block(growth_d, "Growth Areas (Behavioral Issues)", "growth")
                 with vc4: _donut_block(exit_trig_d, "Exit Trigger Frequency", "exit")
 
-                st.markdown("<div style=\'height:16px\'></div>", unsafe_allow_html=True)
+                st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
                 st.markdown(section_label("Monthly Trading Performance"), unsafe_allow_html=True)
 
                 mon_perf = defaultdict(lambda: {"count":0,"wins":0,"pos_size_sum":0})
@@ -2698,7 +2698,7 @@ def render():
                             if isinstance(v,(int,float)):
                                 styles[idx.index("Net P&L")] = f"color:{TEAL};font-weight:600" if v>0 else f"color:{RED};font-weight:600" if v<0 else ""
                         return styles
-                    fmt_a = {"Net P&L": lambda v: f"{\'+\'if v>=0 else \'\'}₹{abs(v):,.0f}" if isinstance(v,(int,float)) else v}
+                    fmt_a = {"Net P&L": lambda v: f"{'+'if v>=0 else ''}₹{abs(v):,.0f}" if isinstance(v,(int,float)) else v}
                     st.dataframe(df_a.style.apply(_asty, axis=1).format(fmt_a)
                         .set_properties(**{"font-size":"12.5px"}).set_table_styles(TABLE_STYLES),
                         use_container_width=True, hide_index=True)
@@ -2786,14 +2786,14 @@ def render():
                         st.markdown(section_label("Top Combos by Win Rate %"), unsafe_allow_html=True)
                         wr_rows = sorted(combo_d.items(), key=lambda kv: kv[1]["wins"]/kv[1]["count"] if kv[1]["count"] else 0, reverse=True)[:10]
                         wr_df = pd.DataFrame([{"Combination":k,"Trades":v["count"],
-                                                "Win Rate":f"{v[\'wins\']/v[\'count\']*100:.1f}%" if v["count"] else "—"}
+                                                "Win Rate":f"{v['wins']/v['count']*100:.1f}%" if v["count"] else "—"}
                                                for k,v in wr_rows])
                         st.dataframe(wr_df, use_container_width=True, hide_index=True)
                     with mcc2:
                         st.markdown(section_label("Top Combos by Avg R"), unsafe_allow_html=True)
                         r_rows = sorted(combo_d.items(), key=lambda kv: kv[1]["r_sum"]/kv[1]["count"] if kv[1]["count"] else 0, reverse=True)[:10]
                         r_df = pd.DataFrame([{"Combination":k,"Trades":v["count"],
-                                               "Avg R":f"{v[\'r_sum\']/v[\'count\']:.2f}R" if v["count"] else "—"}
+                                               "Avg R":f"{v['r_sum']/v['count']:.2f}R" if v["count"] else "—"}
                                               for k,v in r_rows])
                         st.dataframe(r_df, use_container_width=True, hide_index=True)
 
@@ -2802,7 +2802,7 @@ def render():
                         st.markdown(section_label("Top Combos by Total PF Impact %"), unsafe_allow_html=True)
                         pf_rows = sorted(combo_d.items(), key=lambda kv: kv[1]["pnl"], reverse=True)[:10]
                         pf_df = pd.DataFrame([{"Combination":k,"Trades":v["count"],
-                                                "PF Impact %":f"{v[\'pnl\']/total_pnl_combo*100:+.1f}%" if total_pnl_combo else "—"}
+                                                "PF Impact %":f"{v['pnl']/total_pnl_combo*100:+.1f}%" if total_pnl_combo else "—"}
                                                for k,v in pf_rows])
                         st.dataframe(pf_df, use_container_width=True, hide_index=True)
                     with mcc4:
@@ -2860,7 +2860,7 @@ def render():
                         <p style="font-size:13px;color:{TEXT_BODY};line-height:1.6;margin:0">
                         In the <b>{lf_period.lower()}</b> your best setup was <b style="color:{TEAL}">{k}</b> with
                         <b>{wr:.1f}% win rate</b> and <b style="color:{pnl_color(pf)}">{fmt_pnl(pf)}</b> net P&L,
-                        vs <b style="color:{pnl_color(prior_pf_for_same)}">{fmt_pnl(prior_pf_for_same)}</b> in the prior {lf_period.lower().replace(\'last \',\'\')}.
+                        vs <b style="color:{pnl_color(prior_pf_for_same)}">{fmt_pnl(prior_pf_for_same)}</b> in the prior {lf_period.lower().replace('last ','')}.
                         </p>
                     </div>""", unsafe_allow_html=True)
                 else:
@@ -2901,7 +2901,7 @@ def render():
                     wr = v["wins"]/v["count"]*100 if v["count"] else 0
                     avg_r = v["r_sum"]/v["count"] if v["count"] else 0
                     return kpi_card(f"{label}: {best_k}", f"{wr:.1f}% WR",
-                                     sub=f"{fmt_pnl(v[\'pnl\'])} · {avg_r:.2f}R · {v[\'count\']} trades",
+                                     sub=f"{fmt_pnl(v['pnl'])} · {avg_r:.2f}R · {v['count']} trades",
                                      color=TEAL if v["pnl"]>=0 else RED)
 
                 f1, f2, f3, f4 = st.columns(4)
