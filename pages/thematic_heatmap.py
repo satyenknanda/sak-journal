@@ -100,12 +100,23 @@ def render():
                             <div style="font-size:16px;font-weight:700;color:{fg};margin-top:4px">{avg:+.1f}%</div>
                         </div>""", unsafe_allow_html=True)
 
-            # ── Stock-level table for this sector ─────────────────────────
+            # ── Stock-level table for this sector — color-coded by rating ──
             st.markdown(section_label(f"{sector} — Stock Detail"), unsafe_allow_html=True)
             detail_df = plot_df.dropna(subset=["ret"]).sort_values("ret", ascending=False).copy()
-            detail_df["ret"] = detail_df["ret"].map(lambda v: f"{v:+.2f}%")
             detail_df = detail_df.rename(columns={"ticker": "Symbol", "sector": "Sector", "industry": "Industry", "ret": tf_key})
-            st.dataframe(detail_df[["Symbol", "Industry", tf_key]], use_container_width=True, hide_index=True)
+            detail_df = detail_df[["Symbol", "Industry", tf_key]]
+
+            def style_rating(val):
+                bg, fg = heat_color(val)
+                return f"background-color:{bg};color:{fg};font-weight:600"
+
+            styler = detail_df.style
+            if hasattr(styler, "map"):
+                styler = styler.map(style_rating, subset=[tf_key])
+            else:
+                styler = styler.applymap(style_rating, subset=[tf_key])
+            styled = styler.format({tf_key: "{:+.2f}%"})
+            st.dataframe(styled, use_container_width=True, hide_index=True)
 
     unmapped_in_rets = set(ret_by_ticker.keys()) - set(u["ticker"] for u in uni)
     if unmapped_in_rets:
