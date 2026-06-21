@@ -90,13 +90,21 @@ def sv(v):
     return "" if s in ("None","nan","null") else s
 
 # Colours
+from theme import DNA_COLORS
 TEAL="#10B981"; RED="#EF4444"; AMBER="#F59E0B"; BLUE="#3B82F6"; PURPLE="#8B5CF6"; GRAY="#6B7280"
 VERDICT_COLORS={"HUNT":TEAL,"SELECTIVE":AMBER,"SIT":RED}
 NEWS_TAG_COLORS={"Bullish":TEAL,"Bearish":RED,"Neutral":GRAY,"Watch":AMBER}
-FOCUS_CAT_COLORS={"Results":PURPLE,"Block Deal":BLUE,"Upgrade":TEAL,"Downgrade":RED,
-    "Order Win":AMBER,"52W High":"#EC4899","Breakout":"#F97316","SEBI/Regulatory":"#92400E",
-    "Insider Buy":TEAL,"Other":GRAY}
-STRAT_COLORS={"VCP":PURPLE,"SVRO":BLUE,"EP":"#F97316","REVERSAL":RED,"NR1HR":TEAL,"TS":AMBER,"MARS":"#DB2777"}
+_FOCUS_CATS = sorted(["Results","Block Deal","Upgrade","Downgrade","Order Win",
+                      "52W High","Breakout","SEBI/Regulatory","Insider Buy","Other"])
+def _focus_color(cat):
+    idx = _FOCUS_CATS.index(cat) if cat in _FOCUS_CATS else 0
+    return DNA_COLORS[idx % len(DNA_COLORS)]
+FOCUS_CAT_COLORS = {c: _focus_color(c) for c in _FOCUS_CATS}
+_STRATEGY_NAMES = sorted(["VCP","SVRO","EP","REVERSAL","NR 1HR","TS","MARS"])
+def _strat_color(name):
+    idx = _STRATEGY_NAMES.index(name) if name in _STRATEGY_NAMES else 0
+    return DNA_COLORS[idx % len(DNA_COLORS)]
+STRAT_COLORS = {s: _strat_color(s) for s in _STRATEGY_NAMES}
 
 def card(title, accent=TEAL):
     return f"""<div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,0.04)">
