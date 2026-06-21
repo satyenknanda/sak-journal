@@ -2604,13 +2604,7 @@ def render():
                             if p > 0: d[tag]["wins"] += 1
                     return d
 
-                playbook_d = defaultdict(lambda: {"pnl":0,"wins":0,"count":0})
-                for t in closed:
-                    pb = t.get("playbook","") or "Untagged"
-                    p = safe_float(t.get("pnl"))
-                    playbook_d[pb]["pnl"] += p; playbook_d[pb]["count"] += 1
-                    if p > 0: playbook_d[pb]["wins"] += 1
-
+                setup_d = _explode_field(closed, "setup")
                 entry_type_d = _explode_field(closed, "entry_type")
                 growth_d     = _explode_field(closed, "mistakes")
                 exit_trig_d  = _explode_field(closed, "exit_trigger")
@@ -2633,7 +2627,7 @@ def render():
                     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar":False}, key=f"viz_{key}")
 
                 vc1, vc2 = st.columns(2)
-                with vc1: _donut_block(playbook_d, "Setup Distribution (Playbook)", "setup")
+                with vc1: _donut_block(setup_d, "Setup Distribution", "setup")
                 with vc2: _donut_block(entry_type_d, "Entry Type Distribution", "entry")
 
                 vc3, vc4 = st.columns(2)
@@ -2718,13 +2712,6 @@ def render():
 
                 total_pnl_all = sum(safe_float(t.get("pnl")) for t in closed)
 
-                playbook_d2 = defaultdict(lambda: {"pnl":0,"wins":0,"count":0})
-                for t in closed:
-                    pb = t.get("playbook","") or "Untagged"
-                    p = safe_float(t.get("pnl"))
-                    playbook_d2[pb]["pnl"] += p; playbook_d2[pb]["count"] += 1
-                    if p > 0: playbook_d2[pb]["wins"] += 1
-
                 def _explode_field2(trades_list, field):
                     d = defaultdict(lambda: {"pnl":0,"wins":0,"count":0})
                     for t in trades_list:
@@ -2736,14 +2723,15 @@ def render():
                             if p > 0: d[tag]["wins"] += 1
                     return d
 
+                setup_d2      = _explode_field2(closed, "setup")
                 entry_type_d2 = _explode_field2(closed, "entry_type")
                 growth_d2     = _explode_field2(closed, "mistakes")
                 exit_trig_d2  = _explode_field2(closed, "exit_trigger")
 
                 at1, at2 = st.columns(2)
                 with at1:
-                    st.markdown(section_label("Performance by Setup (Playbook)"), unsafe_allow_html=True)
-                    _attr_table(playbook_d2, "Setup", total_pnl_all)
+                    st.markdown(section_label("Performance by Setup"), unsafe_allow_html=True)
+                    _attr_table(setup_d2, "Setup", total_pnl_all)
                 with at2:
                     st.markdown(section_label("Performance by Entry Type"), unsafe_allow_html=True)
                     _attr_table(entry_type_d2, "Entry Type", total_pnl_all)
@@ -2767,7 +2755,7 @@ def render():
                     return [s.strip() for s in str(raw).split(",") if s.strip()] or ["—"]
 
                 DIM_OPTS = {
-                    "Setup (Playbook)": lambda t: [t.get("playbook","") or "—"],
+                    "Setup": lambda t: _tags_of(t, "setup"),
                     "Entry Type": lambda t: _tags_of(t, "entry_type"),
                     "Exit Trigger": lambda t: _tags_of(t, "exit_trigger"),
                     "Growth Area": lambda t: _tags_of(t, "mistakes"),
@@ -2876,10 +2864,12 @@ def render():
                 def _best_combo(trades_list):
                     d = defaultdict(lambda: {"pnl":0,"wins":0,"count":0})
                     for t in trades_list:
-                        pb = t.get("playbook","") or "—"
+                        raw = t.get("setup","") or ""
+                        tags = [s.strip() for s in str(raw).split(",") if s.strip()] or ["—"]
                         p = safe_float(t.get("pnl"))
-                        d[pb]["pnl"] += p; d[pb]["count"] += 1
-                        if p > 0: d[pb]["wins"] += 1
+                        for tag in tags:
+                            d[tag]["pnl"] += p; d[tag]["count"] += 1
+                            if p > 0: d[tag]["wins"] += 1
                     if not d: return None
                     best_k = max(d, key=lambda k: d[k]["wins"]/d[k]["count"] if d[k]["count"] else 0)
                     v = d[best_k]
@@ -2893,7 +2883,11 @@ def render():
                     k, wr, pf = recent_best
                     prior_pf_for_same = 0
                     if prior_trades:
-                        prior_pf_for_same = sum(safe_float(t.get("pnl")) for t in prior_trades if (t.get("playbook","") or "—") == k)
+                        def _has_tag(t, tag):
+                            raw = t.get("setup","") or ""
+                            tags = [s.strip() for s in str(raw).split(",") if s.strip()] or ["—"]
+                            return tag in tags
+                        prior_pf_for_same = sum(safe_float(t.get("pnl")) for t in prior_trades if _has_tag(t, k))
                     st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:16px 20px;margin-bottom:16px">
                         <p style="font-size:13px;color:{TEXT_BODY};line-height:1.6;margin:0">
                         In the <b>{lf_period.lower()}</b> your best setup was <b style="color:{TEAL}">{k}</b> with
@@ -2920,12 +2914,16 @@ def render():
                             if p > 0: d[v]["wins"] += 1
                     return d
 
+                def _tags_of_lf(t, field):
+                    raw = t.get(field,"") or ""
+                    return [s.strip() for s in str(raw).split(",") if s.strip()]
+
                 setup_stats = defaultdict(lambda: {"pnl":0,"wins":0,"count":0,"r_sum":0})
                 for t in recent_trades:
-                    pb = t.get("playbook","") or "—"
                     p = safe_float(t.get("pnl")); r = safe_float(t.get("r_multiple"))
-                    setup_stats[pb]["pnl"] += p; setup_stats[pb]["count"] += 1; setup_stats[pb]["r_sum"] += r
-                    if p > 0: setup_stats[pb]["wins"] += 1
+                    for tag in (_tags_of_lf(t, "setup") or ["—"]):
+                        setup_stats[tag]["pnl"] += p; setup_stats[tag]["count"] += 1; setup_stats[tag]["r_sum"] += r
+                        if p > 0: setup_stats[tag]["wins"] += 1
 
                 entry_stats  = _factor_stats(recent_trades, lambda t: _tags_of2(t,"entry_type"))
                 exit_stats   = _factor_stats(recent_trades, lambda t: _tags_of2(t,"exit_trigger"))
