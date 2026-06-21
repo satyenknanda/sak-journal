@@ -28,14 +28,27 @@ def stat_row(label, value):
 
 def kpi_strip(items):
     html = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">'
-    for label, value, color in items:
-        html += (f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;'
-                 f'padding:12px 18px;flex:1;min-width:140px">'
+    for i, (label, value, color) in enumerate(items):
+        border_c = DNA_COLORS[i % len(DNA_COLORS)]
+        html += (f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {border_c};border-radius:10px;'
+                 f'padding:12px 18px;flex:1;min-width:140px;box-shadow:{SHADOW_SM}">'
                  f'<div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;'
                  f'letter-spacing:0.07em;margin-bottom:4px">{label}</div>'
                  f'<div style="font-size:20px;font-weight:700;color:{color}">{value}</div></div>')
     html += '</div>'
     return html
+
+def kpi_card_accent(label, value, color, sub=None):
+    """KPI card with a colored top-border accent (multi-color style)."""
+    sub_html = f'<div style="font-size:11px;color:{TEXT_SUBTLE};margin-top:3px">{sub}</div>' if sub else ""
+    return f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {color};
+        border-radius:10px;padding:14px 16px;box-shadow:{SHADOW_SM};min-height:78px">
+        <div style="font-size:10.5px;color:{TEXT_SUBTLE};text-transform:uppercase;
+            letter-spacing:0.07em;font-weight:500;margin-bottom:6px">{label}</div>
+        <div style="font-size:1.35rem;font-weight:700;color:{TEXT_H};letter-spacing:-0.02em;
+            font-variant-numeric:tabular-nums;line-height:1.2">{value}</div>
+        {sub_html}
+    </div>"""
 
 def line_area_chart(x, y_pnl, y_count=None, y_avg=None, height=260, title=""):
     fig = go.Figure()
@@ -2307,9 +2320,9 @@ def render():
 
                         st.markdown("<br>", unsafe_allow_html=True)
                         pk1, pk2, pk3 = st.columns(3)
-                        pk1.markdown(kpi_card("TOP 1", f"{p_top1:.0f}%"), unsafe_allow_html=True)
-                        pk2.markdown(kpi_card("TOP 3", f"{p_top3:.0f}%"), unsafe_allow_html=True)
-                        pk3.markdown(kpi_card("TOP 5", f"{p_top5:.0f}%"), unsafe_allow_html=True)
+                        pk1.markdown(kpi_card_accent("TOP 1", f"{p_top1:.0f}%", DNA_COLORS[0]), unsafe_allow_html=True)
+                        pk2.markdown(kpi_card_accent("TOP 3", f"{p_top3:.0f}%", DNA_COLORS[1]), unsafe_allow_html=True)
+                        pk3.markdown(kpi_card_accent("TOP 5", f"{p_top5:.0f}%", DNA_COLORS[2]), unsafe_allow_html=True)
 
                     with pright:
                         fig_pareto = go.Figure()
@@ -2410,10 +2423,10 @@ def render():
                     dur_best_bucket = dur_grp["avg_pnl"].idxmax() if dur_grp["trades"].sum() > 0 else "—"
                     dur_worst_bucket = dur_grp["avg_pnl"].idxmin() if dur_grp["trades"].sum() > 0 else "—"
                     dk1, dk2, dk3, dk4 = st.columns(4)
-                    dk1.markdown(kpi_card("TOTAL CLOSED TRADES", f"{int(dur_grp['trades'].sum())}"), unsafe_allow_html=True)
-                    dk2.markdown(kpi_card("BEST AVG P/L BUCKET", dur_best_bucket, color=TEAL), unsafe_allow_html=True)
-                    dk3.markdown(kpi_card("WORST AVG P/L BUCKET", dur_worst_bucket, color=RED), unsafe_allow_html=True)
-                    dk4.markdown(kpi_card("MEDIAN HOLDING DAYS", f"{dur_df['days'].median():.0f}d"), unsafe_allow_html=True)
+                    dk1.markdown(kpi_card_accent("TOTAL CLOSED TRADES", f"{int(dur_grp['trades'].sum())}", DNA_COLORS[3]), unsafe_allow_html=True)
+                    dk2.markdown(kpi_card_accent("BEST AVG P/L BUCKET", dur_best_bucket, TEAL), unsafe_allow_html=True)
+                    dk3.markdown(kpi_card_accent("WORST AVG P/L BUCKET", dur_worst_bucket, RED), unsafe_allow_html=True)
+                    dk4.markdown(kpi_card_accent("MEDIAN HOLDING DAYS", f"{dur_df['days'].median():.0f}d", DNA_COLORS[4]), unsafe_allow_html=True)
 
                     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -2511,10 +2524,10 @@ def render():
                     least_industry = min(ind_d, key=lambda k: ind_d[k]["count"])
 
                     sk1, sk2, sk3, sk4 = st.columns(4)
-                    sk1.markdown(kpi_card("TOP SECTOR", top_sector, color=TEAL), unsafe_allow_html=True)
-                    sk2.markdown(kpi_card("LEAST SECTOR", least_sector, color=RED), unsafe_allow_html=True)
-                    sk3.markdown(kpi_card("TOP INDUSTRY", top_industry, color=TEAL), unsafe_allow_html=True)
-                    sk4.markdown(kpi_card("LEAST INDUSTRY", least_industry, color=RED), unsafe_allow_html=True)
+                    sk1.markdown(kpi_card_accent("TOP SECTOR", top_sector, TEAL), unsafe_allow_html=True)
+                    sk2.markdown(kpi_card_accent("LEAST SECTOR", least_sector, RED), unsafe_allow_html=True)
+                    sk3.markdown(kpi_card_accent("TOP INDUSTRY", top_industry, DNA_COLORS[5]), unsafe_allow_html=True)
+                    sk4.markdown(kpi_card_accent("LEAST INDUSTRY", least_industry, DNA_COLORS[6]), unsafe_allow_html=True)
 
                     st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
                     st.markdown(section_label(f"Sector Allocation Distribution — {len(closed)} Trades"), unsafe_allow_html=True)
@@ -2895,14 +2908,14 @@ def render():
 
                 def _top_factor_card(d, label):
                     if not d:
-                        return kpi_card(label, "—", sub="no data")
+                        return kpi_card_accent(label, "—", TEXT_DIM, sub="no data")
                     best_k = max(d, key=lambda k: d[k]["wins"]/d[k]["count"] if d[k]["count"] else 0)
                     v = d[best_k]
                     wr = v["wins"]/v["count"]*100 if v["count"] else 0
                     avg_r = v["r_sum"]/v["count"] if v["count"] else 0
-                    return kpi_card(f"{label}: {best_k}", f"{wr:.1f}% WR",
-                                     sub=f"{fmt_pnl(v['pnl'])} · {avg_r:.2f}R · {v['count']} trades",
-                                     color=TEAL if v["pnl"]>=0 else RED)
+                    return kpi_card_accent(f"{label}: {best_k}", f"{wr:.1f}% WR",
+                                     TEAL if v["pnl"]>=0 else RED,
+                                     sub=f"{fmt_pnl(v['pnl'])} · {avg_r:.2f}R · {v['count']} trades")
 
                 f1, f2, f3, f4 = st.columns(4)
                 f1.markdown(_top_factor_card(setup_stats, "Setup"), unsafe_allow_html=True)
