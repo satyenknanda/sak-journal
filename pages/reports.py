@@ -634,17 +634,17 @@ def render():
             if d and d!="nan": by_d_o[d]+=safe_float(t.get("pnl"))
 
         st.markdown(f"""<div style="display:flex;gap:16px;margin-bottom:20px">
-            <div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px 20px;flex:1">
+            <div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[0]};border-radius:10px;padding:14px 20px;flex:1;box-shadow:{SHADOW_SM}">
                 <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.07em">Best Month</div>
                 <div style="font-size:22px;font-weight:700;color:{TEAL}">{fmt_month(best_m)}</div>
                 <div style="font-size:12px;color:{TEXT_MUTED}">{fmt_pnl(by_m_o.get(best_m,0))}</div>
             </div>
-            <div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px 20px;flex:1">
+            <div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[1]};border-radius:10px;padding:14px 20px;flex:1;box-shadow:{SHADOW_SM}">
                 <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.07em">Worst Month</div>
                 <div style="font-size:22px;font-weight:700;color:{RED}">{fmt_month(worst_m)}</div>
                 <div style="font-size:12px;color:{TEXT_MUTED}">{fmt_pnl(by_m_o.get(worst_m,0))}</div>
             </div>
-            <div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px 20px;flex:1">
+            <div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[2]};border-radius:10px;padding:14px 20px;flex:1;box-shadow:{SHADOW_SM}">
                 <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.07em">Avg / Month</div>
                 <div style="font-size:22px;font-weight:700;color:{pnl_color(avg_m)}">{fmt_pnl(avg_m)}</div>
             </div>
@@ -2002,20 +2002,20 @@ def render():
 
                 cs_col = RED if cur_streak_type == "LOSING" else TEAL
                 sc1, sc2, sc3 = st.columns(3)
-                sc1.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
-                    padding:16px;text-align:center">
+                sc1.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[3]};border-radius:10px;
+                    padding:16px;text-align:center;box-shadow:{SHADOW_SM}">
                     <div style="font-size:9.5px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.07em">Current</div>
                     <div style="font-size:24px;font-weight:800;color:{cs_col};margin:4px 0">{('L' if cur_streak_type=='LOSING' else 'W')}{cur_streak_n}</div>
                     <div style="font-size:10px;color:{TEXT_SUBTLE};text-transform:uppercase">{cur_streak_type or '—'}</div>
                 </div>""", unsafe_allow_html=True)
-                sc2.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
-                    padding:16px;text-align:center">
+                sc2.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[4]};border-radius:10px;
+                    padding:16px;text-align:center;box-shadow:{SHADOW_SM}">
                     <div style="font-size:9.5px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.07em">Best Streak</div>
                     <div style="font-size:20px;font-weight:800;color:{TEAL};margin:4px 0">{fmt_pnl(best_streak_pnl)}</div>
                     <div style="font-size:9px;color:{TEXT_SUBTLE}">{best_streak_label}</div>
                 </div>""", unsafe_allow_html=True)
-                sc3.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
-                    padding:16px;text-align:center">
+                sc3.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[5]};border-radius:10px;
+                    padding:16px;text-align:center;box-shadow:{SHADOW_SM}">
                     <div style="font-size:9.5px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.07em">Worst Streak</div>
                     <div style="font-size:20px;font-weight:800;color:{RED};margin:4px 0">{fmt_pnl(worst_streak_pnl)}</div>
                     <div style="font-size:9px;color:{TEXT_SUBTLE}">{worst_streak_label}</div>
