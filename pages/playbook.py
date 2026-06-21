@@ -10,7 +10,7 @@ from data.db import (get_playbooks, get_playbook, create_playbook, update_playbo
 from theme import *
 
 EMOJIS = ["📋","🔄","📈","📉","⚡","🎯","🔥","💡","🏹","🎲","🌊","⚔️","🛡️","🚀","💎"]
-COLORS = ["#7C3AED","#10B981","#3B82F6","#F59E0B","#EF4444","#EC4899","#8B5CF6","#06B6D4"]
+COLORS = DNA_COLORS  # shared palette from theme.py
 
 def render():
     init_db()
