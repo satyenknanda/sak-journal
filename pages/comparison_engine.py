@@ -55,15 +55,27 @@ def render():
         return
 
     try:
-        # Pull price history for all relevant tickers, batched to avoid
-        # PostgREST/.in_() URL length limits when target_tickers is large
-        # (e.g. selecting many sectors pulls 100+ tickers at once).
+        # Pull price history for all relevant tickers, batched by ticker count
+        # AND paginated by row count — Supabase/PostgREST caps responses at
+        # ~1000 rows by default, and a single ticker can have 250+ rows of
+        # daily history, so a chunk of 40 tickers can easily exceed that cap
+        # and silently truncate results without raising an error.
         ph = []
         chunk_size = 40
+        page_size = 1000
         for i in range(0, len(target_tickers), chunk_size):
             chunk = target_tickers[i:i + chunk_size]
-            ph_res = _sb().table("price_history").select("*").in_("ticker", chunk).execute()
-            ph.extend(ph_res.data or [])
+            offset = 0
+            while True:
+                ph_res = (_sb().table("price_history").select("*")
+                          .in_("ticker", chunk)
+                          .range(offset, offset + page_size - 1)
+                          .execute())
+                rows = ph_res.data or []
+                ph.extend(rows)
+                if len(rows) < page_size:
+                    break
+                offset += page_size
     except Exception as e:
         st.error(f"Could not load price history: {e}")
         return
@@ -96,9 +108,6 @@ def render():
         for i, sector in enumerate(selected):
             sec_tickers = uni_df[uni_df["sector"] == sector]["ticker"].tolist()
             sec_ph = ph_df[ph_df["ticker"].isin(sec_tickers)]
-            st.caption(f"DEBUG: {sector} — {len(sec_tickers)} tickers in universe, "
-                       f"{sec_ph['ticker'].nunique() if not sec_ph.empty else 0} found in price_history, "
-                       f"{len(sec_ph)} total rows")
             if sec_ph.empty:
                 continue
             # average close per day across all tickers in this sector, then normalize
