@@ -400,6 +400,30 @@ def render():
             elif new_mistakes!=cur_mistakes:
                 _save_trade_field(trade_id,mistakes=",".join(new_mistakes)); st.rerun()
 
+            # Entry Type tags
+            st.markdown(f'<div style="font-size:11px;font-weight:600;color:{TEXT};margin:8px 0 4px">Entry Type</div>',unsafe_allow_html=True)
+            ENTRY_TYPE_OPTS=["Breakout","Pullback","Gap Up","Gap Down","ORB","Pyramid Add","Retest Entry","Limit Order","Market Order"]
+            cur_entry_type=(trade.get("entry_type","") or "").split(",") if trade.get("entry_type") else []
+            new_entry_type=st.multiselect("Entry Type",ENTRY_TYPE_OPTS,default=[e for e in cur_entry_type if e in ENTRY_TYPE_OPTS],label_visibility="collapsed",key="td_entry_type")
+            new_entry_type_txt=st.text_input("Custom entry type",placeholder="Add custom entry type...",key="td_entry_type_custom")
+            if new_entry_type_txt and st.button("＋ Add",key="td_add_entry_type"):
+                combined=",".join(new_entry_type+[new_entry_type_txt])
+                _save_trade_field(trade_id,entry_type=combined); st.rerun()
+            elif new_entry_type!=cur_entry_type:
+                _save_trade_field(trade_id,entry_type=",".join(new_entry_type)); st.rerun()
+
+            # Exit Trigger tags
+            st.markdown(f'<div style="font-size:11px;font-weight:600;color:{TEXT};margin:8px 0 4px">Exit Trigger</div>',unsafe_allow_html=True)
+            EXIT_TRIGGER_OPTS=["Stop Loss Hit","Target Hit","Trailing Stop","Time Exit","Technical Breakdown","Partial Scale-Out","Manual Exit","Reversal Signal"]
+            cur_exit_trigger=(trade.get("exit_trigger","") or "").split(",") if trade.get("exit_trigger") else []
+            new_exit_trigger=st.multiselect("Exit Trigger",EXIT_TRIGGER_OPTS,default=[e for e in cur_exit_trigger if e in EXIT_TRIGGER_OPTS],label_visibility="collapsed",key="td_exit_trigger")
+            new_exit_trigger_txt=st.text_input("Custom exit trigger",placeholder="Add custom exit trigger...",key="td_exit_trigger_custom")
+            if new_exit_trigger_txt and st.button("＋ Add",key="td_add_exit_trigger"):
+                combined=",".join(new_exit_trigger+[new_exit_trigger_txt])
+                _save_trade_field(trade_id,exit_trigger=combined); st.rerun()
+            elif new_exit_trigger!=cur_exit_trigger:
+                _save_trade_field(trade_id,exit_trigger=",".join(new_exit_trigger)); st.rerun()
+
             # Custom tags
             st.markdown(f'<div style="font-size:11px;font-weight:600;color:{TEXT};margin:8px 0 4px">Tags</div>',unsafe_allow_html=True)
             cur_tags=(trade.get("tags","") or "")
