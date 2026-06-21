@@ -87,13 +87,17 @@ def render():
         st.markdown(f'<p style="font-size:10px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin:10px 0 4px">Folders</p>', unsafe_allow_html=True)
 
         all_folders = SYSTEM_FOLDERS + custom_folders
-        COLORS = {"All notes":"#7C3AED","Trade Notes":"#7C3AED","Daily Journal":"#7C3AED",
-                  "Sessions Recap":"#7C3AED","Backtesting Session Notes":"#7C3AED"}
+        # Deterministic per-folder identity color from the shared DNA_COLORS
+        # palette — same folder name always gets the same color.
+        _sorted_folders = sorted(all_folders)
+        def _folder_color(name):
+            idx = _sorted_folders.index(name) if name in _sorted_folders else 0
+            return DNA_COLORS[idx % len(DNA_COLORS)]
 
         for folder in all_folders:
             is_sel_f = sel_folder == folder
             is_sys   = folder in SYSTEM_FOLDERS
-            lc = COLORS.get(folder, "#10B981")
+            lc = _folder_color(folder)
             bg_f = "rgba(124,58,237,0.09)" if is_sel_f else "transparent"
             fw_f = "600" if is_sel_f else "400"
             tc_f = "#7C3AED" if is_sel_f else TEXT_BODY
