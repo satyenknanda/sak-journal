@@ -187,7 +187,7 @@ UNIVERSE = [
     ("HAWKINCOOK", "Consumer Discretionary", "Houseware & Glass"),
     ("ORIENTELEC", "Consumer Discretionary", "Household White Goods"),
     ("BOSCH-HCIL", "Consumer Discretionary", "HVAC & Cooling"),
-    ("BOROSIL", "Consumer Discretionary", "Houseware & Glass"),
+    ("BOROLTD", "Consumer Discretionary", "Houseware & Glass"),  # NSE symbol is BOROLTD, not BOROSIL
 ]
 
 print(f"Universe seeded: {len(UNIVERSE)} tickers")
