@@ -24,6 +24,7 @@ from data.prices import fetch_prices_bulk
 from components.trade_modals import render_add_trade_modal, render_exit_trade_modal, render_edit_trade_modal
 from collections import defaultdict
 import numpy as np
+from portfolio_holdings import render_portfolio_holdings
 
 # ── Light theme colours ────────────────────────────────────────────────────
 G = "#10B981"; R = "#EF4444"; B = "#3B82F6"; AM = "#F59E0B"
@@ -145,6 +146,14 @@ def render():
     st.markdown(metric_card_group(cockpit_rows), unsafe_allow_html=True)
 
     st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+
+    # ── View toggle: Table vs Portfolio Holdings card grid ───────────────────
+    view_mode = st.radio("View", ["Table", "Portfolio Holdings (Cards)"], horizontal=True,
+                          label_visibility="collapsed", key="jp_view_mode")
+
+    if view_mode == "Portfolio Holdings (Cards)":
+        render_portfolio_holdings(open_all, all_trades_raw, price_data)
+        return
 
     # ── Filter bar ─────────────────────────────────────────────────────────
     fc = st.columns([1, 1.4, 1.4, 1.4, 1.4, 1.4, 1])
