@@ -16,6 +16,9 @@ def fmt_pnl(v):
 def fmt_inr(v):
     return f"₹{v:,.2f}"
 
+def pnl_color(v):
+    return TEAL if v >= 0 else RED
+
 
 def render():
     st.markdown("## Fund Management")
