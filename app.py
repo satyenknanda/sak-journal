@@ -455,6 +455,7 @@ with st.sidebar:
         "tracker": '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
         "comparison_engine": '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
         "stock_niche_mapper": '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+        "domain_vector": '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><line x1="10" y1="6.5" x2="14" y2="6.5"/><line x1="6.5" y1="10" x2="6.5" y2="14"/></svg>',
     }
 
     # Add Trade button - functional
@@ -492,6 +493,7 @@ with st.sidebar:
         ("tracker", "Tracker"),
         ("comparison_engine", "Comparison Engine"),
         ("stock_niche_mapper", "Stock Niche Mapper"),
+        ("domain_vector", "Domain Vector"),
         ("import",   "Import Excel"),
         ("terminal", "Terminal"),
     ]
@@ -563,6 +565,7 @@ try:
     elif p=="thematic_heatmap": from pages.thematic_heatmap import render; render()
     elif p=="comparison_engine": from pages.comparison_engine import render; render()
     elif p=="stock_niche_mapper": from pages.stock_niche_mapper import render; render()
+    elif p=="domain_vector": from pages.domain_vector import render; render()
     else:                from pages.dashboard          import render; render()
 except Exception as _err:
     import traceback
