@@ -250,16 +250,86 @@ def render():
                             else: st.warning("No price data.")
                         except Exception as e: st.error(str(e))
 
-            # Best Exit Price/Time editor
-            with st.expander("✏️ Edit Open/Close/Best Exit"):
+            # Full trade editor
+            with st.expander("✏️ Edit Trade Fields"):
+                st.markdown(f'<p style="font-size:10px;color:{MUTED};margin-bottom:8px">All fields editable. Click Save after changes.</p>', unsafe_allow_html=True)
+
+                # ── Dates ─────────────────────────────────────────────
+                st.markdown(f'<div style="font-size:10px;font-weight:700;color:{MUTED};letter-spacing:1px;margin:4px 0">DATES</div>', unsafe_allow_html=True)
+                from datetime import date as _date
+                def _parse_date(v):
+                    for fmt in ["%Y-%m-%d","%d/%m/%y","%d/%m/%Y","%Y-%m-%dT%H:%M:%S"]:
+                        try: return datetime.strptime(str(v)[:10],fmt).date()
+                        except: pass
+                    return _date.today()
+                ed1,ed2=st.columns(2)
+                new_entry_date=ed1.date_input("Entry Date",value=_parse_date(trade.get("entry_date")),key="td_entry_date")
+                new_exit_date=ed2.date_input("Exit Date",value=_parse_date(trade.get("exit_date") or trade.get("entry_date")),key="td_exit_date")
+
+                # ── Prices & Qty ──────────────────────────────────────
+                st.markdown(f'<div style="font-size:10px;font-weight:700;color:{MUTED};letter-spacing:1px;margin:8px 0 4px">PRICES & QTY</div>', unsafe_allow_html=True)
+                ep1,ep2,ep3=st.columns(3)
+                new_entry_price=ep1.number_input("Entry Price ₹",value=float(trade.get("entry_price") or 0),step=0.05,format="%.2f",key="td_entry_price")
+                new_exit_price=ep2.number_input("Exit Price ₹",value=float(trade.get("exit_price") or 0),step=0.05,format="%.2f",key="td_exit_price")
+                new_qty=ep3.number_input("Qty",value=int(trade.get("qty") or 0),step=1,key="td_qty")
+                ep4,ep5=st.columns(2)
+                new_pnl=ep4.number_input("Net P&L ₹",value=float(trade.get("pnl") or 0),step=1.0,format="%.2f",key="td_pnl")
+                new_sl=ep5.number_input("Stop Loss ₹",value=float(trade.get("stop_loss") or 0),step=0.05,format="%.2f",key="td_sl_edit")
+
+                # ── Trade Meta ────────────────────────────────────────
+                st.markdown(f'<div style="font-size:10px;font-weight:700;color:{MUTED};letter-spacing:1px;margin:8px 0 4px">TRADE META</div>', unsafe_allow_html=True)
+                tm1,tm2=st.columns(2)
+                STRATEGIES=["VCP","REVERSAL","SVRO","EP","NR 1HR","TS","MARS","Other"]
+                cur_strat=trade.get("strategy","") or ""
+                strat_idx=STRATEGIES.index(cur_strat) if cur_strat in STRATEGIES else 0
+                new_strategy=tm1.selectbox("Strategy",STRATEGIES,index=strat_idx,key="td_strategy_edit")
+                SIDES=["LONG","SHORT"]
+                cur_side=str(trade.get("side","") or trade.get("direction","") or "LONG").upper()
+                side_idx=SIDES.index(cur_side) if cur_side in SIDES else 0
+                new_side=tm2.selectbox("Side",SIDES,index=side_idx,key="td_side_edit")
+                tm3,tm4=st.columns(2)
+                new_rmult=tm3.number_input("R-Multiple",value=float(trade.get("r_multiple") or 0),step=0.01,format="%.2f",key="td_rmult_edit")
+                STATUSES=["CLOSED","OPEN"]
+                cur_status=trade.get("status","CLOSED")
+                new_status=tm4.selectbox("Status",STATUSES,index=STATUSES.index(cur_status) if cur_status in STATUSES else 0,key="td_status_edit")
+
+                # ── Funding ───────────────────────────────────────────
+                st.markdown(f'<div style="font-size:10px;font-weight:700;color:{MUTED};letter-spacing:1px;margin:8px 0 4px">FUNDING</div>', unsafe_allow_html=True)
+                fm1,fm2=st.columns(2)
+                FUNDING=["CASH","MTF"]
+                cur_fund=str(trade.get("funding_type","CASH") or "CASH").upper()
+                new_funding=fm1.selectbox("Funding Type",FUNDING,index=FUNDING.index(cur_fund) if cur_fund in FUNDING else 0,key="td_funding_edit")
+                new_mtf_margin=fm2.number_input("MTF Margin %",value=float(trade.get("mtf_margin_pct") or 50.0),min_value=1.0,max_value=100.0,step=0.5,format="%.1f",key="td_mtf_margin_edit")
+
+                # ── Open/Close/Best Exit ──────────────────────────────
+                st.markdown(f'<div style="font-size:10px;font-weight:700;color:{MUTED};letter-spacing:1px;margin:8px 0 4px">TIMES & BEST EXIT</div>', unsafe_allow_html=True)
                 e1,e2=st.columns(2)
                 new_ot=e1.text_input("Open Time",value=open_t,key="td_ot",placeholder="2026-04-01 09:15")
                 new_ct=e2.text_input("Close Time",value=close_t,key="td_ct",placeholder="2026-04-01 15:20")
                 new_bep=e1.number_input("Best Exit ₹",value=best_ep,step=0.5,key="td_bep",format="%.2f")
                 new_bet=e2.text_input("Best Exit Time",value=best_et,key="td_bet",placeholder="2026-04-01 10:30")
-                if st.button("💾 Save",key="td_save_times",use_container_width=True,type="primary"):
-                    _save_trade_field(trade_id,open_time=new_ot,close_time=new_ct,best_exit_price=new_bep,best_exit_time=new_bet)
-                    st.success("Saved!"); st.rerun()
+
+                if st.button("💾 Save All Changes",key="td_save_all",use_container_width=True,type="primary"):
+                    _save_trade_field(trade_id,
+                        entry_date=str(new_entry_date),
+                        exit_date=str(new_exit_date),
+                        entry_price=new_entry_price,
+                        exit_price=new_exit_price,
+                        qty=new_qty,
+                        pnl=new_pnl,
+                        stop_loss=new_sl,
+                        strategy=new_strategy,
+                        side=new_side,
+                        r_multiple=new_rmult,
+                        status=new_status,
+                        funding_type=new_funding,
+                        mtf_margin_pct=new_mtf_margin,
+                        open_time=new_ot,
+                        close_time=new_ct,
+                        best_exit_price=new_bep,
+                        best_exit_time=new_bet,
+                    )
+                    st.success("✅ Trade updated!"); st.rerun()
 
             # Trade Rating
             st.markdown(f'<div style="font-size:11px;color:{MUTED};margin:10px 0 4px">Trade Rating</div>',unsafe_allow_html=True)
