@@ -77,31 +77,46 @@ def render():
 
     df = pd.DataFrame(rows)
 
-    ZERODHA_MTF_DAILY_RATE = 0.0004  # 0.04%/day — same as fund_management.py
+    from datetime import date as _date, timedelta as _timedelta
+    ZERODHA_MTF_DAILY_RATE = 0.0004  # 0.04%/day — identical to fund_management.py
 
-    def calc_mtf_interest_for_trade(t):
-        """Auto-calculate MTF interest for a single trade using Zerodha 0.04%/day rate."""
-        funding = str(t.get("funding_type","") or "CASH").upper()
-        if funding != "MTF": return 0.0
+    def calc_mtf_interest_for_trade(t, fy_label=None):
+        """Per-trade MTF interest — exact same logic as fund_management.py.
+        Returns total interest amount, optionally scoped to a FY (Apr-Mar)."""
+        if str(t.get("funding_type","CASH") or "CASH").upper() != "MTF":
+            return 0.0
+        qty   = safe_float(t.get("qty"))
+        price = safe_float(t.get("entry_price"))
+        margin_pct = safe_float(t.get("mtf_margin_pct")) or 50.0
+        borrowed = qty * price * (1 - margin_pct / 100)
+        if borrowed <= 0: return 0.0
         try:
-            ep   = safe_float(t.get("entry_price"))
-            qty  = safe_float(t.get("qty"))
-            margin_pct = safe_float(t.get("mtf_margin_pct")) or 50.0
-            entry_d = datetime.strptime(str(t.get("entry_date",""))[:10], "%Y-%m-%d")
-            exit_d  = datetime.strptime(str(t.get("exit_date",""))[:10],  "%Y-%m-%d")
+            entry_dt = datetime.strptime(str(t.get("entry_date",""))[:10], "%Y-%m-%d").date()
         except Exception: return 0.0
-        value    = ep * qty
-        borrowed = value * (1 - margin_pct / 100)
-        days     = (exit_d - entry_d).days
-        return borrowed * ZERODHA_MTF_DAILY_RATE * max(days, 0)
+        if t.get("status") == "CLOSED" and t.get("exit_date"):
+            try: exit_dt = datetime.strptime(str(t.get("exit_date",""))[:10], "%Y-%m-%d").date()
+            except: exit_dt = _date.today()
+        else:
+            exit_dt = _date.today()
+        start = entry_dt + _timedelta(days=1)
+        if start > exit_dt: return 0.0
+        daily = borrowed * ZERODHA_MTF_DAILY_RATE
+        if fy_label is None:
+            return daily * (exit_dt - start).days + daily
+        # Scope to FY: only count days within this FY (Apr-Mar)
+        try:
+            start_yr = int(fy_label.split()[1].split("-")[0])
+        except Exception: return 0.0
+        fy_start = _date(start_yr, 4, 1)
+        fy_end   = _date(start_yr + 1, 3, 31)
+        cur = max(start, fy_start)
+        end = min(exit_dt, fy_end)
+        if cur > end: return 0.0
+        return daily * ((end - cur).days + 1)
 
     def mtf_for_fy(fy_label, trades_list):
-        """Sum auto-calculated MTF interest for all trades whose exit falls in this FY."""
-        total = 0.0
-        for t in trades_list:
-            if fy_for_date(t.get("exit_date")) == fy_label:
-                total += calc_mtf_interest_for_trade(t)
-        return total
+        """Sum MTF interest across ALL trades (open + closed) for a given FY."""
+        return sum(calc_mtf_interest_for_trade(t, fy_label=fy_label) for t in trades_list)
 
     fy_opts = ["All Years"] + sorted(df["fy"].unique(), reverse=True)
     c1, _ = st.columns([1,3])
@@ -121,7 +136,7 @@ def render():
     ltcg_gain = ltcg_df["pnl"].sum()
 
     fys_in_view = df["fy"].unique().tolist() if fy_sel == "All Years" else [fy_sel]
-    mtf_total = sum(mtf_for_fy(fy, closed) for fy in fys_in_view)
+    mtf_total = sum(mtf_for_fy(fy, trades) for fy in fys_in_view)
     net_pnl_after_mtf = stcg_gain + ltcg_gain - mtf_total
 
     stcg_taxable = max(stcg_gain, 0)
