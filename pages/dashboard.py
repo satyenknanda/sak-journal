@@ -796,7 +796,7 @@ def render():
         with st.container(border=True):
             _tc1, _tc2 = st.columns([3,1])
             _tc1.markdown(f'<p style="font-size:11px;font-weight:600;color:{TEXT_H};margin:0">Drawdown</p>', unsafe_allow_html=True)
-            dd_ctype = _tc2.selectbox("", CTYPES, index=2, key="dd_ctype", label_visibility="collapsed")
+            dd_ctype = _tc2.selectbox("Chart type", CTYPES, index=2, key="dd_ctype", label_visibility="collapsed")
             if dd_series:
                 ds_dates = [d for d,_ in dd_series]
                 ds_vals  = [v for _,v in dd_series]
@@ -816,7 +816,7 @@ def render():
         with st.container(border=True):
             _bc1, _bc2 = st.columns([3,1])
             _bc1.markdown(f'<p style="font-size:11px;font-weight:600;color:{TEXT_H};margin:0">Account Balance</p>', unsafe_allow_html=True)
-            bal_ctype = _bc2.selectbox("", CTYPES, index=2, key="bal_ctype", label_visibility="collapsed")
+            bal_ctype = _bc2.selectbox("Balance chart type", CTYPES, index=2, key="bal_ctype", label_visibility="collapsed")
             bal_pts = [(str(t.get("exit_date",""))[:10], float(t.get("account_balance") or 0))
                        for t in closed if t.get("account_balance") and t.get("exit_date")]
             if bal_pts:
