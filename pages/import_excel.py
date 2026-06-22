@@ -134,6 +134,9 @@ def parse_daily_plan_excel(file):
                 pnl = (exit_price - entry_price) * entry_qty
             else:
                 pnl = (entry_price - exit_price) * entry_qty
+            # Deduct commissions from gross P&L
+            comm_total = (entry_comm or 0) + (exit_comm or 0)
+            pnl = pnl - comm_total
             sl = _safe_float(row.get("Stop Loss"))
             if sl and entry_price:
                 risk = abs(entry_price - sl) * entry_qty
