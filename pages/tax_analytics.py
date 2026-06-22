@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime
 from collections import defaultdict
-from data.db import get_journal_trades, get_capital_flows
+from data.db import get_journal_trades
 from theme import *
 
 STCG_RATE = 0.20      # 20% — Section 111A, FY 2026-27
@@ -77,16 +77,30 @@ def render():
 
     df = pd.DataFrame(rows)
 
-    def mtf_for_fy(fy_label):
-        if fy_label is None: return 0.0
+    ZERODHA_MTF_DAILY_RATE = 0.0004  # 0.04%/day — same as fund_management.py
+
+    def calc_mtf_interest_for_trade(t):
+        """Auto-calculate MTF interest for a single trade using Zerodha 0.04%/day rate."""
+        funding = str(t.get("funding_type","") or "CASH").upper()
+        if funding != "MTF": return 0.0
         try:
-            start_yr = int(fy_label.split()[1].split("-")[0])
+            ep   = safe_float(t.get("entry_price"))
+            qty  = safe_float(t.get("qty"))
+            margin_pct = safe_float(t.get("mtf_margin_pct")) or 50.0
+            entry_d = datetime.strptime(str(t.get("entry_date",""))[:10], "%Y-%m-%d")
+            exit_d  = datetime.strptime(str(t.get("exit_date",""))[:10],  "%Y-%m-%d")
         except Exception: return 0.0
+        value    = ep * qty
+        borrowed = value * (1 - margin_pct / 100)
+        days     = (exit_d - entry_d).days
+        return borrowed * ZERODHA_MTF_DAILY_RATE * max(days, 0)
+
+    def mtf_for_fy(fy_label, trades_list):
+        """Sum auto-calculated MTF interest for all trades whose exit falls in this FY."""
         total = 0.0
-        for yr, months in [(start_yr, range(4, 13)), (start_yr + 1, range(1, 4))]:
-            flows = get_capital_flows(yr)
-            for m in months:
-                total += float(flows.get(m, {}).get("mtf_interest", 0) or 0)
+        for t in trades_list:
+            if fy_for_date(t.get("exit_date")) == fy_label:
+                total += calc_mtf_interest_for_trade(t)
         return total
 
     fy_opts = ["All Years"] + sorted(df["fy"].unique(), reverse=True)
@@ -107,7 +121,7 @@ def render():
     ltcg_gain = ltcg_df["pnl"].sum()
 
     fys_in_view = df["fy"].unique().tolist() if fy_sel == "All Years" else [fy_sel]
-    mtf_total = sum(mtf_for_fy(fy) for fy in fys_in_view)
+    mtf_total = sum(mtf_for_fy(fy, closed) for fy in fys_in_view)
     net_pnl_after_mtf = stcg_gain + ltcg_gain - mtf_total
 
     stcg_taxable = max(stcg_gain, 0)
