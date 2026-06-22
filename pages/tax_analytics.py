@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime
 from collections import defaultdict
-from data.db import get_journal_trades
+from data.db import get_journal_trades, get_capital_flows
 from theme import *
 
 STCG_RATE = 0.20      # 20% — Section 111A, FY 2026-27
@@ -77,6 +77,18 @@ def render():
 
     df = pd.DataFrame(rows)
 
+    def mtf_for_fy(fy_label):
+        if fy_label is None: return 0.0
+        try:
+            start_yr = int(fy_label.split()[1].split("-")[0])
+        except Exception: return 0.0
+        total = 0.0
+        for yr, months in [(start_yr, range(4, 13)), (start_yr + 1, range(1, 4))]:
+            flows = get_capital_flows(yr)
+            for m in months:
+                total += float(flows.get(m, {}).get("mtf_interest", 0) or 0)
+        return total
+
     fy_opts = ["All Years"] + sorted(df["fy"].unique(), reverse=True)
     c1, _ = st.columns([1,3])
     with c1:
@@ -94,17 +106,16 @@ def render():
     stcg_gain = stcg_df["pnl"].sum()
     ltcg_gain = ltcg_df["pnl"].sum()
 
-    # STCG: every rupee of net gain taxed at 20% (losses net against gains within STCG bucket)
+    fys_in_view = df["fy"].unique().tolist() if fy_sel == "All Years" else [fy_sel]
+    mtf_total = sum(mtf_for_fy(fy) for fy in fys_in_view)
+    net_pnl_after_mtf = stcg_gain + ltcg_gain - mtf_total
+
     stcg_taxable = max(stcg_gain, 0)
     stcg_tax = stcg_taxable * STCG_RATE
-
-    # LTCG: exemption of 1.25L applies to net LTCG gain, only if positive
     ltcg_taxable = max(ltcg_gain - LTCG_EXEMPTION, 0)
     ltcg_tax = ltcg_taxable * LTCG_RATE
-
     total_tax = stcg_tax + ltcg_tax
 
-    # ── KPI strip ────────────────────────────────────────────────────────
     k1, k2, k3, k4 = st.columns(4)
     k1.markdown(kpi_card("STCG NET GAIN", fmt_pnl(stcg_gain), color=pnl_color(stcg_gain),
                           sub=f"{len(stcg_df)} trades · ≤365 days"), unsafe_allow_html=True)
@@ -113,6 +124,24 @@ def render():
     k3.markdown(kpi_card("EST. STCG TAX (20%)", fmt_inr(stcg_tax)), unsafe_allow_html=True)
     k4.markdown(kpi_card("EST. LTCG TAX (12.5%)", fmt_inr(ltcg_tax),
                           sub=f"after ₹1.25L exemption"), unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    mtf_bg = AMBER_BG if mtf_total > 0 else CARD_BG
+    mtf_border = AMBER_BORDER if mtf_total > 0 else BORDER
+    st.markdown(f'''<div style="background:{mtf_bg};border:1px solid {mtf_border};border-radius:10px;
+        padding:14px 20px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+            <div style="font-size:11px;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;font-weight:500">MTF Interest Cost</div>
+            <div style="font-size:1.2rem;font-weight:700;color:{RED if mtf_total>0 else TEXT_MUTED}">{fmt_pnl(-mtf_total) if mtf_total>0 else "₹0"}</div>
+            <div style="font-size:11px;color:{TEXT_SUBTLE};margin-top:2px">Pulled from capital flows · deductible under <b>business income</b> treatment only — not against STCG/LTCG</div>
+        </div>
+        <div style="text-align:right">
+            <div style="font-size:10px;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em">Net P&L after MTF cost</div>
+            <div style="font-size:1.3rem;font-weight:700;color:{pnl_color(net_pnl_after_mtf)}">{fmt_pnl(net_pnl_after_mtf)}</div>
+        </div>
+    </div>''', unsafe_allow_html=True)
+    if mtf_total > 0:
+        st.caption("MTF interest reduces your economic profit but is NOT deductible from STCG/LTCG tax — consult your CA.")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
