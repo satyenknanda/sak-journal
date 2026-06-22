@@ -2739,7 +2739,7 @@ def render():
                     return d
 
                 setup_d2      = _explode_field2(closed, "setup")
-                entry_type_d2 = _explode_field2(closed, "entry_type")
+                entry_type_d2 = _explode_field2(closed, "setup")  # Entry Type = Setup for SAK
                 growth_d2     = _explode_field2(closed, "mistakes")
                 exit_trig_d2  = _explode_field2(closed, "exit_trigger")
 
@@ -2748,7 +2748,7 @@ def render():
                     st.markdown(section_label("Performance by Setup"), unsafe_allow_html=True)
                     _attr_table(setup_d2, "Setup", total_pnl_all)
                 with at2:
-                    st.markdown(section_label("Performance by Entry Type"), unsafe_allow_html=True)
+                    st.markdown(section_label("Performance by Entry Type (= Setup)"), unsafe_allow_html=True)
                     _attr_table(entry_type_d2, "Entry Type", total_pnl_all)
 
                 at3, at4 = st.columns(2)
