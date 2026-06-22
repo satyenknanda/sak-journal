@@ -117,13 +117,14 @@ def render():
     total_tax = stcg_tax + ltcg_tax
 
     k1, k2, k3, k4 = st.columns(4)
-    k1.markdown(kpi_card("STCG NET GAIN", fmt_pnl(stcg_gain), color=pnl_color(stcg_gain),
+    k1.markdown(kpi_card_accent("STCG NET GAIN", fmt_pnl(stcg_gain), DNA_COLORS[0],
                           sub=f"{len(stcg_df)} trades · ≤365 days"), unsafe_allow_html=True)
-    k2.markdown(kpi_card("LTCG NET GAIN", fmt_pnl(ltcg_gain), color=pnl_color(ltcg_gain),
+    k2.markdown(kpi_card_accent("LTCG NET GAIN", fmt_pnl(ltcg_gain), DNA_COLORS[1],
                           sub=f"{len(ltcg_df)} trades · >365 days"), unsafe_allow_html=True)
-    k3.markdown(kpi_card("EST. STCG TAX (20%)", fmt_inr(stcg_tax)), unsafe_allow_html=True)
-    k4.markdown(kpi_card("EST. LTCG TAX (12.5%)", fmt_inr(ltcg_tax),
-                          sub=f"after ₹1.25L exemption"), unsafe_allow_html=True)
+    k3.markdown(kpi_card_accent("EST. STCG TAX (20%)", fmt_inr(stcg_tax), DNA_COLORS[2],
+                          sub="flat rate, no exemption"), unsafe_allow_html=True)
+    k4.markdown(kpi_card_accent("EST. LTCG TAX (12.5%)", fmt_inr(ltcg_tax), DNA_COLORS[3],
+                          sub="after ₹1.25L exemption"), unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     mtf_bg = AMBER_BG if mtf_total > 0 else CARD_BG
