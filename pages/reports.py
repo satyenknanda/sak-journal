@@ -2605,7 +2605,7 @@ def render():
                     return d
 
                 setup_d = _explode_field(closed, "setup")
-                entry_type_d = _explode_field(closed, "entry_type")
+                entry_type_d = _explode_field(closed, "setup")  # Entry Type = Setup for SAK
                 growth_d     = _explode_field(closed, "mistakes")
                 exit_trig_d  = _explode_field(closed, "exit_trigger")
 
