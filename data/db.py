@@ -78,6 +78,7 @@ def get_trades(strategy="All", date_from=None, date_to=None, status=None, ticker
     except Exception as e:
         print(f"get_trades local error: {e}"); return []
 
+@st.cache_data(ttl=30)
 def get_journal_trades():
     return get_trades()
 
@@ -182,6 +183,7 @@ def delete_note(d):
     except Exception as e: print(f"delete_note local error: {e}")
 
 # ── Playbooks ─────────────────────────────────────────────────────────────────
+@st.cache_data(ttl=60)
 def get_playbooks():
     try:
         if _use_supabase():
