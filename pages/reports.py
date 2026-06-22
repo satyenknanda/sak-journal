@@ -2605,7 +2605,7 @@ def render():
                     return d
 
                 setup_d = _explode_field(closed, "setup")
-                entry_type_d = _explode_field(closed, "setup")  # Entry Type = Setup for SAK
+                entry_type_d = _explode_field(closed, "exit_trigger")  # Show Exit Trigger here instead
                 growth_d     = _explode_field(closed, "mistakes")
                 exit_trig_d  = _explode_field(closed, "exit_trigger")
 
@@ -2628,7 +2628,7 @@ def render():
 
                 vc1, vc2 = st.columns(2)
                 with vc1: _donut_block(setup_d, "Setup Distribution", "setup")
-                with vc2: _donut_block(entry_type_d, "Entry Type Distribution", "entry")
+                with vc2: _donut_block(entry_type_d, "Exit Trigger Distribution", "entry")
 
                 vc3, vc4 = st.columns(2)
                 with vc3: _donut_block(growth_d, "Growth Areas (Behavioral Issues)", "growth")
