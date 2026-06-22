@@ -2632,7 +2632,8 @@ def render():
 
                 vc3, vc4 = st.columns(2)
                 with vc3: _donut_block(growth_d, "Growth Areas (Behavioral Issues)", "growth")
-                with vc4: _donut_block(exit_trig_d, "Exit Trigger Frequency", "exit")
+                strategy_d = _explode_field(closed, "strategy")
+                with vc4: _donut_block(strategy_d, "Strategy Distribution", "strategy")
 
                 st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
                 st.markdown(section_label("Monthly Trading Performance"), unsafe_allow_html=True)
