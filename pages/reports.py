@@ -2632,8 +2632,22 @@ def render():
 
                 vc3, vc4 = st.columns(2)
                 with vc3: _donut_block(growth_d, "Growth Areas (Behavioral Issues)", "growth")
-                strategy_d = _explode_field(closed, "strategy")
-                with vc4: _donut_block(strategy_d, "Strategy Distribution", "strategy")
+                with vc4:
+                    st.markdown(f'<p style="font-size:12px;font-weight:600;color:{TEXT_H};margin-bottom:6px">P&L by Setup</p>', unsafe_allow_html=True)
+                    setup_pnl = {k: v["pnl"] for k,v in setup_d.items()} if setup_d else {}
+                    if setup_pnl:
+                        sp_labels = sorted(setup_pnl.keys(), key=lambda k: setup_pnl[k], reverse=True)
+                        sp_vals = [setup_pnl[k] for k in sp_labels]
+                        fig_sp = go.Figure(go.Bar(
+                            x=sp_labels, y=sp_vals,
+                            marker=dict(color=[TEAL if v>=0 else RED for v in sp_vals], opacity=0.85),
+                            hovertemplate="%{x}<br>₹%{y:,.0f}<extra></extra>"))
+                        l_sp = chart_layout(height=260, title="")
+                        l_sp["yaxis"]["tickprefix"] = "₹"
+                        fig_sp.update_layout(**l_sp)
+                        st.plotly_chart(fig_sp, use_container_width=True, config={"displayModeBar":False}, key="viz_pnl_setup")
+                    else:
+                        st.info("No setup P&L data yet.")
 
                 st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
                 st.markdown(section_label("Monthly Trading Performance"), unsafe_allow_html=True)
