@@ -6,7 +6,7 @@ from datetime import datetime
 # ── Backend detection ─────────────────────────────────────────────────────────
 def _use_supabase():
     try:
-                url = st.secrets.get("SUPABASE_URL", "")
+        url = st.secrets.get("SUPABASE_URL", "")
         key = st.secrets.get("SUPABASE_KEY", "")
         if url and key:
             os.environ["SUPABASE_URL"] = url
