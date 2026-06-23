@@ -11,78 +11,94 @@ G="#10B981"; R="#EF4444"; B="#3B82F6"; AM="#F59E0B"; PU="#7C3AED"
 TEXT="#111827"; MUTED="#6B7280"; BORDER="#E5E7EB"; BG="#FFFFFF"; HEADER_BG="#F9FAFB"
 
 # ── Persistence helpers ────────────────────────────────────────────────────────
-import sqlite3
-DB_PATH = os.path.join(os.path.dirname(__file__), "..", "journal.db")
+from data.db import _sb as _get_sb
 
-def get_db():
-    conn = sqlite3.connect(os.path.abspath(DB_PATH))
-    conn.row_factory = sqlite3.Row
-    return conn
+def init_pt_db():
+    """Supabase tables created via SQL editor — nothing to init."""
+    _seed_default_rules()
 
-def init_pt_tables():
-    conn = get_db()
-    conn.execute("""CREATE TABLE IF NOT EXISTS pt_rules (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT, description TEXT, rule_type TEXT DEFAULT 'manual',
-        condition_type TEXT DEFAULT 'checkbox', condition_value TEXT,
-        active_days TEXT DEFAULT 'Mon,Tue,Wed,Thu,Fri',
-        enabled INTEGER DEFAULT 1, sort_order INTEGER DEFAULT 0
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS pt_checkins (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        checkin_date TEXT, rule_id INTEGER, completed INTEGER DEFAULT 0,
-        UNIQUE(checkin_date, rule_id)
-    )""")
-    conn.commit()
-    conn.close()
+def _seed_default_rules():
+    """Seed default rules if table is empty."""
+    try:
+        sb = _get_sb()
+        existing = sb.table("pt_rules").select("id").limit(1).execute()
+        if existing.data: return
+        defaults = [
+            ("Start my day by", "Enter your starting journal entry before your trading session", "automated", "time", "09:00", "Mon,Tue,Wed,Thu,Fri"),
+            ("Trade has stop loss", "All trades opened today have a stop loss set", "automated", "pct", "100", "Mon,Tue,Wed,Thu,Fri"),
+            ("Max loss per trade", "Maximum loss on a single trade", "automated", "amount", "5000", "Mon,Tue,Wed,Thu,Fri"),
+            ("Max loss per day", "Maximum loss across all trades for the day", "automated", "amount", "10000", "Mon,Tue,Wed,Thu,Fri"),
+            ("Link trades to playbook", "All trades opened must have a playbook attached.", "automated", "pct", "100", "Mon,Tue,Wed,Thu,Fri"),
+            ("Input Stop loss to all trades", "All trades must have a stop loss value entered", "automated", "pct", "100", "Mon,Tue,Wed,Thu,Fri"),
+            ("Net max loss /trade", "Maximum net loss on a single trade", "automated", "amount", "45000", "Mon,Tue,Wed,Thu,Fri"),
+            ("Net max loss /day", "Maximum net loss across all trades for the day", "automated", "amount", "90000", "Mon,Tue,Wed,Thu,Fri"),
+            ("Post Market Evening Routine", "Complete your post-market review", "manual", "checkbox", "", "Mon,Tue,Wed,Thu,Fri"),
+            ("Morning Pre Market Routine", "Complete your pre-market preparation", "manual", "checkbox", "", "Mon,Tue,Wed,Thu,Fri"),
+            ("Mid-day Trades Updates", "Update your trade journal mid-day", "manual", "checkbox", "", "Mon,Tue,Wed,Thu,Fri"),
+            ("Daily Watchlist Update", "Update your watchlist for tomorrow", "manual", "checkbox", "", "Mon,Tue,Wed,Thu,Fri"),
+        ]
+        for i, (name, desc, rtype, ctype, cval, days) in enumerate(defaults):
+            sb.table("pt_rules").insert({
+                "name": name, "description": desc, "rule_type": rtype,
+                "condition_type": ctype, "condition_value": cval,
+                "active_days": days, "sort_order": i, "enabled": 1
+            }).execute()
+    except Exception as e:
+        print(f"Seed error: {e}")
 
 def get_rules():
-    conn = get_db()
-    rows = conn.execute("SELECT * FROM pt_rules WHERE enabled=1 ORDER BY rule_type, sort_order, id").fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+    try:
+        res = _get_sb().table("pt_rules").select("*").eq("enabled", 1).order("rule_type").order("sort_order").order("id").execute()
+        return res.data or []
+    except: return []
 
 def get_all_rules():
-    conn = get_db()
-    rows = conn.execute("SELECT * FROM pt_rules ORDER BY rule_type, sort_order, id").fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+    try:
+        res = _get_sb().table("pt_rules").select("*").order("rule_type").order("sort_order").order("id").execute()
+        return res.data or []
+    except: return []
 
 def save_rule(name, desc, rule_type, cond_type, cond_value, active_days, enabled=1):
-    conn = get_db()
-    conn.execute("INSERT INTO pt_rules (name,description,rule_type,condition_type,condition_value,active_days,enabled) VALUES (?,?,?,?,?,?,?)",
-                 (name, desc, rule_type, cond_type, cond_value, active_days, enabled))
-    conn.commit(); conn.close()
+    try:
+        _get_sb().table("pt_rules").insert({
+            "name": name, "description": desc, "rule_type": rule_type,
+            "condition_type": cond_type, "condition_value": cond_value,
+            "active_days": active_days, "enabled": enabled
+        }).execute()
+    except Exception as e: print(f"save_rule error: {e}")
 
 def update_rule(rule_id, name, desc, cond_type, cond_value, active_days, enabled):
-    conn = get_db()
-    conn.execute("UPDATE pt_rules SET name=?,description=?,condition_type=?,condition_value=?,active_days=?,enabled=? WHERE id=?",
-                 (name, desc, cond_type, cond_value, active_days, enabled, rule_id))
-    conn.commit(); conn.close()
+    try:
+        _get_sb().table("pt_rules").update({
+            "name": name, "description": desc, "condition_type": cond_type,
+            "condition_value": cond_value, "active_days": active_days, "enabled": enabled
+        }).eq("id", rule_id).execute()
+    except Exception as e: print(f"update_rule error: {e}")
 
 def delete_rule(rule_id):
-    conn = get_db()
-    conn.execute("DELETE FROM pt_rules WHERE id=?", (rule_id,))
-    conn.execute("DELETE FROM pt_checkins WHERE rule_id=?", (rule_id,))
-    conn.commit(); conn.close()
+    try:
+        _get_sb().table("pt_checkins").delete().eq("rule_id", rule_id).execute()
+        _get_sb().table("pt_rules").delete().eq("id", rule_id).execute()
+    except Exception as e: print(f"delete_rule error: {e}")
 
 def get_checkins(d_str):
-    conn = get_db()
-    rows = conn.execute("SELECT rule_id, completed FROM pt_checkins WHERE checkin_date=?", (d_str,)).fetchall()
-    conn.close()
-    return {r["rule_id"]: r["completed"] for r in rows}
+    try:
+        res = _get_sb().table("pt_checkins").select("rule_id,completed").eq("checkin_date", d_str).execute()
+        return {r["rule_id"]: r["completed"] for r in (res.data or [])}
+    except: return {}
 
 def set_checkin(d_str, rule_id, completed):
-    conn = get_db()
-    conn.execute("INSERT INTO pt_checkins (checkin_date,rule_id,completed) VALUES (?,?,?) ON CONFLICT(checkin_date,rule_id) DO UPDATE SET completed=excluded.completed",
-                 (d_str, rule_id, completed))
-    conn.commit(); conn.close()
+    try:
+        _get_sb().table("pt_checkins").upsert({
+            "checkin_date": d_str, "rule_id": rule_id, "completed": completed
+        }, on_conflict="checkin_date,rule_id").execute()
+    except Exception as e: print(f"set_checkin error: {e}")
 
 def get_checkins_range(start, end):
-    conn = get_db()
-    rows = conn.execute("SELECT checkin_date, rule_id, completed FROM pt_checkins WHERE checkin_date>=? AND checkin_date<=?", (start, end)).fetchall()
-    conn.close()
-    return rows
+    try:
+        res = _get_sb().table("pt_checkins").select("checkin_date,rule_id,completed").gte("checkin_date", start).lte("checkin_date", end).execute()
+        return res.data or []
+    except: return []
 
 def seed_default_rules():
     conn = get_db()
