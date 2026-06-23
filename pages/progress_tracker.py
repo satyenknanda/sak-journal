@@ -113,16 +113,33 @@ def is_rule_active_today(rule, d=None):
 
 def evaluate_automated_rule(rule, trades_today, day_pnl):
     """Check if an automated rule passes based on today's trades."""
-    ct = rule.get("condition_type","checkbox")
     cv = rule.get("condition_value","")
     name = rule.get("name","").lower()
 
-    if "stop loss" in name:
+    if "stop loss" in name and "net" not in name and "input" not in name:
         if not trades_today: return True
         pct = sum(1 for t in trades_today if t.get("stop_loss")) / len(trades_today) * 100
         try: threshold = float(cv or 100)
         except: threshold = 100
         return pct >= threshold
+
+    if "input stop loss" in name:
+        if not trades_today: return True
+        pct = sum(1 for t in trades_today if t.get("stop_loss")) / len(trades_today) * 100
+        try: threshold = float(cv or 100)
+        except: threshold = 100
+        return pct >= threshold
+
+    if "net max loss" in name and "/trade" in name:
+        try: limit = float(cv or 9999999)
+        except: limit = 9999999
+        worst = min((float(t.get("pnl") or 0) for t in trades_today), default=0)
+        return worst >= -abs(limit)
+
+    if "net max loss" in name and "/day" in name:
+        try: limit = float(cv or 9999999)
+        except: limit = 9999999
+        return day_pnl >= -abs(limit)
 
     if "max loss per trade" in name:
         try: limit = float(cv or 9999999)
@@ -136,11 +153,24 @@ def evaluate_automated_rule(rule, trades_today, day_pnl):
         return day_pnl >= -abs(limit)
 
     if "start my day" in name:
-        # Pass if it's before the target time
         try:
-            target = datetime.strptime(cv or "09:00", "%H:%M").time()
-            return datetime.now().time() <= target
+            from data.db import get_note_by_date
+            from datetime import date as _date
+            note = get_note_by_date(str(_date.today()))
+            if note and str(note).strip(): return True
+        except: pass
+        try:
+            from datetime import datetime as _dt
+            target = _dt.strptime(cv or "09:00", "%H:%M").time()
+            return _dt.now().time() <= target
         except: return False
+
+    if "link trades to playbook" in name:
+        if not trades_today: return True
+        pct = sum(1 for t in trades_today if t.get("playbook")) / len(trades_today) * 100
+        try: threshold = float(cv or 100)
+        except: threshold = 100
+        return pct >= threshold
 
     return False
 
