@@ -103,8 +103,9 @@ def price_rows_from_hist(ticker, hist):
 
 def refresh_all():
     sb = _sb()
-    tickers = [t for (t, s, i) in UNIVERSE]
-    print(f"Refreshing returns + price history for {len(tickers)} tickers...")
+    universe = sb.table("market_universe").select("ticker").execute().data
+    tickers = [r["ticker"] for r in universe]
+    print(f"Refreshing returns + price history for {len(tickers)} tickers from Supabase...")
 
     success, failed = 0, []
     for idx, ticker in enumerate(tickers, 1):
