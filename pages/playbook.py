@@ -95,7 +95,8 @@ def render():
             cancelled = bc2.form_submit_button("Cancel", use_container_width=True)
 
             if submitted and name:
-                pb_id = create_playbook(name, emoji, color, desc)
+                pb_id = create_playbook({"name": name, "emoji": emoji, "color": color, "description": desc})
+                pb_id = pb_id["id"] if isinstance(pb_id, dict) else pb_id
                 rules = [{"rule_type":"entry","rule_text":r,"show_when":"always"} for r in entry_rules]
                 rules += [{"rule_type":"exit", "rule_text":r,"show_when":"always"} for r in exit_rules]
                 if rules: save_playbook_rules(pb_id, rules)
