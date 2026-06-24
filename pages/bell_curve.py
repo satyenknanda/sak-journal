@@ -147,6 +147,65 @@ def render():
 
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
+    # ── Monthly / Yearly sub-tabs ─────────────────────────────────────────
+    bell_sub1, bell_sub2 = st.tabs(["📅 Monthly Breakdown", "📆 Yearly Breakdown"])
+
+    with bell_sub1:
+        from collections import defaultdict as _dd
+        monthly = _dd(lambda: {"returns": [], "pnls": []})
+        for t, ret, pnl in zip(trades, returns.tolist(), pnls.tolist()):
+            ed = str(t.get("exit_date",""))[:7]  # YYYY-MM
+            if ed and ed != "nan":
+                monthly[ed]["returns"].append(ret)
+                monthly[ed]["pnls"].append(pnl)
+
+        if monthly:
+            m_rows = []
+            for month in sorted(monthly.keys()):
+                m_ret = np.array(monthly[month]["returns"])
+                m_pnl = np.array(monthly[month]["pnls"])
+                m_wins = m_ret[m_ret > 0]
+                m_loss = m_ret[m_ret < 0]
+                m_rows.append({
+                    "Month": month,
+                    "Trades": len(m_ret),
+                    "Win Rate": f"{len(m_wins)/len(m_ret)*100:.1f}%" if len(m_ret) else "—",
+                    "Mean Return": f"{float(np.mean(m_ret)):+.2f}%" if len(m_ret) else "—",
+                    "Avg Win": f"{float(np.mean(m_wins)):+.2f}%" if len(m_wins) else "—",
+                    "Avg Loss": f"{float(np.mean(m_loss)):+.2f}%" if len(m_loss) else "—",
+                    "Total P&L": f"{'+'if sum(m_pnl)>=0 else ''}₹{abs(sum(m_pnl)):,.0f}",
+                })
+            import pandas as _pd
+            st.dataframe(_pd.DataFrame(m_rows), use_container_width=True, hide_index=True)
+
+    with bell_sub2:
+        from collections import defaultdict as _dd2
+        yearly = _dd2(lambda: {"returns": [], "pnls": []})
+        for t, ret, pnl in zip(trades, returns.tolist(), pnls.tolist()):
+            ed = str(t.get("exit_date",""))[:4]  # YYYY
+            if ed and ed != "nan":
+                yearly[ed]["returns"].append(ret)
+                yearly[ed]["pnls"].append(pnl)
+
+        if yearly:
+            y_rows = []
+            for year in sorted(yearly.keys()):
+                y_ret = np.array(yearly[year]["returns"])
+                y_pnl = np.array(yearly[year]["pnls"])
+                y_wins = y_ret[y_ret > 0]
+                y_loss = y_ret[y_ret < 0]
+                y_rows.append({
+                    "Year": year,
+                    "Trades": len(y_ret),
+                    "Win Rate": f"{len(y_wins)/len(y_ret)*100:.1f}%" if len(y_ret) else "—",
+                    "Mean Return": f"{float(np.mean(y_ret)):+.2f}%" if len(y_ret) else "—",
+                    "Avg Win": f"{float(np.mean(y_wins)):+.2f}%" if len(y_wins) else "—",
+                    "Avg Loss": f"{float(np.mean(y_loss)):+.2f}%" if len(y_loss) else "—",
+                    "Total P&L": f"{'+'if sum(y_pnl)>=0 else ''}₹{abs(sum(y_pnl)):,.0f}",
+                })
+            import pandas as _pd2
+            st.dataframe(_pd2.DataFrame(y_rows), use_container_width=True, hide_index=True)
+
     # ── Stats cards ───────────────────────────────────────────────────────
     sc1, sc2, sc3, sc4 = st.columns(4)
     for col, (label, value, color) in zip([sc1,sc2,sc3,sc4], [
