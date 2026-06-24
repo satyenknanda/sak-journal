@@ -276,6 +276,8 @@ def render():
         else:                   dcl += 1; dcw = 0; day_loss_streak = max(day_loss_streak, dcl)
     cur_day_streak = dcw if dcw else -dcl
 
+    if "dash_edit_mode" not in st.session_state:
+        st.session_state.dash_edit_mode = False
     # ── Header + View selector ───────────────────────────────────────────────
     now_h = datetime.now().hour
     greeting = "Good morning" if now_h < 12 else "Good afternoon" if now_h < 17 else "Good evening"
@@ -352,8 +354,6 @@ def render():
     }
     if "dash_widgets" not in st.session_state:
         st.session_state.dash_widgets = dict(WIDGET_DEFAULTS)
-    if "dash_edit_mode" not in st.session_state:
-        st.session_state.dash_edit_mode = False
 
     W = st.session_state.dash_widgets  # shorthand — defined BEFORE any use
 
