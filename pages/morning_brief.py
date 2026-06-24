@@ -453,8 +453,8 @@ def render():
             fb = c2.selectbox("Bias",["Bullish","Neutral","Bearish"],key="f_bias")
             fc2 = st.selectbox("Category", list(FOCUS_CAT_COLORS.keys()), key="f_cat")
             fh = st.text_input("Headline", key="f_head")
-            fd = st.text_area("Detail", key="f_detail", height=60)
-            ft = st.text_area("Trade Note", key="f_trade", height=60)
+            fd = st.text_area("Detail", key="f_detail", height=68)
+            ft = st.text_area("Trade Note", key="f_trade", height=68)
             if st.button("+ ADD", type="primary"):
                 if fs and fh:
                     focus_list.append({"stock":fs.upper(),"category":fc2,"headline":fh,"detail":fd,"bias":fb,"tradeNote":ft})
@@ -479,7 +479,7 @@ def render():
             ns = c1.text_input("Stock", key="n_stock")
             nt = c2.selectbox("Tag", list(NEWS_TAG_COLORS.keys()), key="n_tag")
             nh = st.text_input("Headline", key="n_head")
-            nn = st.text_area("Note", key="n_note", height=60)
+            nn = st.text_area("Note", key="n_note", height=68)
             if st.button("+ ADD NEWS", type="primary"):
                 if nh:
                     news_list.append({"stock":ns.upper(),"headline":nh,"tag":nt,"note":nn})
@@ -540,7 +540,7 @@ def render():
                         <div style="flex:1;text-align:center;background:{rc}15;border-radius:6px"><div style="font-size:9px;color:#6B7280">R:R</div><div style="font-size:18px;font-weight:800;color:{rc}">1:{rr:.1f}</div></div>
                     </div>""", unsafe_allow_html=True)
                 except: pass
-            on = st.text_area("Note",key="o_note",height=60)
+            on = st.text_area("Note",key="o_note",height=68)
             if st.button("+ ADD ORDER", type="primary"):
                 if os2 and oe:
                     try: e,s2,t2=float(oe),float(osl or 0),float(otgt or 0); rr=round(abs(t2-e)/abs(e-s2),1) if s2 and abs(e-s2)>0 else None
