@@ -773,43 +773,44 @@ def render():
                     entry_x = _nearest(entry_date_str, date_strs)
                     exit_x  = _nearest(exit_date_str,  date_strs)
 
-                    # Entry arrow — below candle pointing up
+                    # Entry arrow — label to the LEFT of entry candle
                     if entry_p:
                         fig_c.add_annotation(
                             x=entry_x, y=entry_p,
-                            text=f"Open @ ₹{entry_p:,.2f}",
-                            showarrow=True, arrowhead=3,
-                            arrowcolor="#1D4ED8", arrowsize=1.5, arrowwidth=2,
-                            ax=0, ay=50,
+                            text=f"▲ Open @ ₹{entry_p:,.2f}",
+                            showarrow=True, arrowhead=2,
+                            arrowcolor="#1D4ED8", arrowsize=1.2, arrowwidth=1.5,
+                            ax=-80, ay=0,
                             font=dict(color="#1D4ED8", size=10, family="Inter"),
-                            bgcolor="rgba(219,234,254,0.92)",
+                            bgcolor="rgba(219,234,254,0.95)",
                             bordercolor="#1D4ED8", borderwidth=1, borderpad=4,
-                            xanchor="center")
+                            xanchor="right")
 
-                    # Exit arrow — above candle pointing down
+                    # Exit arrow — label to the RIGHT of exit candle
                     if exit_p:
                         fig_c.add_annotation(
                             x=exit_x, y=exit_p,
-                            text=f"Close @ ₹{exit_p:,.2f}",
-                            showarrow=True, arrowhead=3,
-                            arrowcolor="#DC2626", arrowsize=1.5, arrowwidth=2,
-                            ax=0, ay=-50,
+                            text=f"▼ Close @ ₹{exit_p:,.2f}",
+                            showarrow=True, arrowhead=2,
+                            arrowcolor="#DC2626", arrowsize=1.2, arrowwidth=1.5,
+                            ax=80, ay=0,
                             font=dict(color="#DC2626", size=10, family="Inter"),
-                            bgcolor="rgba(254,226,226,0.92)",
+                            bgcolor="rgba(254,226,226,0.95)",
                             bordercolor="#DC2626", borderwidth=1, borderpad=4,
-                            xanchor="center")
+                            xanchor="left")
 
-                    # Best Exit arrow — amber, offset to right
+                    # Best Exit arrow — above, offset up
                     if best_ep:
                         fig_c.add_annotation(
                             x=exit_x, y=best_ep,
-                            text="Best Exit",
-                            showarrow=True, arrowhead=3,
-                            arrowcolor="#F59E0B", arrowsize=1.5, arrowwidth=2,
-                            ax=50, ay=-30,
-                            font=dict(color="#F59E0B", size=10, family="Inter"),
-                            bgcolor="rgba(254,243,199,0.92)",
-                            bordercolor="#F59E0B", borderwidth=1, borderpad=4)
+                            text="★ Best Exit",
+                            showarrow=True, arrowhead=2,
+                            arrowcolor="#F59E0B", arrowsize=1.2, arrowwidth=1.5,
+                            ax=0, ay=-45,
+                            font=dict(color="#B45309", size=10, family="Inter"),
+                            bgcolor="rgba(254,243,199,0.95)",
+                            bordercolor="#F59E0B", borderwidth=1, borderpad=4,
+                            xanchor="center")
 
                     # Y axis range — focus on trade area with padding
                     prices = [p for p in [entry_p, exit_p, sl, mae, mfe] if p]
