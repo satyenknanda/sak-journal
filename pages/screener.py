@@ -58,6 +58,25 @@ def render():
                 st.session_state.pop("_universe_records", None)
                 st.cache_data.clear()
 
+    # ── Refresh Signals ──────────────────────────────────────────────────────
+    col_r1, col_r2, col_r3 = st.columns([1,1,4])
+    with col_r1:
+        if st.button("🔄 Refresh Signals", key="refresh_signals", type="primary"):
+            with st.spinner("Fetching data for all tickers... this takes ~15 mins"):
+                try:
+                    import sys, os
+                    sys.path.insert(0, ".")
+                    from market_universe.market_refresh import refresh_bonde_signals
+                    refresh_bonde_signals()
+                    st.cache_data.clear()
+                    st.success("✅ Signals refreshed!")
+                except Exception as e:
+                    st.error(f"❌ Error: {e}")
+    with col_r2:
+        if st.button("🗑️ Clear Cache", key="clear_cache"):
+            st.cache_data.clear()
+            st.rerun()
+
     @st.cache_data(ttl=300)
     def _load_signals():
         r = _sb().table("bonde_signals").select("*").order("ret_1d", desc=True).execute()
