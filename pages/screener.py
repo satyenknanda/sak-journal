@@ -15,8 +15,8 @@ def render():
         uploaded = st.file_uploader("Choose CSV", type="csv", key="universe_csv")
         if uploaded:
             import csv, io
-            content_csv = uploaded.read().decode("utf-8")
-            reader = csv.DictReader(io.StringIO(content_csv))
+            csv_text = uploaded.read().decode("utf-8")
+            reader = csv.DictReader(io.StringIO(csv_text))
             rows = list(reader)
             st.info(f"Found {len(rows)} tickers — click Upload to save to universe")
             if st.button("⬆️ Upload to Universe", key="upload_universe_btn", type="primary"):
