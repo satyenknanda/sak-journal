@@ -476,20 +476,26 @@ def render():
                     fig_mc.add_trace(go.Scatter(
                         x=list(range(1,n+1)), y=cum_avail,
                         mode="lines", name="Available R",
-                        line=dict(color="#10B981", width=2),
-                        fill="tozeroy", fillcolor="rgba(16,185,129,0.12)"))
+                        line=dict(color="#4CAF50", width=2),
+                        fill="tozeroy", fillcolor="rgba(76,175,80,0.15)"))
                     fig_mc.add_trace(go.Scatter(
                         x=list(range(1,n+1)), y=cum_cap,
                         mode="lines", name="Actual R",
-                        line=dict(color=RED, width=2)))
-                    l_mc = chart_layout(height=220, title="")
-                    l_mc["xaxis"]["title"] = dict(text="Trades", font=dict(size=9))
-                    l_mc["yaxis"]["ticksuffix"] = "R"
+                        line=dict(color="#8B1A1A", width=2)))
+                    fig_mc.add_hline(y=0, line=dict(color="#CCCCCC", width=1, dash="dot"))
+                    l_mc = chart_layout(height=280, title="")
+                    l_mc["paper_bgcolor"] = "#FFFFFF"
+                    l_mc["plot_bgcolor"]  = "#FFFFFF"
+                    l_mc["xaxis"] = dict(showgrid=True, gridcolor="#F0F0F0",
+                        title=dict(text="Trades", font=dict(size=9, color="#666")),
+                        tickfont=dict(color="#666", size=9))
+                    l_mc["yaxis"] = dict(showgrid=True, gridcolor="#F0F0F0",
+                        ticksuffix="R", tickfont=dict(color="#666", size=9),
+                        tickprefix="+", zeroline=False)
                     l_mc["showlegend"] = True
-                    l_mc["legend"] = dict(orientation="h", y=-0.3, x=0.5, xanchor="center",
-                        font=dict(size=9), bgcolor="rgba(0,0,0,0)")
-                    l_mc["margin"] = dict(l=50, r=20, t=30, b=50)
-                    avg_p = float(np.mean(sm["pct"])) if sm["pct"] else 0
+                    l_mc["legend"] = dict(orientation="h", y=-0.25, x=0.5, xanchor="center",
+                        font=dict(size=9, color="#666"), bgcolor="rgba(0,0,0,0)")
+                    l_mc["margin"] = dict(l=55, r=20, t=10, b=55)
                     fig_mc.update_layout(**l_mc)
                     st.markdown(f'<p style="font-size:11px;font-weight:600;color:{_strat_color(s)};margin-bottom:2px">{s} — {n} trades · {d["wr"]*100:.1f}% WR · {d["exp"]:+.2f}R</p>', unsafe_allow_html=True)
                     st.caption("Green area = cumulative available R · Red = actual R captured · gap = left on table")
