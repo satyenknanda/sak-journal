@@ -52,7 +52,10 @@ def fmt_k(v):
 
 # ── Main render ──────────────────────────────────────────────────────────────
 def render():
-    trades  = get_journal_trades()
+    @st.cache_data(ttl=30)
+    def _dash_trades():
+        return get_journal_trades()
+    trades  = _dash_trades()
     open_t  = [t for t in trades if t["status"] == "OPEN"]
     kpi     = get_kpi()
 
