@@ -683,75 +683,107 @@ def render():
                     if sl:
                         fig_c.add_hline(y=sl,
                             line=dict(color="#EF4444", width=1, dash="dash"),
-                            annotation_text=f"Stop ₹{sl:,.2f}",
-                            annotation_position="left",
-                            annotation_font=dict(color="#EF4444", size=9))
+                            annotation_text=f"SL ₹{sl:,.2f}",
+                            annotation_position="right",
+                            annotation_font=dict(color="#EF4444", size=9),
+                            annotation_bgcolor="rgba(254,226,226,0.8)")
 
-                    # Entry arrow annotation
+                    # Find closest x label to entry/exit dates
+                    date_strs = xs.tolist()
+                    entry_date_str = ed.strftime("%d %b")
+                    exit_date_str  = xd.strftime("%d %b")
+
+                    # Find nearest matching label
+                    def _nearest(target, labels):
+                        if target in labels: return target
+                        # find closest
+                        for l in labels:
+                            if target[:2] in l and target[3:] in l: return l
+                        return labels[-1] if labels else target
+
+                    entry_x = _nearest(entry_date_str, date_strs)
+                    exit_x  = _nearest(exit_date_str,  date_strs)
+
+                    # Entry arrow — below candle pointing up
                     if entry_p:
-                        entry_date_str = ed.strftime("%d %b")
                         fig_c.add_annotation(
-                            x=entry_date_str, y=entry_p,
-                            text=f"▲ Open @ ₹{entry_p:,.2f}",
-                            showarrow=True, arrowhead=2, arrowcolor="#1D4ED8",
-                            arrowsize=1.2, arrowwidth=2,
-                            ax=0, ay=40,
-                            font=dict(color="#1D4ED8", size=10),
-                            bgcolor="rgba(219,234,254,0.85)",
-                            bordercolor="#1D4ED8", borderwidth=1,
-                            borderpad=3)
+                            x=entry_x, y=entry_p,
+                            text=f"Open @ ₹{entry_p:,.2f}",
+                            showarrow=True, arrowhead=3,
+                            arrowcolor="#1D4ED8", arrowsize=1.5, arrowwidth=2,
+                            ax=0, ay=50,
+                            font=dict(color="#1D4ED8", size=10, family="Inter"),
+                            bgcolor="rgba(219,234,254,0.92)",
+                            bordercolor="#1D4ED8", borderwidth=1, borderpad=4,
+                            xanchor="center")
 
-                    # Exit arrow annotation
+                    # Exit arrow — above candle pointing down
                     if exit_p:
-                        exit_date_str = xd.strftime("%d %b")
                         fig_c.add_annotation(
-                            x=exit_date_str, y=exit_p,
-                            text=f"▼ Close @ ₹{exit_p:,.2f}",
-                            showarrow=True, arrowhead=2, arrowcolor="#DC2626",
-                            arrowsize=1.2, arrowwidth=2,
-                            ax=0, ay=-40,
-                            font=dict(color="#DC2626", size=10),
-                            bgcolor="rgba(254,226,226,0.85)",
-                            bordercolor="#DC2626", borderwidth=1,
-                            borderpad=3)
+                            x=exit_x, y=exit_p,
+                            text=f"Close @ ₹{exit_p:,.2f}",
+                            showarrow=True, arrowhead=3,
+                            arrowcolor="#DC2626", arrowsize=1.5, arrowwidth=2,
+                            ax=0, ay=-50,
+                            font=dict(color="#DC2626", size=10, family="Inter"),
+                            bgcolor="rgba(254,226,226,0.92)",
+                            bordercolor="#DC2626", borderwidth=1, borderpad=4,
+                            xanchor="center")
 
-                    # Best Exit arrow
+                    # Best Exit arrow — amber, offset to right
                     if best_ep:
                         fig_c.add_annotation(
-                            x=exit_date_str if exit_p else entry_date_str,
-                            y=best_ep,
+                            x=exit_x, y=best_ep,
                             text="Best Exit",
-                            showarrow=True, arrowhead=2, arrowcolor="#F59E0B",
-                            arrowsize=1.2, arrowwidth=2,
-                            ax=30, ay=-30,
-                            font=dict(color="#F59E0B", size=10),
-                            bgcolor="rgba(254,243,199,0.85)",
-                            bordercolor="#F59E0B", borderwidth=1,
-                            borderpad=3)
+                            showarrow=True, arrowhead=3,
+                            arrowcolor="#F59E0B", arrowsize=1.5, arrowwidth=2,
+                            ax=50, ay=-30,
+                            font=dict(color="#F59E0B", size=10, family="Inter"),
+                            bgcolor="rgba(254,243,199,0.92)",
+                            bordercolor="#F59E0B", borderwidth=1, borderpad=4)
+
+                    # Y axis range — focus on trade area with padding
+                    prices = [p for p in [entry_p, exit_p, sl, mae, mfe] if p]
+                    if prices:
+                        y_min = min(prices) * 0.97
+                        y_max = max(prices) * 1.05
+                        # Also consider candle data in range
+                        entry_idx = date_strs.index(entry_x) if entry_x in date_strs else 0
+                        exit_idx  = date_strs.index(exit_x)  if exit_x  in date_strs else len(date_strs)-1
+                        pad = max(5, (exit_idx - entry_idx))
+                        show_from = max(0, entry_idx - pad)
+                        show_to   = min(len(date_strs)-1, exit_idx + pad)
+                        x_range = [date_strs[show_from], date_strs[show_to]]
+                    else:
+                        x_range = None
+                        y_min = y_max = None
 
                     # Layout
                     fig_c.update_layout(
                         height=520,
                         paper_bgcolor="#FFFFFF",
-                        plot_bgcolor="#FFFFFF",
+                        plot_bgcolor="#FAFAFA",
                         xaxis=dict(
                             rangeslider=dict(visible=False),
                             gridcolor="#F1F5F9",
                             showgrid=True,
-                            tickfont=dict(size=10, color="#64748B"),
-                            type="category"),
+                            tickfont=dict(size=10, color="#94A3B8"),
+                            type="category",
+                            range=x_range,
+                            tickangle=0),
                         yaxis=dict(
                             gridcolor="#F1F5F9",
                             showgrid=True,
-                            tickfont=dict(size=10, color="#64748B"),
+                            tickfont=dict(size=10, color="#94A3B8"),
                             tickprefix="₹",
                             side="right",
-                            domain=[0.25, 1.0]),
+                            domain=[0.22, 1.0],
+                            range=[y_min, y_max] if y_min else None),
                         yaxis2=dict(
-                            domain=[0, 0.22],
+                            domain=[0, 0.18],
                             showgrid=False,
                             showticklabels=False),
-                        margin=dict(l=10, r=80, t=20, b=40),
+                        margin=dict(l=10, r=90, t=20, b=40),
                         showlegend=False,
                         hovermode="x unified")
 
