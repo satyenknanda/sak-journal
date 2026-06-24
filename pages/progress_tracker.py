@@ -101,25 +101,8 @@ def get_checkins_range(start, end):
     except: return []
 
 def seed_default_rules():
-    conn = get_db()
-    count = conn.execute("SELECT COUNT(*) FROM pt_rules").fetchone()[0]
-    conn.close()
-    if count == 0:
-        defaults = [
-            ("Start my day by", "Enter your starting journal entry before your trading session", "automated", "time", "09:00", "Mon,Tue,Wed,Thu,Fri"),
-            ("Trade has stop loss", "All trades opened today have a stop loss set", "automated", "pct", "100", "Mon,Tue,Wed,Thu,Fri"),
-            ("Max loss per trade", "Maximum loss on a single trade", "automated", "amount", "5000", "Mon,Tue,Wed,Thu,Fri"),
-            ("Max loss per day", "Maximum loss across all trades for the day", "automated", "amount", "10000", "Mon,Tue,Wed,Thu,Fri"),
-        ]
-        conn = get_db()
-        for name, desc, rtype, ctype, cval, days in defaults:
-            conn.execute("INSERT INTO pt_rules (name,description,rule_type,condition_type,condition_value,active_days) VALUES (?,?,?,?,?,?)",
-                         (name, desc, rtype, ctype, cval, days))
-        conn.commit(); conn.close()
-
-# ── Day helpers ────────────────────────────────────────────────────────────────
-DAY_SHORT = ["Mo","Tu","We","Th","Fr","Sa","Su"]
-DAY_FULL  = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
+    """Already handled by _seed_default_rules() in init_pt_db — no-op here."""
+    pass
 
 def is_rule_active_today(rule, d=None):
     if d is None: d = date.today()
@@ -327,7 +310,8 @@ def rules_dialog():
         st.warning("⚠️ This will clear all checkins and streaks. Trades will NOT be deleted.")
         _rc1, _rc2 = st.columns(2)
         if _rc1.button("✅ Yes, reset", type="primary", key="pt_rst_yes"):
-            _conn = get_db(); _conn.execute("DELETE FROM pt_checkins"); _conn.commit(); _conn.close()
+            try: _get_sb().table("pt_checkins").delete().neq("id", 0).execute()
+            except Exception as _e: st.error(f"Reset failed: {_e}")
             st.session_state.pt_confirm_rst = False; st.success("Reset done!"); st.rerun()
         if _rc2.button("Cancel", key="pt_rst_no"):
             st.session_state.pt_confirm_rst = False; st.rerun()
@@ -340,17 +324,17 @@ def rules_dialog():
         if st.button("Cancel", use_container_width=True, key="rules_cancel"): st.rerun()
     with _sb2:
         if st.button("Save changes", type="primary", use_container_width=True, key="rules_save"):
-            _conn = get_db()
             for _aname, _adesc, _actype, _adval in ADEFS:
                 _au = _upd.get(_aname, {})
                 _ex = existing.get(_aname)
                 if _ex:
-                    _conn.execute("UPDATE pt_rules SET enabled=?,condition_value=?,active_days=? WHERE id=?",
-                                  (_au.get("enabled",1), _au.get("condition_value",_adval), _active_days, _ex["id"]))
+                    update_rule(_ex["id"], _aname, _au.get("description",_adesc),
+                                _au.get("condition_type",_actype), _au.get("condition_value",_adval),
+                                _active_days, _au.get("enabled",1))
                 else:
-                    _conn.execute("INSERT INTO pt_rules (name,description,rule_type,condition_type,condition_value,active_days,enabled) VALUES (?,?,?,?,?,?,?)",
-                                  (_aname,_adesc,"automated",_actype,_au.get("condition_value",_adval),_active_days,_au.get("enabled",1)))
-            _conn.commit(); _conn.close()
+                    save_rule(_aname, _au.get("description",_adesc), "automated",
+                              _au.get("condition_type",_actype), _au.get("condition_value",_adval),
+                              _active_days, _au.get("enabled",1))
             st.success("✅ Rules saved!"); st.rerun()
 
 # ── Main render ────────────────────────────────────────────────────────────────
