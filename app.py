@@ -501,7 +501,7 @@ with st.sidebar:
             st.markdown(f'<div style="height:1px;background:rgba(255,255,255,0.07);margin:5px 4px"></div>', unsafe_allow_html=True)
             continue
         if isinstance(item, str):
-            st.markdown(f'<div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.3);letter-spacing:0.1em;padding:10px 12px 4px">{item}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.35);letter-spacing:0.12em;padding:16px 12px 2px;margin-top:2px">{item}</div>', unsafe_allow_html=True)
             continue
         key, label = item
         icon_svg = NAV_ICONS.get(key,"")
