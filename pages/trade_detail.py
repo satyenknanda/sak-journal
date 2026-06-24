@@ -598,20 +598,170 @@ def render():
                 STYLE_MAP={"Candles":"1","Bars":"0","Line":"2","Area":"3","Heikin Ashi":"8"}
                 exec_arrows=cs6.toggle("Execution arrows at price level",value=True,key="td_cs_arrows")
 
-            dsym=tv_sym(ticker)
-            chart_style_id=STYLE_MAP.get(chart_style,"1")
+            # ── Plotly Candlestick with trade markers ─────────────────
+            try:
+                import yfinance as yf
+                import pandas as pd
+                from datetime import datetime, timedelta
 
-            tv_html=f"""<!DOCTYPE html><html><head><meta charset="utf-8">
-<style>html,body{{margin:0;padding:0;background:#131722;overflow:hidden}}
-.tw{{width:100%;height:555px}}</style></head><body><div class="tw">
-<script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
-{{"autosize":true,"symbol":"{dsym}","interval":"{iv}","timezone":"Asia/Kolkata",
-"theme":"dark","style":"{chart_style_id}","locale":"en",
-"allow_symbol_change":false,"hide_volume":{str(hide_volume).lower()},
-"calendar":{str(show_events).lower()},"hide_top_toolbar":false,
-"support_host":"https://www.tradingview.com"}}
-</script></div></body></html>"""
-            components.html(tv_html,height=570,scrolling=False)
+                def _tv_to_yf(t):
+                    for px in ["BSE:","NSE:","NSE_EQ:"]: t = t.replace(px,"")
+                    return {"NIFTY50":"^NSEI","BANKNIFTY":"^NSEBANK"}.get(t, f"{t}.NS")
+
+                yft = _tv_to_yf(ticker)
+                # Date range: 20 bars before entry, 20 bars after exit
+                try:
+                    ed = datetime.strptime(str(trade.get("entry_date",""))[:10],"%Y-%m-%d")
+                    xd = datetime.strptime(str(trade.get("exit_date","") or trade.get("entry_date",""))[:10],"%Y-%m-%d")
+                except:
+                    ed = xd = datetime.today()
+
+                iv_map = {"Daily":"1d","Weekly":"1wk","Monthly":"1mo","1H":"1h","15m":"15m","5m":"5m","30m":"30m"}
+                yf_interval = iv_map.get(iv, "1d")
+                days_held = (xd - ed).days
+
+                if yf_interval in ("15m","30m","1h"):
+                    start = (ed - timedelta(days=10)).strftime("%Y-%m-%d")
+                    end   = (xd + timedelta(days=5)).strftime("%Y-%m-%d")
+                else:
+                    start = (ed - timedelta(days=40)).strftime("%Y-%m-%d")
+                    end   = (xd + timedelta(days=30)).strftime("%Y-%m-%d")
+
+                df = yf.download(yft, start=start, end=end, interval=yf_interval,
+                                 progress=False, auto_adjust=True)
+                if df.empty:
+                    bse = _tv_to_yf(ticker).replace(".NS",".BO")
+                    df = yf.download(bse, start=start, end=end, interval=yf_interval,
+                                     progress=False, auto_adjust=True)
+
+                if not df.empty:
+                    if isinstance(df.columns, pd.MultiIndex):
+                        df.columns = df.columns.get_level_values(0)
+                    df = df.reset_index()
+                    date_col = "Datetime" if "Datetime" in df.columns else "Date"
+                    df[date_col] = pd.to_datetime(df[date_col])
+                    xs = df[date_col].dt.strftime("%d %b") if yf_interval=="1d" else df[date_col].dt.strftime("%d %b %H:%M")
+
+                    fig_c = go.Figure()
+
+                    # Candlesticks
+                    fig_c.add_trace(go.Candlestick(
+                        x=xs, open=df["Open"], high=df["High"],
+                        low=df["Low"], close=df["Close"],
+                        increasing=dict(line=dict(color="#10B981",width=1), fillcolor="#10B981"),
+                        decreasing=dict(line=dict(color="#EF4444",width=1), fillcolor="#EF4444"),
+                        name="Price", showlegend=False,
+                        whiskerwidth=0.5))
+
+                    # Volume bars (on secondary y-axis)
+                    if "Volume" in df.columns:
+                        vol_colors = ["rgba(16,185,129,0.35)" if c >= o else "rgba(239,68,68,0.35)"
+                                     for c, o in zip(df["Close"], df["Open"])]
+                        fig_c.add_trace(go.Bar(
+                            x=xs, y=df["Volume"],
+                            marker_color=vol_colors,
+                            name="Volume", showlegend=False,
+                            yaxis="y2", opacity=0.8))
+
+                    # MAE dotted red horizontal line
+                    if mae:
+                        fig_c.add_hline(y=mae,
+                            line=dict(color="#EF4444", width=1.5, dash="dot"),
+                            annotation_text=f"Price MAE @ {mae:,.2f}",
+                            annotation_position="right",
+                            annotation_font=dict(color="#EF4444", size=10))
+
+                    # MFE dotted teal horizontal line
+                    if mfe:
+                        fig_c.add_hline(y=mfe,
+                            line=dict(color="#0D9488", width=1.5, dash="dot"),
+                            annotation_text=f"Price MFE @ {mfe:,.2f}",
+                            annotation_position="right",
+                            annotation_font=dict(color="#0D9488", size=10))
+
+                    # Stop Loss dashed line
+                    if sl:
+                        fig_c.add_hline(y=sl,
+                            line=dict(color="#EF4444", width=1, dash="dash"),
+                            annotation_text=f"Stop ₹{sl:,.2f}",
+                            annotation_position="left",
+                            annotation_font=dict(color="#EF4444", size=9))
+
+                    # Entry arrow annotation
+                    if entry_p:
+                        entry_date_str = ed.strftime("%d %b")
+                        fig_c.add_annotation(
+                            x=entry_date_str, y=entry_p,
+                            text=f"▲ Open @ ₹{entry_p:,.2f}",
+                            showarrow=True, arrowhead=2, arrowcolor="#1D4ED8",
+                            arrowsize=1.2, arrowwidth=2,
+                            ax=0, ay=40,
+                            font=dict(color="#1D4ED8", size=10),
+                            bgcolor="rgba(219,234,254,0.85)",
+                            bordercolor="#1D4ED8", borderwidth=1,
+                            borderpad=3)
+
+                    # Exit arrow annotation
+                    if exit_p:
+                        exit_date_str = xd.strftime("%d %b")
+                        fig_c.add_annotation(
+                            x=exit_date_str, y=exit_p,
+                            text=f"▼ Close @ ₹{exit_p:,.2f}",
+                            showarrow=True, arrowhead=2, arrowcolor="#DC2626",
+                            arrowsize=1.2, arrowwidth=2,
+                            ax=0, ay=-40,
+                            font=dict(color="#DC2626", size=10),
+                            bgcolor="rgba(254,226,226,0.85)",
+                            bordercolor="#DC2626", borderwidth=1,
+                            borderpad=3)
+
+                    # Best Exit arrow
+                    if best_ep:
+                        fig_c.add_annotation(
+                            x=exit_date_str if exit_p else entry_date_str,
+                            y=best_ep,
+                            text="Best Exit",
+                            showarrow=True, arrowhead=2, arrowcolor="#F59E0B",
+                            arrowsize=1.2, arrowwidth=2,
+                            ax=30, ay=-30,
+                            font=dict(color="#F59E0B", size=10),
+                            bgcolor="rgba(254,243,199,0.85)",
+                            bordercolor="#F59E0B", borderwidth=1,
+                            borderpad=3)
+
+                    # Layout
+                    fig_c.update_layout(
+                        height=520,
+                        paper_bgcolor="#FFFFFF",
+                        plot_bgcolor="#FFFFFF",
+                        xaxis=dict(
+                            rangeslider=dict(visible=False),
+                            gridcolor="#F1F5F9",
+                            showgrid=True,
+                            tickfont=dict(size=10, color="#64748B"),
+                            type="category"),
+                        yaxis=dict(
+                            gridcolor="#F1F5F9",
+                            showgrid=True,
+                            tickfont=dict(size=10, color="#64748B"),
+                            tickprefix="₹",
+                            side="right",
+                            domain=[0.25, 1.0]),
+                        yaxis2=dict(
+                            domain=[0, 0.22],
+                            showgrid=False,
+                            showticklabels=False),
+                        margin=dict(l=10, r=80, t=20, b=40),
+                        showlegend=False,
+                        hovermode="x unified")
+
+                    st.plotly_chart(fig_c, use_container_width=True,
+                                   config={"displayModeBar":False},
+                                   key=f"trade_candle_{trade_id}")
+                else:
+                    st.info(f"No price data available for {ticker}.")
+            except Exception as _ce:
+                st.warning(f"Chart error: {_ce}")
 
             # Reference strip
             ref='<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">'
