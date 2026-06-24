@@ -240,11 +240,14 @@ def rules_dialog():
 
     # ── Automated Rules ───────────────────────────────────────────────────────
     ADEFS = [
-        ("Start my day by",               "The time you should start your day by and enter your starting journal entry before your trading session.", "time",   "09:15"),
-        ("Link trades to playbook",        "All trades opened must have a playbook attached.",                                                         "pct",    "100"),
-        ("Input Stop loss to all trades",  "All trades opened must have a stop loss added.",                                                           "pct",    "100"),
-        ("Net max loss /trade",            "The maximum net loss on a trade in amount or in percentage of the trade account balance.",                  "amount", "5000"),
-        ("Net max loss /day",              "The maximum net loss on a day among all accounts.",                                                        "amount", "10000"),
+        ("Start my day by",               "Enter your starting journal entry before your trading session.", "time",   "09:00"),
+        ("Trade has stop loss",           "All trades opened today have a stop loss set.",                  "pct",    "100"),
+        ("Max loss per trade",            "Maximum loss on a single trade.",                                "amount", "5000"),
+        ("Max loss per day",              "Maximum loss across all trades for the day.",                    "amount", "10000"),
+        ("Link trades to playbook",       "All trades opened must have a playbook attached.",               "pct",    "100"),
+        ("Input Stop loss to all trades", "All trades opened must have a stop loss added.",                 "pct",    "100"),
+        ("Net max loss /trade",           "The maximum net loss on a single trade.",                        "amount", "45000"),
+        ("Net max loss /day",             "The maximum net loss on a day among all accounts.",              "amount", "90000"),
     ]
     st.markdown("#### Automated Rules")
     _upd = {}
@@ -354,7 +357,11 @@ def render():
     day_name = today.strftime("%A")
 
     # Load trades
-    all_trades = get_trades()
+    import streamlit as _st
+    @_st.cache_data(ttl=30)
+    def _cached_trades():
+        return get_trades()
+    all_trades = _cached_trades()
     closed = [t for t in all_trades if t.get("status")=="CLOSED"]
 
     by_date = defaultdict(list)
