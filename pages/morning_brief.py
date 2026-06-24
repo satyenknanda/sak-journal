@@ -628,7 +628,7 @@ def render():
         if _lt_cur not in _lt_opts: _lt_cur = _lt_opts[0]
         st.markdown('<div style="background:#F0FDF4;border-left:4px solid #10B981;border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:#10B981;letter-spacing:1px;margin-bottom:6px">1) LONG-TERM</div>', unsafe_allow_html=True)
         st.selectbox("LT", _lt_opts, index=_lt_opts.index(_lt_cur), key="sit_lt", label_visibility="collapsed")
-        st.text_area("LT notes", key="sit_lt_note", height=55, placeholder="No change. Early bull market.", label_visibility="collapsed")
+        st.text_area("LT notes", key="sit_lt_note", height=68, placeholder="No change. Early bull market.", label_visibility="collapsed")
         st.markdown("</div>", unsafe_allow_html=True)
 
         # 2. Short-Term
