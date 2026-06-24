@@ -147,3 +147,120 @@ def refresh_all():
 if __name__ == "__main__":
     ensure_universe_seeded()
     refresh_all()
+    refresh_bonde_signals()
+
+
+def bonde_signals_from_hist(ticker, hist, sector="", industry=""):
+    """Calculate Pradeep Bonde scanner signals from price history."""
+    import numpy as np
+    if hist is None or len(hist) < 10:
+        return None
+
+    closes = hist["Close"].values
+    volumes = hist["Volume"].values
+    highs = hist["High"].values
+    lows = hist["Low"].values
+
+    last_close = float(closes[-1])
+    last_vol = int(volumes[-1])
+    prev_close = float(closes[-2])
+    prev_vol = int(volumes[-2])
+
+    # Volume ratio vs 50-day avg
+    avg_vol_50 = int(np.mean(volumes[-50:])) if len(volumes) >= 50 else int(np.mean(volumes))
+    vol_ratio = round(last_vol / avg_vol_50, 2) if avg_vol_50 > 0 else 0
+
+    # Returns
+    ret_1d = round((last_close - prev_close) / prev_close * 100, 2) if prev_close else 0
+    ret_5d = round((last_close - closes[-6]) / closes[-6] * 100, 2) if len(closes) >= 6 else 0
+    ret_2m = round((last_close - closes[-42]) / closes[-42] * 100, 2) if len(closes) >= 42 else 0
+
+    # 52W high/low
+    high_52w = round(float(np.max(highs[-252:])), 2) if len(highs) >= 252 else round(float(np.max(highs)), 2)
+    low_52w  = round(float(np.min(lows[-252:])),  2) if len(lows)  >= 252 else round(float(np.min(lows)), 2)
+    pct_from_52w_high = round((last_close - high_52w) / high_52w * 100, 2) if high_52w else 0
+
+    # Momentum Burst — +4% day with volume > previous day
+    momentum_burst = bool(ret_1d >= 4.0 and last_vol > prev_vol)
+
+    # TTT — Tight Tight Tight (3 bar range <= 1.5%, today <= 0.3%)
+    if len(closes) >= 3:
+        range_3d = (max(closes[-3:]) - min(closes[-3:])) / closes[-4] * 100 if len(closes) >= 4 else 0
+        range_1d = (float(highs[-1]) - float(lows[-1])) / prev_close * 100 if prev_close else 0
+        ttt = bool(range_3d <= 1.5 and range_1d <= 0.8)
+        range_3d_pct = round(range_3d, 2)
+    else:
+        ttt = False
+        range_3d_pct = 0
+
+    # 20% in 5 days
+    ret_20pct_5d = bool(ret_5d >= 20.0)
+
+    # 50% in 2 months
+    ret_50pct_2m = bool(ret_2m >= 50.0)
+
+    # TI65 — Trend Intensity: % of last 65 days closing above their prior close
+    if len(closes) >= 65:
+        up_days = sum(1 for i in range(-65, 0) if closes[i] > closes[i-1])
+        ti65 = round(up_days / 65 * 100, 1)
+    else:
+        ti65 = None
+
+    # ATR 20-day
+    if len(closes) >= 21:
+        trs = [max(highs[i] - lows[i],
+                   abs(highs[i] - closes[i-1]),
+                   abs(lows[i] - closes[i-1])) for i in range(-20, 0)]
+        atr_20d = round(float(np.mean(trs)), 2)
+    else:
+        atr_20d = None
+
+    return {
+        "ticker": ticker,
+        "as_of_date": str(date.today()),
+        "close": round(last_close, 2),
+        "volume": last_vol,
+        "avg_volume_50d": avg_vol_50,
+        "volume_ratio": vol_ratio,
+        "ret_1d": ret_1d,
+        "ret_5d": ret_5d,
+        "high_52w": high_52w,
+        "low_52w": low_52w,
+        "pct_from_52w_high": pct_from_52w_high,
+        "momentum_burst": momentum_burst,
+        "ttt": ttt,
+        "ret_20pct_5d": ret_20pct_5d,
+        "ret_50pct_2m": ret_50pct_2m,
+        "ti65": ti65,
+        "atr_20d": atr_20d,
+        "range_3d_pct": range_3d_pct,
+        "sector": sector,
+        "industry": industry,
+    }
+
+
+def refresh_bonde_signals():
+    """Calculate and store Bonde signals for all tickers."""
+    sb = _sb()
+    universe = sb.table("market_universe").select("ticker,sector,industry").execute().data
+    print(f"\nCalculating Bonde signals for {len(universe)} tickers...")
+
+    success = 0
+    for idx, row in enumerate(universe, 1):
+        ticker = row["ticker"]
+        sector = row.get("sector", "")
+        industry = row.get("industry", "")
+        print(f"[{idx}/{len(universe)}] {ticker}...")
+        hist = fetch_hist_for_ticker(ticker)
+        if hist is None:
+            continue
+        sig = bonde_signals_from_hist(ticker, hist, sector, industry)
+        if sig:
+            try:
+                sb.table("bonde_signals").upsert(sig, on_conflict="ticker").execute()
+                success += 1
+            except Exception as e:
+                print(f"  ❌ {ticker}: {e}")
+        time.sleep(0.2)
+
+    print(f"✅ Bonde signals: {success} tickers updated.")

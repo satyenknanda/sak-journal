@@ -477,6 +477,7 @@ with st.sidebar:
         ("calc",     "Calculator"),
         "── ANALYSIS ──",
         ("reports",  "Reports"),
+        ("screener", "Screener"),
         ("strategy", "Strategy Cards"),
         ("playbook", "Playbook"),
         ("progress", "Progress Tracker"),
@@ -557,6 +558,7 @@ try:
     elif p=="notebook":  from pages.notebook            import render; render()
     elif p=="calc":      from pages.calculator         import render; render()
     elif p=="reports":   from pages.reports            import render; render()
+    elif p=="screener":   from pages.screener          import render; render()
     elif p=="strategy":  from pages.strategy_dashboard import render; render()
     elif p=="playbook": from pages.playbook         import render; render()
     elif p=="progress": from pages.progress_tracker import render; render()
