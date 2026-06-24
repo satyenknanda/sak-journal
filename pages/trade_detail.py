@@ -642,22 +642,8 @@ def render():
         ct1,ct2,ct3=st.tabs(["📈 Chart","📝 Notes","📊 Running P&L"])
 
         with ct1:
-            INTERVALS={"1m":"1","5m":"5","15m":"15","30m":"30","1H":"60","4H":"240","1D":"D","1W":"W"}
-            ivk=list(INTERVALS.keys())
-            iv_sel=st.selectbox("IV",ivk,index=ivk.index("1D"),label_visibility="collapsed",key=f"td_iv_{trade_id}")
-            iv=INTERVALS[iv_sel]
-
-            # Chart settings
-            with st.expander("⚙️ Chart Settings"):
-                cs1,cs2,cs3,cs4=st.columns(4)
-                show_events=cs1.toggle("Show Events",value=False,key="td_cs_events")
-                smooth_candles=cs2.toggle("Smooth Candles",value=False,key="td_cs_smooth")
-                hide_volume=cs3.toggle("Hide Volume",value=False,key="td_cs_vol")
-                show_premarket=cs4.toggle("Pre-market",value=False,key="td_cs_pre")
-                cs5,cs6=st.columns(2)
-                chart_style=cs5.selectbox("Chart Type",["Candles","Bars","Line","Area","Heikin Ashi"],key="td_cs_type")
-                STYLE_MAP={"Candles":"1","Bars":"0","Line":"2","Area":"3","Heikin Ashi":"8"}
-                exec_arrows=cs6.toggle("Execution arrows at price level",value=True,key="td_cs_arrows")
+            iv=st.selectbox("Timeframe", ["Daily","Weekly","1H","30m","15m","5m"],
+                index=0, label_visibility="collapsed", key=f"td_iv_{trade_id}")
 
             # ── Plotly Candlestick with trade markers ─────────────────
             try:
