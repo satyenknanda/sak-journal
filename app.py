@@ -482,7 +482,6 @@ with st.sidebar:
         ("fund_management", "Fund Management"),
         ("tax_analytics",   "Tax Analytics"),
         "── RESEARCH ──",
-        ("chart",    "Chart"),
         ("portfolio_dna",   "Portfolio DNA"),
         ("thematic_heatmap", "Thematic Heatmap"),
         ("tracker", "Tracker"),
