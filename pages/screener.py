@@ -9,6 +9,44 @@ def render():
     from data.db import _sb
     from datetime import date
 
+    # ── Upload Universe CSV ───────────────────────────────────────────────────
+    with st.expander("⬆️ Upload Universe CSV", expanded=False):
+        st.caption("Upload a CSV with columns: Stock Name, RS Rating, Basic Industry, % from 52W High, Returns since Earnings(%)")
+        uploaded = st.file_uploader("Choose CSV", type="csv", key="universe_csv")
+        if uploaded:
+            import csv, io
+            content_csv = uploaded.read().decode("utf-8")
+            reader = csv.DictReader(io.StringIO(content_csv))
+            rows = list(reader)
+            st.info(f"Found {len(rows)} tickers — click Upload to save to universe")
+            if st.button("⬆️ Upload to Universe", key="upload_universe_btn", type="primary"):
+                sb = _sb()
+                success = 0
+                errors = []
+                for row in rows:
+                    ticker = row.get("Stock Name","").strip()
+                    if not ticker: continue
+                    rs = row.get("RS Rating","").strip()
+                    industry = row.get("Basic Industry","").strip()
+                    pct52 = row.get("% from 52W High","").strip()
+                    ret_earn = row.get("Returns since Earnings(%)","").strip()
+                    try:
+                        sb.table("market_universe").upsert({
+                            "ticker": ticker,
+                            "sector": industry,
+                            "industry": industry,
+                            "rs_rating": int(rs) if rs.lstrip("-").isdigit() else None,
+                            "pct_from_52w_high": float(pct52) if pct52 not in ("","NA") else None,
+                            "returns_since_earnings": float(ret_earn) if ret_earn not in ("","NA") else None,
+                        }, on_conflict="ticker").execute()
+                        success += 1
+                    except Exception as e:
+                        errors.append(f"{ticker}: {e}")
+                st.success(f"✅ {success} tickers uploaded to universe!")
+                if errors:
+                    st.warning(f"{len(errors)} errors: {errors[:3]}")
+                st.cache_data.clear()
+
     @st.cache_data(ttl=300)
     def _load_signals():
         r = _sb().table("bonde_signals").select("*").order("ret_1d", desc=True).execute()
