@@ -218,22 +218,35 @@ def render():
             if not returns:
                 st.info("No returns data. Run Refresh Signals.")
             else:
-                r1w = [float(r.get("ret_1w") or 0) for r in returns]
-                r1m = [float(r.get("ret_1m") or 0) for r in returns]
-                r3m = [float(r.get("ret_3m") or 0) for r in returns]
-                r6m = [float(r.get("ret_6m") or 0) for r in returns]
-                p80 = np.percentile(r1w, 80); p75 = np.percentile(r1m, 75)
-                p65 = np.percentile(r3m, 65); p50 = np.percentile(r6m, 50)
+                # Sequential filter — sort by each timeframe and keep top %
+                all_r = [r for r in returns if r.get("ret_1w") and r.get("ret_1m") and r.get("ret_3m") and r.get("ret_6m")]
 
-                easy = []
-                for r in returns:
-                    w = float(r.get("ret_1w") or 0); m = float(r.get("ret_1m") or 0)
-                    q = float(r.get("ret_3m") or 0); s = float(r.get("ret_6m") or 0)
-                    if w >= p80 and m >= p75 and q >= p65 and s >= p50:
-                        score = (w/max(p80,0.01)+m/max(p75,0.01)+q/max(p65,0.01)+s/max(p50,0.01))/4
-                        easy.append({**r, "_score": score, "ret_1d": 0, "volume_ratio": 0, "ti65": None,
-                                     "close": 0, "pct_from_52w_high": 0, "sector": ""})
-                easy = sorted(easy, key=lambda x: -x["_score"])
+                # Step 1 — sort by 1W, keep top 20%
+                step1 = sorted(all_r, key=lambda x: -(float(x.get("ret_1w") or 0)))
+                step1 = step1[:max(1, int(len(step1)*0.20))]
+
+                # Step 2 — from step1, sort by 1M, keep top 25%
+                step2 = sorted(step1, key=lambda x: -(float(x.get("ret_1m") or 0)))
+                step2 = step2[:max(1, int(len(step2)*0.25))]
+
+                # Step 3 — from step2, sort by 3M, keep top 35%
+                step3 = sorted(step2, key=lambda x: -(float(x.get("ret_3m") or 0)))
+                step3 = step3[:max(1, int(len(step3)*0.35))]
+
+                # Step 4 — from step3, sort by 6M, keep top 50%
+                step4 = sorted(step3, key=lambda x: -(float(x.get("ret_6m") or 0)))
+                step4 = step4[:max(1, int(len(step4)*0.50))]
+
+                # Final list sorted by 6M (strongest)
+                easy = [{**r, "_score": float(r.get("ret_6m") or 0),
+                         "ret_1d": 0, "volume_ratio": 0, "ti65": None,
+                         "close": 0, "pct_from_52w_high": 0, "sector": ""}
+                        for r in step4]
+
+                # Stats for KPIs
+                p80 = float(step1[0].get("ret_1w") or 0) if step1 else 0
+                p75 = float(step2[0].get("ret_1m") or 0) if step2 else 0
+                p65 = float(step3[0].get("ret_3m") or 0) if step3 else 0
 
                 # Merge with signals for close price
                 sig_map = {s["ticker"]: s for s in signals}
