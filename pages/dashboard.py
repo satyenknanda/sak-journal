@@ -818,12 +818,10 @@ def render():
             _bc1.markdown(f'<p style="font-size:11px;font-weight:600;color:{TEXT_H};margin:0">Account Balance</p>', unsafe_allow_html=True)
             bal_ctype = _bc2.selectbox("Balance chart type", CTYPES, index=2, key="bal_ctype", label_visibility="collapsed")
             bal_pts = [(str(t.get("exit_date",""))[:10], float(t.get("account_balance") or 0))
-                       for t in closed if t.get("account_balance") and t.get("exit_date")]
-            if bal_pts:
-                bal_pts_s = sorted(bal_pts)
-                bxs = [d for d,_ in bal_pts_s]
-                bys = [v for _,v in bal_pts_s]
-                fig_b = go.Figure()
+            bxs = [d for d,_ in cum_by_date]
+            bys = [acct + v for _,v in cum_by_date]
+            if bxs:
+                bal_pts_s = list(zip(bxs, bys))
                 fig_b.add_trace(_make_trace(bxs, bys, bal_ctype, TEAL, "Balance"))
                 lb = chart_layout(height=CHART_H, title="")
                 lb["yaxis"]["tickprefix"] = "" if VIEW in ("pct","rmult","privacy") else "₹"
