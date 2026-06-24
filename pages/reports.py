@@ -369,8 +369,8 @@ def render():
     # PERFORMANCE
     # ════════════════════════════════════════════════════════════════════
     # ── TOP TABS ──────────────────────────────────────────────────────
-    tab_perf, tab_ov, tab_reports, tab_cmp, tab_deep, tab_bell = st.tabs([
-        "📈 Performance", "📊 Overview", "📊 Reports", "⚖️ Compare", "🔬 Deep Analytics", "🔔 Bell Curve"
+    tab_perf, tab_ov, tab_reports, tab_cmp, tab_deep, tab_bell, tab_strat = st.tabs([
+        "📈 Performance", "📊 Overview", "📊 Reports", "⚖️ Compare", "🔬 Deep Analytics", "🔔 Bell Curve", "🎯 Strategy"
     ])
 
     # ════════════════════════════════════════════════════════════════════
@@ -1738,6 +1738,10 @@ def render():
     with tab_bell:
         from pages.bell_curve import render as bell_render
         bell_render()
+
+    with tab_strat:
+        from pages.strategy_analytics import render as strat_render
+        strat_render()
 
     with tab_deep:
         import numpy as np
