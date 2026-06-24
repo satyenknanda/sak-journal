@@ -91,11 +91,12 @@ def render():
     total = len(signals)
 
     # ── SCANNER TABS ──────────────────────────────────────────────────────────
-    t1, t2, t3, t4, t5 = st.tabs([
+    t1, t2, t3, t4, t5, t6 = st.tabs([
         "🚀 Momentum Burst",
         "🔵 TTT — Tight Tight Tight",
         "⚡ 20% in 5 Days",
         "🔥 50% in 2 Months",
+        "💰 Easy Money",
         "📊 Full Universe"
     ])
 
@@ -190,6 +191,91 @@ def render():
             "📌 Weekend scan — 50%+ gain in last 2 months · Deep dive: what was the catalyst, market cap, how did the move start")
 
     with t5:
+        st.markdown(f'<p style="font-size:11px;color:{TEXT_SUBTLE};margin-bottom:12px">Top performers across all timeframes — Weekly top 20% AND Monthly top 25% AND Quarterly top 35% AND Semi-annual top 50%</p>', unsafe_allow_html=True)
+
+        # Load market_returns for multi-timeframe filtering
+        @st.cache_data(ttl=300)
+        def _load_returns():
+            r = _sb().table("market_returns").select("*").execute()
+            return r.data or []
+
+        returns = _load_returns()
+        if not returns:
+            st.info("No returns data. Run market refresh first.")
+        else:
+            import numpy as np
+            # Calculate percentile thresholds
+            ret_1w  = [float(r.get("ret_1w")  or 0) for r in returns]
+            ret_1m  = [float(r.get("ret_1m")  or 0) for r in returns]
+            ret_3m  = [float(r.get("ret_3m")  or 0) for r in returns]
+            ret_6m  = [float(r.get("ret_6m")  or 0) for r in returns]
+
+            p80_1w = np.percentile(ret_1w, 80)
+            p75_1m = np.percentile(ret_1m, 75)
+            p65_3m = np.percentile(ret_3m, 65)
+            p50_6m = np.percentile(ret_6m, 50)
+
+            # Filter easy money stocks
+            easy = []
+            for r in returns:
+                w  = float(r.get("ret_1w")  or 0)
+                m  = float(r.get("ret_1m")  or 0)
+                q  = float(r.get("ret_3m")  or 0)
+                s  = float(r.get("ret_6m")  or 0)
+                if w >= p80_1w and m >= p75_1m and q >= p65_3m and s >= p50_6m:
+                    score = (w/max(p80_1w,0.01) + m/max(p75_1m,0.01) +
+                             q/max(p65_3m,0.01) + s/max(p50_6m,0.01)) / 4
+                    easy.append({**r, "_score": score})
+
+            easy_sorted = sorted(easy, key=lambda x: -x["_score"])
+
+            # KPIs
+            em1, em2, em3, em4 = st.columns(4)
+            for col, (label, val, color) in zip([em1,em2,em3,em4], [
+                ("Easy Money Stocks", str(len(easy_sorted)), TEAL),
+                ("Min 1W Return",     f"{p80_1w:+.1f}%",    TEAL),
+                ("Min 1M Return",     f"{p75_1m:+.1f}%",    TEAL),
+                ("Min 3M Return",     f"{p65_3m:+.1f}%",    TEAL),
+            ]):
+                col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px 14px;margin-bottom:12px">
+                    <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:500;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">{label}</div>
+                    <div style="font-size:20px;font-weight:700;color:{color}">{val}</div>
+                </div>''', unsafe_allow_html=True)
+
+            # TradingView copy button
+            tv_list = ",".join([f"NSE:{r['ticker']}" for r in easy_sorted])
+            st.code(tv_list, language=None)
+            st.caption("👆 Copy the above and paste into TradingView → Watchlist → Import")
+
+            # Table
+            TH_em = f"padding:10px 14px;font-size:10px;color:white;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;background:#1E293B;border-bottom:1px solid {BORDER}"
+            TD_em = f"padding:9px 14px;font-size:12.5px;border-bottom:1px solid {BORDER_LIGHT}"
+            rows_em = ""
+            for s in easy_sorted:
+                rows_em += f"""<tr>
+                    <td style="{TD_em};font-weight:700;color:{TEXT_H}">{s['ticker']}</td>
+                    <td style="{TD_em};text-align:right;color:#10B981">{float(s.get('ret_1w') or 0):+.1f}%</td>
+                    <td style="{TD_em};text-align:right;color:#10B981">{float(s.get('ret_1m') or 0):+.1f}%</td>
+                    <td style="{TD_em};text-align:right;color:#10B981">{float(s.get('ret_3m') or 0):+.1f}%</td>
+                    <td style="{TD_em};text-align:right;color:#10B981">{float(s.get('ret_6m') or 0):+.1f}%</td>
+                    <td style="{TD_em};text-align:right;color:#10B981">{float(s.get('ret_ytd') or 0):+.1f}%</td>
+                    <td style="{TD_em};text-align:right;font-weight:700;color:{TEAL}">{s['_score']:.2f}</td>
+                </tr>"""
+            st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER}">
+            <table style="width:100%;border-collapse:collapse">
+                <thead><tr>
+                    <th style="{TH_em};text-align:left">Ticker</th>
+                    <th style="{TH_em};text-align:right">1W %</th>
+                    <th style="{TH_em};text-align:right">1M %</th>
+                    <th style="{TH_em};text-align:right">3M %</th>
+                    <th style="{TH_em};text-align:right">6M %</th>
+                    <th style="{TH_em};text-align:right">YTD %</th>
+                    <th style="{TH_em};text-align:right">Score</th>
+                </tr></thead>
+                <tbody>{rows_em}</tbody>
+            </table></div>""", unsafe_allow_html=True)
+
+    with t6:
         # Full universe sorted by TI65
         full_sorted = sorted(signals, key=lambda x: -(x.get("ti65") or 0))
 
