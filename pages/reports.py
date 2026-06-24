@@ -38,18 +38,6 @@ def kpi_strip(items):
     html += '</div>'
     return html
 
-def kpi_card_accent(label, value, color, sub=None):
-    """KPI card with a colored top-border accent (multi-color style)."""
-    sub_html = f'<div style="font-size:11px;color:{TEXT_SUBTLE};margin-top:3px">{sub}</div>' if sub else ""
-    return f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {color};
-        border-radius:10px;padding:14px 16px;box-shadow:{SHADOW_SM};min-height:78px">
-        <div style="font-size:10.5px;color:{TEXT_SUBTLE};text-transform:uppercase;
-            letter-spacing:0.07em;font-weight:500;margin-bottom:6px">{label}</div>
-        <div style="font-size:1.35rem;font-weight:700;color:{TEXT_H};letter-spacing:-0.02em;
-            font-variant-numeric:tabular-nums;line-height:1.2">{value}</div>
-        {sub_html}
-    </div>"""
-
 def line_area_chart(x, y_pnl, y_count=None, y_avg=None, height=260, title=""):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=x, y=y_pnl, mode="lines+markers",
@@ -1812,115 +1800,6 @@ def render():
                 highest_r = max(r_vals) if r_vals else 0
                 lowest_r = min(r_vals) if r_vals else 0
                 avg_r = np.mean(r_vals) if r_vals else 0
-
-                def kpi_card_accent(label, value, color, sub=None):
-                    """KPI card with a colored top-border accent (Nexus multi-color style)."""
-                    sub_html = f'<div style="font-size:11px;color:{TEXT_SUBTLE};margin-top:3px">{sub}</div>' if sub else ""
-                    return f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {color};
-                        border-radius:10px;padding:14px 16px;box-shadow:{SHADOW_SM};min-height:78px">
-                        <div style="font-size:10.5px;color:{TEXT_SUBTLE};text-transform:uppercase;
-                            letter-spacing:0.07em;font-weight:500;margin-bottom:6px">{label}</div>
-                        <div style="font-size:1.35rem;font-weight:700;color:{TEXT_H};letter-spacing:-0.02em;
-                            font-variant-numeric:tabular-nums;line-height:1.2">{value}</div>
-                        {sub_html}
-                    </div>"""
-
-                AC = DNA_COLORS  # 12-color accent cycle
-
-                st.markdown(f'<p style="font-size:13px;font-weight:600;color:{TEXT_H};margin:8px 0">Key Performance Metrics</p>', unsafe_allow_html=True)
-                d1, d2, d3, d4 = st.columns(4)
-                d1.markdown(kpi_card_accent("Avg PnL/Day", fmt_pnl(avg_pnl_day), AC[0],
-                                      sub="Average daily profit/loss"), unsafe_allow_html=True)
-                d2.markdown(kpi_card_accent("Sharpe Ratio", f"{sharpe:.2f}", AC[1],
-                                      sub="Risk-adjusted return (daily)"), unsafe_allow_html=True)
-                d3.markdown(kpi_card_accent("Expectancy", fmt_pnl(expectancy_inr), AC[2],
-                                      sub="Expected profit per trade"), unsafe_allow_html=True)
-                d4.markdown(kpi_card_accent("Avg Risk/Trade", fmt_pnl(avg_risk_inr), AC[3], sub="Average initial rupee risk"), unsafe_allow_html=True)
-
-                st.markdown("<br>", unsafe_allow_html=True)
-                d5, d6, d7, d8 = st.columns(4)
-                d5.markdown(kpi_card_accent("Win Streak", str(win_streak), AC[4], sub=f"Avg Win: {fmt_pnl(avg_win_inr)}"), unsafe_allow_html=True)
-                d6.markdown(kpi_card_accent("Loss Streak", str(loss_streak), AC[5], sub=f"Avg Loss: {fmt_pnl(avg_loss_inr)}"), unsafe_allow_html=True)
-                d7.markdown(kpi_card_accent("Avg PF Risk/Trade", f"{avg_pf_risk:.2f}%", AC[6], sub="Average risk vs entry price"), unsafe_allow_html=True)
-                d8.markdown(kpi_card_accent("Best / Worst Trade", f"{fmt_pnl(best_trade)} / {fmt_pnl(worst_trade)}", AC[7],
-                                      sub="Highest profit / Biggest loss"), unsafe_allow_html=True)
-
-                st.markdown("<br>", unsafe_allow_html=True)
-                d9, d10, d11 = st.columns(3)
-                d9.markdown(kpi_card_accent("Highest R", f"{highest_r:.2f}R", AC[8], sub="Best risk:reward"), unsafe_allow_html=True)
-                d10.markdown(kpi_card_accent("Lowest R", f"{lowest_r:.2f}R", AC[9], sub="Worst risk:reward"), unsafe_allow_html=True)
-                d11.markdown(kpi_card_accent("Avg R", f"{avg_r:.2f}R", AC[10], sub="Average risk:reward"), unsafe_allow_html=True)
-
-                st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
-
-                st.markdown(f'<p style="font-size:13px;font-weight:600;color:{TEXT_H};margin:8px 0">Aggregate PnL vs Day — Weekday Distribution</p>', unsafe_allow_html=True)
-                DOW_FULL = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
-                dow_pnl = defaultdict(float)
-                dow_count = defaultdict(int)
-                for t in closed:
-                    dow = _get_dow(t)
-                    if dow:
-                        dow_pnl[dow] += safe_float(t.get("pnl"))
-                        dow_count[dow] += 1
-                dow_x = [d for d in DOW_FULL if d in dow_pnl]
-                dow_y = [dow_pnl[d] for d in dow_x]
-                if dow_x:
-                    fig_dow = go.Figure()
-                    fig_dow.add_trace(go.Bar(x=dow_x, y=dow_y,
-                        marker=dict(color=[TEAL if v>=0 else RED for v in dow_y], opacity=0.85, line=dict(width=0)),
-                        text=[f"{c} trades" for c in [dow_count[d] for d in dow_x]],
-                        textposition="outside", textfont=dict(size=9, color=TEXT_MUTED),
-                        hovertemplate="%{x}<br>₹%{y:,.0f}<extra></extra>"))
-                    l_dow = chart_layout(height=260, title="")
-                    l_dow["yaxis"]["tickprefix"] = "₹"
-                    fig_dow.update_layout(**l_dow)
-                    st.plotly_chart(fig_dow, use_container_width=True, config={"displayModeBar":False})
-                else:
-                    st.info("No weekday data available.")
-
-                st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
-
-                st.markdown(f'<p style="font-size:13px;font-weight:600;color:{TEXT_H};margin:8px 0">Aggregate PnL vs Symbol</p>', unsafe_allow_html=True)
-                sym_pnl = defaultdict(float)
-                sym_count = defaultdict(int)
-                for t in closed:
-                    sym = t.get("ticker","")
-                    if sym:
-                        sym_pnl[sym] += safe_float(t.get("pnl"))
-                        sym_count[sym] += 1
-                top_syms = sorted(sym_pnl.items(), key=lambda x: x[1], reverse=True)[:15]
-                if top_syms:
-                    sym_x = [s for s,_ in top_syms]
-                    sym_y = [v for _,v in top_syms]
-                    fig_sym = go.Figure()
-                    fig_sym.add_trace(go.Bar(x=sym_x, y=sym_y,
-                        marker=dict(color=[TEAL if v>=0 else RED for v in sym_y], opacity=0.85, line=dict(width=0)),
-                        hovertemplate="%{x}<br>₹%{y:,.0f}<extra></extra>"))
-                    l_sym = chart_layout(height=280, title="Top 15 Symbols by Net P&L")
-                    l_sym["yaxis"]["tickprefix"] = "₹"
-                    l_sym["xaxis"]["tickangle"] = -40
-                    fig_sym.update_layout(**l_sym)
-                    st.plotly_chart(fig_sym, use_container_width=True, config={"displayModeBar":False})
-
-                st.markdown(f'<p style="font-size:12px;color:{TEXT_MUTED};margin:12px 0 4px">Realized P&L Distribution — frequency spread of trade P&L size</p>', unsafe_allow_html=True)
-                if pnls_d:
-                    fig_dist = go.Figure()
-                    fig_dist.add_trace(go.Histogram(x=pnls_d, nbinsx=25,
-                        marker=dict(color=TEAL, opacity=0.7),
-                        hovertemplate="₹%{x:,.0f}<br>%{y} trades<extra></extra>"))
-                    fig_dist.add_vline(x=0, line=dict(color=RED, width=1, dash="dash"))
-                    l_dist = chart_layout(height=240, title="")
-                    l_dist["xaxis"]["tickprefix"] = "₹"
-                    l_dist["xaxis"]["title"] = dict(text="Trade P&L (₹)", font=dict(size=10, color=TEXT_SUBTLE))
-                    fig_dist.update_layout(**l_dist)
-                    st.plotly_chart(fig_dist, use_container_width=True, config={"displayModeBar":False})
-
-                st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
-
-                st.markdown(f'<p style="font-size:13px;font-weight:600;color:{TEXT_H};margin:8px 0">Stock Move % — Average Underlying Movement</p>', unsafe_allow_html=True)
-                st.caption("% move of the underlying stock from entry to exit (not P&L% — the raw price move), bucketed by exit period.")
-
-                move_period = st.radio("Period", ["Daily","Weekly","Monthly"], index=2, horizontal=True, key="deep_move_period")
 
                 def stock_move_pct(t):
                     ep = safe_float(t.get("entry_price"))
