@@ -17,39 +17,45 @@ def render():
         if uploaded is not None:
             csv_text = uploaded.read().decode("utf-8")
             rows = list(csv.DictReader(io.StringIO(csv_text)))
-            st.write(f"✅ File read: {len(rows)} rows. First ticker: {rows[0].get('Stock Name','?') if rows else '?'}")
+            records = []
+            for row in rows:
+                ticker = row.get("Stock Name","").strip()
+                if not ticker: continue
+                rs = row.get("RS Rating","").strip()
+                industry = row.get("Basic Industry","").strip()
+                pct52 = row.get("% from 52W High","").strip()
+                ret_earn = row.get("Returns since Earnings(%)","").strip()
+                records.append({
+                    "ticker": ticker,
+                    "sector": industry,
+                    "industry": industry,
+                    "rs_rating": int(rs) if rs.lstrip("-").isdigit() else None,
+                    "pct_from_52w_high": float(pct52) if pct52 not in ("","NA") else None,
+                    "returns_since_earnings": float(ret_earn) if ret_earn not in ("","NA") else None,
+                })
+            st.session_state["_universe_records"] = records
+            st.info(f"Found {len(records)} tickers — click Upload to save to universe")
+
+        if st.session_state.get("_universe_records"):
+            records = st.session_state["_universe_records"]
             if st.button("⬆️ Upload to Universe", key="upload_universe_btn", type="primary"):
                 sb = _sb()
-                records = []
-                for row in rows:
-                    ticker = row.get("Stock Name","").strip()
-                    if not ticker: continue
-                    rs = row.get("RS Rating","").strip()
-                    industry = row.get("Basic Industry","").strip()
-                    pct52 = row.get("% from 52W High","").strip()
-                    ret_earn = row.get("Returns since Earnings(%)","").strip()
-                    records.append({
-                        "ticker": ticker,
-                        "sector": industry,
-                        "industry": industry,
-                        "rs_rating": int(rs) if rs.lstrip("-").isdigit() else None,
-                        "pct_from_52w_high": float(pct52) if pct52 not in ("","NA") else None,
-                        "returns_since_earnings": float(ret_earn) if ret_earn not in ("","NA") else None,
-                    })
-                # Batch upsert in chunks of 50
-                st.write(f"Starting upload of {len(records)} records...")
                 success = 0
                 chunk_size = 50
+                prog = st.progress(0, text="Uploading...")
                 for i in range(0, len(records), chunk_size):
                     chunk = records[i:i+chunk_size]
                     try:
-                        result = sb.table("market_universe").upsert(chunk, on_conflict="ticker").execute()
+                        sb.table("market_universe").upsert(chunk, on_conflict="ticker").execute()
                         success += len(chunk)
-                        st.write(f"✅ Chunk {i//chunk_size+1}: {len(chunk)} rows uploaded")
                     except Exception as e:
-                        st.error(f"❌ Chunk {i//chunk_size+1} error: {e}")
+                        st.error(f"❌ Error at chunk {i//chunk_size+1}: {e}")
                         break
-                st.success(f"✅ Done — {success} tickers uploaded!")
+                    prog.progress(min((i+chunk_size)/len(records), 1.0),
+                        text=f"Uploading {min(i+chunk_size,len(records))}/{len(records)}...")
+                prog.empty()
+                st.success(f"✅ {success} tickers uploaded to universe!")
+                st.session_state.pop("_universe_records", None)
                 st.cache_data.clear()
 
     @st.cache_data(ttl=300)
