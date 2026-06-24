@@ -130,7 +130,22 @@ def fetch_data():
         return None, "API key not found in .env file"
 
     today_str = date.today().strftime("%A, %d %B %Y")
+    mkt = _fetch_market_data()
+    nf = mkt.get("nifty",{}); bnk = mkt.get("bn",{}); vx = mkt.get("vix",{})
+    sp = mkt.get("sp500",{}); nd = mkt.get("nasdaq",{}); nk = mkt.get("nikkei",{})
+    cr = mkt.get("crude",{}); fx = mkt.get("usdinr",{})
+    real_data = (
+        f"REAL MARKET DATA - use these exact values:\n"
+        f"Nifty50: Close={nf.get('close','?')} Change={nf.get('change','?')}% High={nf.get('high','?')} Low={nf.get('low','?')}\n"
+        f"BankNifty: Close={bnk.get('close','?')} Change={bnk.get('change','?')}%\n"
+        f"IndiaVIX: {vx.get('close','?')}\n"
+        f"SP500: {sp.get('close','?')} ({sp.get('change','?')}%)\n"
+        f"Nasdaq: {nd.get('close','?')} ({nd.get('change','?')}%)\n"
+        f"Nikkei: {nk.get('close','?')} ({nk.get('change','?')}%)\n"
+        f"Crude: {cr.get('close','?')} USD/INR: {fx.get('close','?')}"
+    )
     prompt = f"""You are an expert Indian stock market analyst. Today is {today_str}.
+{real_data}
 Return ONLY a raw JSON object with NO markdown and NO explanation. All numeric values must be strings.
 Include ALL of these exact keys:
 
