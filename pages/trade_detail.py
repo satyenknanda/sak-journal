@@ -667,17 +667,25 @@ def render():
                     if mae:
                         fig_c.add_hline(y=mae,
                             line=dict(color="#EF4444", width=1.5, dash="dot"),
-                            annotation_text=f"Price MAE @ {mae:,.2f}",
-                            annotation_position="right",
-                            annotation_font=dict(color="#EF4444", size=10))
+                            annotation_text=f"▼ MAE  ₹{mae:,.2f}",
+                            annotation_position="top left",
+                            annotation_font=dict(color="#EF4444", size=10, family="Inter"),
+                            annotation_bgcolor="rgba(254,226,226,0.9)",
+                            annotation_bordercolor="#EF4444",
+                            annotation_borderwidth=1,
+                            annotation_borderpad=4)
 
                     # MFE dotted teal horizontal line
                     if mfe:
                         fig_c.add_hline(y=mfe,
                             line=dict(color="#0D9488", width=1.5, dash="dot"),
-                            annotation_text=f"Price MFE @ {mfe:,.2f}",
-                            annotation_position="right",
-                            annotation_font=dict(color="#0D9488", size=10))
+                            annotation_text=f"▲ MFE  ₹{mfe:,.2f}",
+                            annotation_position="top left",
+                            annotation_font=dict(color="#0D9488", size=10, family="Inter"),
+                            annotation_bgcolor="rgba(209,250,229,0.9)",
+                            annotation_bordercolor="#0D9488",
+                            annotation_borderwidth=1,
+                            annotation_borderpad=4)
 
                     # Stop Loss dashed line
                     if sl:
