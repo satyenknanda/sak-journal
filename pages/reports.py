@@ -2336,10 +2336,14 @@ def render():
                         </div>""", unsafe_allow_html=True)
 
                         st.markdown("<br>", unsafe_allow_html=True)
-                        pk1, pk2, pk3 = st.columns(3)
-                        pk1.markdown(kpi_card_accent("TOP 1", f"{p_top1:.0f}%", DNA_COLORS[0]), unsafe_allow_html=True)
-                        pk2.markdown(kpi_card_accent("TOP 3", f"{p_top3:.0f}%", DNA_COLORS[1]), unsafe_allow_html=True)
-                        pk3.markdown(kpi_card_accent("TOP 5", f"{p_top5:.0f}%", DNA_COLORS[2]), unsafe_allow_html=True)
+                        p_top10 = pareto_cum_pct[min(9,  pn-1)] if pn >= 1 else 0
+                        p_top20 = pareto_cum_pct[min(19, pn-1)] if pn >= 1 else 0
+                        pk1, pk2, pk3, pk4, pk5 = st.columns(5)
+                        pk1.markdown(kpi_card_accent("TOP 1",  f"{p_top1:.0f}%",  DNA_COLORS[0]), unsafe_allow_html=True)
+                        pk2.markdown(kpi_card_accent("TOP 3",  f"{p_top3:.0f}%",  DNA_COLORS[1]), unsafe_allow_html=True)
+                        pk3.markdown(kpi_card_accent("TOP 5",  f"{p_top5:.0f}%",  DNA_COLORS[2]), unsafe_allow_html=True)
+                        pk4.markdown(kpi_card_accent("TOP 10", f"{p_top10:.0f}%", DNA_COLORS[3]), unsafe_allow_html=True)
+                        pk5.markdown(kpi_card_accent("TOP 20", f"{p_top20:.0f}%", DNA_COLORS[4]), unsafe_allow_html=True)
 
                     with pright:
                         fig_pareto = go.Figure()
