@@ -149,7 +149,7 @@ def render():
 
     # ── View toggle: Table vs Portfolio Holdings card grid ───────────────────
     view_mode = st.radio("View", ["Table", "Portfolio Holdings (Cards)"], horizontal=True,
-                          label_visibility="collapsed", key="jp_view_mode")
+                          label_visibility="collapsed", key="jp_view_mode", index=1)
 
     if view_mode == "Portfolio Holdings (Cards)":
         render_portfolio_holdings(open_all, all_trades_raw, price_data)
