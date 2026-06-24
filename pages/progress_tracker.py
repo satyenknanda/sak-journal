@@ -331,15 +331,14 @@ def rules_dialog():
             for _aname, _adesc, _actype, _adval in ADEFS:
                 _au = _upd.get(_aname, {})
                 _ex = existing.get(_aname)
+                # Read directly from session state widget key
+                _cv = st.session_state.get(f"av_{_aname}", _au.get("condition_value", _adval))
+                _en = int(st.session_state.get(f"ae_{_aname}", _au.get("enabled", 1)))
                 try:
                     if _ex:
-                        update_rule(_ex["id"], _aname, _au.get("description",_adesc),
-                                    _au.get("condition_type",_actype), _au.get("condition_value",_adval),
-                                    _active_days, _au.get("enabled",1))
+                        update_rule(_ex["id"], _aname, _adesc, _actype, _cv, _active_days, _en)
                     else:
-                        save_rule(_aname, _au.get("description",_adesc), "automated",
-                                  _au.get("condition_type",_actype), _au.get("condition_value",_adval),
-                                  _active_days, _au.get("enabled",1))
+                        save_rule(_aname, _adesc, "automated", _actype, _cv, _active_days, _en)
                 except Exception as _save_err:
                     errors.append(f"{_aname}: {_save_err}")
             if errors:
