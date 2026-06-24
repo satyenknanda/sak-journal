@@ -117,6 +117,55 @@ def tcolor(val):
     if not s: return "#94A3B8"
     return RED if s.lstrip("+").startswith("-") else TEAL
 
+def _fetch_market_data():
+    """Fetch real-time market data from yfinance."""
+    try:
+        import yfinance as yf
+        tickers = {
+            "nifty":  "^NSEI",
+            "bn":     "^NSEBANK",
+            "vix":    "^INDIAVIX",
+            "sp500":  "^GSPC",
+            "nasdaq": "^IXIC",
+            "nikkei": "^N225",
+            "crude":  "CL=F",
+            "usdinr": "USDINR=X",
+        }
+        data = {}
+        for key, sym in tickers.items():
+            try:
+                hist = yf.Ticker(sym).history(period="2d", interval="1d")
+                if len(hist) >= 1:
+                    last = hist.iloc[-1]
+                    prev = hist.iloc[-2] if len(hist) >= 2 else last
+                    close = round(float(last["Close"]), 2)
+                    prev_close = round(float(prev["Close"]), 2)
+                    chg = round((close - prev_close) / prev_close * 100, 2)
+                    data[key] = {"close": close, "change": chg,
+                                 "high": round(float(last["High"]), 2),
+                                 "low":  round(float(last["Low"]), 2)}
+                else:
+                    data[key] = {"close": 0, "change": 0, "high": 0, "low": 0}
+            except:
+                data[key] = {"close": 0, "change": 0, "high": 0, "low": 0}
+        # Calculate Nifty pivot levels
+        nf = data.get("nifty", {})
+        if nf.get("high", 0) > 0:
+            h, l, c = nf["high"], nf["low"], nf["close"]
+            piv = round((h + l + c) / 3, 2)
+            data["nifty"].update({"pivot": piv,
+                "r1": round(2*piv - l, 2), "r2": round(piv + (h-l), 2),
+                "s1": round(2*piv - h, 2), "s2": round(piv - (h-l), 2)})
+        bn = data.get("bn", {})
+        if bn.get("high", 0) > 0:
+            h, l, c = bn["high"], bn["low"], bn["close"]
+            piv = round((h + l + c) / 3, 2)
+            data["bn"].update({"pivot": piv,
+                "r1": round(2*piv - l, 2), "s1": round(2*piv - h, 2)})
+        return data
+    except Exception as e:
+        return {}
+
 def fetch_data():
     import urllib.request, urllib.error, ssl, certifi
     api_key = os.environ.get("ANTHROPIC_API_KEY","")
