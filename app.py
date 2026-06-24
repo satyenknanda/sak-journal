@@ -537,6 +537,14 @@ if not last_sync_time():
 # ── Route ──────────────────────────────────────────────────────────────────
 p = st.session_state.get("page","dashboard")
 try:
+    # Handle Add Trade from sidebar — works on any page
+    if st.session_state.pop("show_add_trade", False):
+        from components.trade_modals import render_add_trade_modal
+        import streamlit as _st
+        @_st.dialog("Add Trade", width="large")
+        def _sidebar_add_dialog(): render_add_trade_modal()
+        _sidebar_add_dialog()
+
     if   p=="dashboard": from pages.dashboard         import render; render()
     elif p=="daily":     from pages.journal            import render; render()
     elif p=="journal":   from pages.trade_log          import render; render()
