@@ -93,7 +93,7 @@ def render():
     # Sort by expectancy desc
     sorted_strats = sorted(stats.items(), key=lambda x: -x[1]["exp"])
 
-    sub1, sub2, sub3, sub4 = st.tabs(["📊 Overview", "📈 Running Expectancy", "🚀 Growth Simulator", "🎯 MAE / MFE"])
+    sub1, sub2, sub3, sub4, sub5 = st.tabs(["📊 Overview", "📈 Running Expectancy", "🚀 Growth Simulator", "📉 R Capture", "🎯 MAE / MFE"])
 
     # ═══════════════════════════════════════════════════════
     # SUB-TAB 1: OVERVIEW
@@ -326,7 +326,7 @@ def render():
     # ═══════════════════════════════════════════════════════
     # SUB-TAB 4: MAE / MFE
     # ═══════════════════════════════════════════════════════
-    with sub4:
+    with sub5:
         mae_trades = [t for t in closed if t.get("mae_price") and t.get("mfe_price") and t.get("entry_price")]
         if not mae_trades:
             st.info("No MAE/MFE data available."); return
@@ -460,15 +460,34 @@ def render():
 
         st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
-        # Available vs Captured R per strategy charts
-        st.markdown(f'<p style="font-size:10px;font-weight:600;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Available R vs Captured R — By Strategy</p>', unsafe_allow_html=True)
+    with sub4:
+        st.markdown(f'<p style="font-size:11px;color:{TEXT_SUBTLE};margin-bottom:12px">Cumulative R — available vs captured · Green area = total available R · Red line = actual R captured · gap = R left on table</p>', unsafe_allow_html=True)
 
-        strats_mfe = [(s,d) for s,d in sorted_strats if s in strat_mae and strat_mae[s]["avail"]]
+        mae_trades2 = [t for t in closed if t.get("mae_price") and t.get("mfe_price") and t.get("entry_price")]
+        def calc_avail_r2(t):
+            ep = float(t.get("entry_price") or 0)
+            sl = float(t.get("stop_loss") or 0)
+            mfe = float(t.get("mfe_price") or 0)
+            side = str(t.get("side","")).upper()
+            if ep <= 0: return 0
+            risk = abs(ep - sl) if sl else ep * 0.025
+            if risk == 0: return 0
+            return (mfe - ep) / risk if side in ("LONG","BUY") else (ep - mfe) / risk
+
+        strat_mae2 = {}
+        for t in mae_trades2:
+            s = t.get("strategy","Unknown") or "Unknown"
+            if s not in strat_mae2:
+                strat_mae2[s] = {"avail":[], "cap":[]}
+            strat_mae2[s]["avail"].append(calc_avail_r2(t))
+            strat_mae2[s]["cap"].append(float(t.get("r_multiple") or 0))
+
+        strats_mfe = [(s,d) for s,d in sorted_strats if s in strat_mae2 and strat_mae2[s]["avail"]]
         for i in range(0, len(strats_mfe), 2):
             row_c = st.columns(2)
             for j, (s, d) in enumerate(strats_mfe[i:i+2]):
                 with row_c[j]:
-                    sm = strat_mae[s]
+                    sm = strat_mae2[s]
                     n = len(sm["avail"])
                     cum_avail = np.cumsum(sm["avail"]).tolist()
                     cum_cap   = np.cumsum(sm["cap"]).tolist()
