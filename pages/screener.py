@@ -21,8 +21,7 @@ def render():
             st.info(f"Found {len(rows)} tickers — click Upload to save to universe")
             if st.button("⬆️ Upload to Universe", key="upload_universe_btn", type="primary"):
                 sb = _sb()
-                success = 0
-                errors = []
+                records = []
                 for row in rows:
                     ticker = row.get("Stock Name","").strip()
                     if not ticker: continue
@@ -30,21 +29,29 @@ def render():
                     industry = row.get("Basic Industry","").strip()
                     pct52 = row.get("% from 52W High","").strip()
                     ret_earn = row.get("Returns since Earnings(%)","").strip()
+                    records.append({
+                        "ticker": ticker,
+                        "sector": industry,
+                        "industry": industry,
+                        "rs_rating": int(rs) if rs.lstrip("-").isdigit() else None,
+                        "pct_from_52w_high": float(pct52) if pct52 not in ("","NA") else None,
+                        "returns_since_earnings": float(ret_earn) if ret_earn not in ("","NA") else None,
+                    })
+                # Batch upsert in chunks of 100
+                prog = st.progress(0, text="Uploading tickers...")
+                success = 0
+                chunk_size = 100
+                for i in range(0, len(records), chunk_size):
+                    chunk = records[i:i+chunk_size]
                     try:
-                        sb.table("market_universe").upsert({
-                            "ticker": ticker,
-                            "sector": industry,
-                            "industry": industry,
-                            "rs_rating": int(rs) if rs.lstrip("-").isdigit() else None,
-                            "pct_from_52w_high": float(pct52) if pct52 not in ("","NA") else None,
-                            "returns_since_earnings": float(ret_earn) if ret_earn not in ("","NA") else None,
-                        }, on_conflict="ticker").execute()
-                        success += 1
+                        sb.table("market_universe").upsert(chunk, on_conflict="ticker").execute()
+                        success += len(chunk)
                     except Exception as e:
-                        errors.append(f"{ticker}: {e}")
+                        st.warning(f"Chunk {i//chunk_size+1} error: {e}")
+                    prog.progress(min((i+chunk_size)/len(records), 1.0),
+                        text=f"Uploading... {min(i+chunk_size, len(records))}/{len(records)}")
+                prog.empty()
                 st.success(f"✅ {success} tickers uploaded to universe!")
-                if errors:
-                    st.warning(f"{len(errors)} errors: {errors[:3]}")
                 st.cache_data.clear()
 
     @st.cache_data(ttl=300)
