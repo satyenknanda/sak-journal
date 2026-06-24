@@ -369,8 +369,8 @@ def render():
     # PERFORMANCE
     # ════════════════════════════════════════════════════════════════════
     # ── TOP TABS ──────────────────────────────────────────────────────
-    tab_perf, tab_ov, tab_reports, tab_cmp, tab_deep = st.tabs([
-        "📈 Performance", "📊 Overview", "📊 Reports", "⚖️ Compare", "🔬 Deep Analytics"
+    tab_perf, tab_ov, tab_reports, tab_cmp, tab_deep, tab_bell = st.tabs([
+        "📈 Performance", "📊 Overview", "📊 Reports", "⚖️ Compare", "🔬 Deep Analytics", "🔔 Bell Curve"
     ])
 
     # ════════════════════════════════════════════════════════════════════
@@ -1735,6 +1735,10 @@ def render():
     # ════════════════════════════════════════════════════════════════════
     # DEEP ANALYTICS — sub-tabbed: Position & P&L | Streaks | Risk & Expectancy
     # ════════════════════════════════════════════════════════════════════
+    with tab_bell:
+        from pages.bell_curve import render as bell_render
+        bell_render()
+
     with tab_deep:
         import numpy as np
 
