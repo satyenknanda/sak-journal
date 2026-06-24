@@ -382,8 +382,9 @@ def render():
                 else: buckets["> 4R"] += 1
             bk = list(buckets.keys()); bv = list(buckets.values())
             bcolors = [RED, AMBER, TEAL, "#10B981"]
+            bcolors_fill = ["rgba(239,68,68,0.2)", "rgba(245,158,11,0.2)", "rgba(16,185,129,0.2)", "rgba(16,185,129,0.35)"]
             fig_bkt = go.Figure(go.Bar(x=bk, y=bv,
-                marker=dict(color=[c+"33" for c in bcolors], line=dict(color=bcolors, width=2)),
+                marker=dict(color=bcolors_fill, line=dict(color=bcolors, width=2)),
                 text=bv, textposition="outside"))
             l_bkt = chart_layout(height=260, title="")
             l_bkt["yaxis"]["title"] = dict(text="Trades", font=dict(size=10))
