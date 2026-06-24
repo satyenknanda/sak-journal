@@ -324,18 +324,25 @@ def rules_dialog():
         if st.button("Cancel", use_container_width=True, key="rules_cancel"): st.rerun()
     with _sb2:
         if st.button("Save changes", type="primary", use_container_width=True, key="rules_save"):
+            errors = []
             for _aname, _adesc, _actype, _adval in ADEFS:
                 _au = _upd.get(_aname, {})
                 _ex = existing.get(_aname)
-                if _ex:
-                    update_rule(_ex["id"], _aname, _au.get("description",_adesc),
-                                _au.get("condition_type",_actype), _au.get("condition_value",_adval),
-                                _active_days, _au.get("enabled",1))
-                else:
-                    save_rule(_aname, _au.get("description",_adesc), "automated",
-                              _au.get("condition_type",_actype), _au.get("condition_value",_adval),
-                              _active_days, _au.get("enabled",1))
-            st.success("✅ Rules saved!"); st.rerun()
+                try:
+                    if _ex:
+                        update_rule(_ex["id"], _aname, _au.get("description",_adesc),
+                                    _au.get("condition_type",_actype), _au.get("condition_value",_adval),
+                                    _active_days, _au.get("enabled",1))
+                    else:
+                        save_rule(_aname, _au.get("description",_adesc), "automated",
+                                  _au.get("condition_type",_actype), _au.get("condition_value",_adval),
+                                  _active_days, _au.get("enabled",1))
+                except Exception as _save_err:
+                    errors.append(f"{_aname}: {_save_err}")
+            if errors:
+                st.error("Save errors: " + "; ".join(errors))
+            else:
+                st.success("✅ Rules saved!"); st.rerun()
 
 # ── Main render ────────────────────────────────────────────────────────────────
 def render():
