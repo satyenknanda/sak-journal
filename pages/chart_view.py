@@ -117,43 +117,6 @@ def render():
                 if col.button("Select", key=f"sr_{i}_{s}", use_container_width=True):
                     st.session_state.tv_symbol = s; st.rerun()
 
-    # ── Quick symbols ─────────────────────────────────────────────────────────
-    st.markdown(f'<p style="font-size:10px;color:{TEXT_MUTED};margin:8px 0 4px">Quick access</p>', unsafe_allow_html=True)
-    qc = st.columns(len(QUICK))
-    for col, s in zip(qc, QUICK):
-        active = sym == s
-        col.markdown(
-            f'<div style="background:{"rgba(124,58,237,0.12)" if active else CARD_BG};'
-            f'border:1px solid {"#7C3AED" if active else BORDER};border-radius:6px;'
-            f'padding:4px 0;font-size:9px;font-weight:{"700" if active else "400"};'
-            f'color:{"#7C3AED" if active else TEXT_MUTED};text-align:center;margin-bottom:3px">'
-            f'{s}</div>', unsafe_allow_html=True
-        )
-        if col.button(s, key=f"q_{s}", use_container_width=True):
-            st.session_state.tv_symbol = s; st.rerun()
-
-    # ── Open positions ────────────────────────────────────────────────────────
-    trades = get_journal_trades()
-    open_t = [t for t in trades if t["status"] == "OPEN"]
-    if open_t:
-        st.markdown(f'<p style="font-size:10px;color:{TEXT_MUTED};margin:8px 0 4px">Open positions</p>', unsafe_allow_html=True)
-        opc = st.columns(min(len(open_t), 12))
-        for i, (col, t) in enumerate(zip(opc, open_t[:12])):
-            tk = t.get("ticker", "")
-            ep = float(t.get("entry_price") or 0)
-            sl = float(t.get("stop_loss") or 0)
-            active = sym == tk
-            col.markdown(
-                f'<div style="background:{CARD_BG};border:1px solid {"#10B981" if active else BORDER};'
-                f'border-radius:8px;padding:6px 8px;text-align:center;margin-bottom:3px">'
-                f'<div style="font-size:11px;font-weight:700;color:{TEXT_H}">{tk}</div>'
-                f'<div style="font-size:9px;color:{TEXT_MUTED}">₹{ep:,.0f}</div>'
-                f'<div style="font-size:8px;color:{RED}">SL ₹{sl:,.0f}</div></div>',
-                unsafe_allow_html=True
-            )
-            if col.button("→", key=f"op_{i}_{tk}", use_container_width=True):
-                st.session_state.tv_symbol = tk; st.rerun()
-
     # ── TradingView Embed ────────────────────────────────────────────────────
     import streamlit.components.v1 as components
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
