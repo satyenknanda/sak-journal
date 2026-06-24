@@ -151,6 +151,10 @@ def render():
     view_mode = st.radio("View", ["Table", "Portfolio Holdings (Cards)"], horizontal=True,
                           label_visibility="collapsed", key="jp_view_mode", index=1)
 
+    # Handle Add Trade from sidebar button — must work in both views
+    if st.session_state.pop("show_add_trade", False):
+        add_trade_dialog()
+
     if view_mode == "Portfolio Holdings (Cards)":
         render_portfolio_holdings(open_all, all_trades_raw, price_data)
         return
@@ -170,8 +174,7 @@ def render():
             add_trade_dialog()
 
     # Auto-open if triggered from sidebar button
-    if st.session_state.pop("show_add_trade", False):
-        add_trade_dialog()
+
 
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
