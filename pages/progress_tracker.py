@@ -355,7 +355,7 @@ def rules_dialog():
 
 # ── Main render ────────────────────────────────────────────────────────────────
 def render():
-    init_pt_tables()
+    init_pt_db()
     seed_default_rules()
 
     today = date.today()
