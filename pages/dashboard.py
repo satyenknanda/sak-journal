@@ -818,12 +818,11 @@ def render():
             _bc1.markdown(f'<p style="font-size:11px;font-weight:600;color:{TEXT_H};margin:0">Account Balance</p>', unsafe_allow_html=True)
             bal_ctype = _bc2.selectbox("Balance chart type", CTYPES, index=2, key="bal_ctype", label_visibility="collapsed")
             bal_pts = [(str(t.get("exit_date",""))[:10], float(t.get("account_balance") or 0))
-            bxs = [d for d,_ in cum_by_date]
             bys = [acct + v for _,v in cum_by_date]
             if bxs:
                 bal_pts_s = list(zip(bxs, bys))
                 fig_b.add_trace(_make_trace(bxs, bys, bal_ctype, TEAL, "Balance"))
-                lb = chart_layout(height=CHART_H, title="")
+                fig_b = go.Figure()
                 lb["yaxis"]["tickprefix"] = "" if VIEW in ("pct","rmult","privacy") else "₹"
                 lb["yaxis"]["ticksuffix"] = "%" if VIEW=="pct" else "R" if VIEW=="rmult" else ""
                 lb["margin"] = dict(l=80, r=12, t=10, b=40)
