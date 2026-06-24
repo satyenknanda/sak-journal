@@ -158,9 +158,9 @@ TABLE_STYLES = [
 
 
 def kpi_card_accent(label, value, color, sub=None):
-    """KPI card with a colored top-border accent (multi-color style)."""
+    """KPI card with colored top-border accent."""
     sub_html = f'<div style="font-size:11px;color:{TEXT_SUBTLE};margin-top:3px;font-family:Inter,sans-serif">{sub}</div>' if sub else ""
-    return (f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {color};'            f'border-radius:10px;padding:14px 16px;box-shadow:{SHADOW_SM};min-height:78px">'            f'<div style="font-size:10.5px;color:{TEXT_SUBTLE};text-transform:uppercase;'            f'letter-spacing:0.07em;font-weight:500;margin-bottom:6px;font-family:Inter,sans-serif">{label}</div>'            f'<div style="font-size:1.35rem;font-weight:700;color:{TEXT_H};letter-spacing:-0.02em;'            f'font-family:Inter,sans-serif;font-variant-numeric:tabular-nums;line-height:1.2">{value}</div>'            f'{sub_html}</div>')
+    return f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {color};border-radius:10px;padding:14px 16px;box-shadow:{SHADOW_SM};min-height:78px"><div style="font-size:10.5px;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;font-weight:500;margin-bottom:6px;font-family:Inter,sans-serif">{label}</div><div style="font-size:1.35rem;font-weight:700;color:{TEXT_H};letter-spacing:-0.02em;font-family:Inter,sans-serif;font-variant-numeric:tabular-nums;line-height:1.2">{value}</div>{sub_html}</div>'''
 
 
 def badge(label, style="open"):
