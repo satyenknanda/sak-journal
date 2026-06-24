@@ -1,4 +1,7 @@
 import streamlit as st
+import warnings
+warnings.filterwarnings("ignore", message=".*use_container_width.*")
+warnings.filterwarnings("ignore", message=".*label.*empty.*")
 from clean_theme import inject_clean_css
 from pathlib import Path
 import sys
