@@ -571,7 +571,7 @@ try:
     elif p=="comparison_engine": from pages.comparison_engine import render; render()
     elif p=="stock_niche_mapper": from pages.stock_niche_mapper import render; render()
     elif p=="domain_vector": from pages.domain_vector import render; render()
-    else:                from pages.dashboard          import render; render()
+    else:                pass  # unknown page — do nothing
 except Exception as _err:
     import traceback
     st.error(f"Page error: {_err}")
