@@ -13,13 +13,14 @@ def render():
     with st.expander("⬆️ Upload Universe CSV", expanded=False):
         st.caption("Upload a CSV with columns: Stock Name, RS Rating, Basic Industry, % from 52W High, Returns since Earnings(%)")
         uploaded = st.file_uploader("Choose CSV", type="csv", key="universe_csv")
-        if uploaded:
+        if uploaded is not None:
             import csv, io
             csv_text = uploaded.read().decode("utf-8")
             reader = csv.DictReader(io.StringIO(csv_text))
             rows = list(reader)
             st.info(f"Found {len(rows)} tickers — click Upload to save to universe")
-            if st.button("⬆️ Upload to Universe", key="upload_universe_btn", type="primary"):
+            do_upload = st.button("⬆️ Upload to Universe", key="upload_universe_btn", type="primary")
+            if do_upload:
                 sb = _sb()
                 records = []
                 for row in rows:
