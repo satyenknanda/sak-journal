@@ -360,8 +360,6 @@ def render():
     # Edit widgets button
     _ec, _blank = st.columns([1.2, 8])
     with _ec:
-        if st.button("⚙️ Edit Widgets", key="dash_edit_btn"):
-            st.session_state.dash_edit_mode = not st.session_state.dash_edit_mode
             st.rerun()
 
     if st.session_state.dash_edit_mode:
