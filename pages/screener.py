@@ -316,18 +316,20 @@ def render():
 
         # High ADR
         with c3:
-            # ADR = ATR20 / close * 100
+            adr_min = st.number_input("Min ADR %", value=5.0, step=0.5, key="adr_min")
+            # ADR = (High - Low) / Close * 100 averaged — approximated by ATR/Close
             high_adr = []
             for s in signals:
                 close = float(s.get("close") or 0)
                 atr = float(s.get("atr_20d") or 0)
                 if close > 0 and atr > 0:
-                    adr = atr / close * 100
-                    if adr >= 5:
-                        high_adr.append({**s, "_adr": round(adr, 2)})
+                    adr = round(atr / close * 100, 2)
+                    if adr >= adr_min:
+                        high_adr.append({**s, "_adr": adr})
             high_adr = sorted(high_adr, key=lambda x: -x["_adr"])
+            st.caption(f"Showing {len(high_adr)} stocks with ADR ≥ {adr_min}% · Reference: 93 stocks at ADR ≥ 5%")
             signal_table(high_adr, "High ADR",
-                "📌 ADR >5% — fast movers — momentum expansion candidates — trade quickly",
+                f"📌 ADR >{adr_min}% — fast movers — momentum expansion — trade quickly",
                 "cohort3_high_adr.csv")
 
         # Stocks in Play
