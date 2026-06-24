@@ -154,6 +154,8 @@ def render():
                     hovertemplate=f"<b>{s}</b><br>RR: {d['rr']:.2f}:1<br>WR: {d['wr']*100:.1f}%<br>Exp: {d['exp']:+.2f}R<extra></extra>"))
 
             l_rr = chart_layout(height=340, title="")
+            l_rr["paper_bgcolor"] = "#FFFFFF"
+            l_rr["plot_bgcolor"]  = "#FFFFFF"
             l_rr["xaxis"] = dict(title=dict(text="Reward:Risk Ratio", font=dict(size=10)),
                 tickvals=[1,2,3,4,5,6,8,10],
                 ticktext=["1R","2R","3R","4R","5R","6R","8R","10R"],
@@ -184,6 +186,8 @@ def render():
                     hovertemplate=f"<b>{s}</b><br>WR: {d['wr']*100:.1f}%<br>RR: {d['rr']:.2f}:1<br>Exp: {d['exp']:+.2f}R<extra></extra>"))
 
             l_map = chart_layout(height=340, title="")
+            l_map["paper_bgcolor"] = "#FFFFFF"
+            l_map["plot_bgcolor"]  = "#FFFFFF"
             l_map["xaxis"] = dict(title=dict(text="Win Rate", font=dict(size=10)),
                 ticksuffix="%", gridcolor=BORDER_LIGHT, showgrid=True)
             l_map["yaxis"] = dict(title=dict(text="RR Ratio", font=dict(size=10)),
@@ -255,6 +259,8 @@ def render():
                         name="Actual Expectancy",
                         fill="tozeroy", fillcolor="rgba(239,68,68,0.08)"))
                     l_re = chart_layout(height=220, title="")
+                    l_re["paper_bgcolor"] = "#FFFFFF"
+                    l_re["plot_bgcolor"]  = "#FFFFFF"
                     l_re["xaxis"]["title"] = dict(text="Trades", font=dict(size=9))
                     l_re["yaxis"]["ticksuffix"] = "R"
                     l_re["showlegend"] = True
@@ -296,6 +302,8 @@ def render():
                 hovertemplate=f"<b>{s}</b><br>Trade: %{{x}}<br>Balance: %{{y:+.1f}}%<extra></extra>"))
 
         l_gs = chart_layout(height=380, title="Account Balance Growth Simulation")
+        l_gs["paper_bgcolor"] = "#FFFFFF"
+        l_gs["plot_bgcolor"]  = "#FFFFFF"
         l_gs["xaxis"]["title"] = dict(text="Number of trades", font=dict(size=10))
         l_gs["yaxis"]["title"] = dict(text="Account balance (%)", font=dict(size=10))
         l_gs["yaxis"]["ticksuffix"] = "%"
@@ -387,6 +395,8 @@ def render():
                 marker=dict(color=bcolors_fill, line=dict(color=bcolors, width=2)),
                 text=bv, textposition="outside"))
             l_bkt = chart_layout(height=260, title="")
+            l_bkt["paper_bgcolor"] = "#FFFFFF"
+            l_bkt["plot_bgcolor"]  = "#FFFFFF"
             l_bkt["yaxis"]["title"] = dict(text="Trades", font=dict(size=10))
             fig_bkt.update_layout(**l_bkt)
             st.plotly_chart(fig_bkt, use_container_width=True, config={"displayModeBar":False}, key="mfe_buckets")
@@ -407,6 +417,8 @@ def render():
                 hole=0.55, marker=dict(colors=[RED, AMBER, "#6366F1", TEAL, "#10B981"]),
                 textinfo="label+percent", textfont=dict(size=10)))
             l_d = chart_layout(height=260, title="")
+            l_d["paper_bgcolor"] = "#FFFFFF"
+            l_d["plot_bgcolor"]  = "#FFFFFF"
             l_d["showlegend"] = False
             fig_donut.update_layout(**l_d)
             st.plotly_chart(fig_donut, use_container_width=True, config={"displayModeBar":False}, key="mfe_donut")
