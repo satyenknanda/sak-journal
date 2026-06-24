@@ -441,12 +441,13 @@ def render():
         if auto_r:
             st.markdown(f'<div style="font-size:10px;color:{MUTED};font-weight:600;letter-spacing:1px;margin-bottom:6px">AUTOMATED RULES ({len(auto_r)})</div>', unsafe_allow_html=True)
             for r in auto_r:
-                passed = bool(checkins_today.get(r["id"], 0))
-                ic = G if passed else R
-                emoji_r = "✅" if passed else "🔴"
+                completed = bool(checkins_today.get(r["id"], 0))
                 cv = r.get("condition_value","")
-                cv_disp = f" · {cv}" if cv else ""
-                st.markdown(f'<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px"><span>{emoji_r}</span><span style="color:{TEXT}">{r["name"]}</span><span style="color:{MUTED};margin-left:auto;font-size:11px">{cv_disp}</span></div>', unsafe_allow_html=True)
+                label = f"{r['name']} · {cv}" if cv else r["name"]
+                new_val = st.checkbox(label, value=completed, key=f"chk_auto_{r['id']}_{today_str}")
+                if new_val != completed:
+                    set_checkin(today_str, r["id"], int(new_val))
+                    st.rerun()
 
         if manual_r:
             st.markdown(f'<div style="font-size:10px;color:{MUTED};font-weight:600;letter-spacing:1px;margin:8px 0 4px">MANUAL RULES ({len(manual_r)})</div>', unsafe_allow_html=True)
