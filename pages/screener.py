@@ -10,17 +10,15 @@ def render():
     from datetime import date
 
     # ── Upload Universe CSV ───────────────────────────────────────────────────
-    with st.expander("⬆️ Upload Universe CSV", expanded=False):
-        st.caption("Upload a CSV with columns: Stock Name, RS Rating, Basic Industry, % from 52W High, Returns since Earnings(%)")
+    with st.expander("⬆️ Upload Universe CSV", expanded=True):
+        import csv, io
+        st.caption("Upload CSV: Stock Name, RS Rating, Basic Industry, % from 52W High, Returns since Earnings(%)")
         uploaded = st.file_uploader("Choose CSV", type="csv", key="universe_csv")
         if uploaded is not None:
-            import csv, io
             csv_text = uploaded.read().decode("utf-8")
-            reader = csv.DictReader(io.StringIO(csv_text))
-            rows = list(reader)
-            st.info(f"Found {len(rows)} tickers — click Upload to save to universe")
-            do_upload = st.button("⬆️ Upload to Universe", key="upload_universe_btn", type="primary")
-            if do_upload:
+            rows = list(csv.DictReader(io.StringIO(csv_text)))
+            st.write(f"✅ File read: {len(rows)} rows. First ticker: {rows[0].get('Stock Name','?') if rows else '?'}")
+            if st.button("⬆️ Upload to Universe", key="upload_universe_btn", type="primary"):
                 sb = _sb()
                 records = []
                 for row in rows:
