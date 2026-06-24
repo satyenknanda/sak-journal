@@ -36,21 +36,20 @@ def render():
                         "pct_from_52w_high": float(pct52) if pct52 not in ("","NA") else None,
                         "returns_since_earnings": float(ret_earn) if ret_earn not in ("","NA") else None,
                     })
-                # Batch upsert in chunks of 100
-                prog = st.progress(0, text="Uploading tickers...")
+                # Batch upsert in chunks of 50
+                st.write(f"Starting upload of {len(records)} records...")
                 success = 0
-                chunk_size = 100
+                chunk_size = 50
                 for i in range(0, len(records), chunk_size):
                     chunk = records[i:i+chunk_size]
                     try:
-                        sb.table("market_universe").upsert(chunk, on_conflict="ticker").execute()
+                        result = sb.table("market_universe").upsert(chunk, on_conflict="ticker").execute()
                         success += len(chunk)
+                        st.write(f"✅ Chunk {i//chunk_size+1}: {len(chunk)} rows uploaded")
                     except Exception as e:
-                        st.warning(f"Chunk {i//chunk_size+1} error: {e}")
-                    prog.progress(min((i+chunk_size)/len(records), 1.0),
-                        text=f"Uploading... {min(i+chunk_size, len(records))}/{len(records)}")
-                prog.empty()
-                st.success(f"✅ {success} tickers uploaded to universe!")
+                        st.error(f"❌ Chunk {i//chunk_size+1} error: {e}")
+                        break
+                st.success(f"✅ Done — {success} tickers uploaded!")
                 st.cache_data.clear()
 
     @st.cache_data(ttl=300)
