@@ -52,10 +52,7 @@ def fmt_k(v):
 
 # ── Main render ──────────────────────────────────────────────────────────────
 def render():
-    @st.cache_data(ttl=30)
-    def _dash_trades():
-        return get_journal_trades()
-    trades  = _dash_trades()
+    trades  = get_journal_trades()
     open_t  = [t for t in trades if t["status"] == "OPEN"]
     kpi     = get_kpi()
 
@@ -279,8 +276,6 @@ def render():
         else:                   dcl += 1; dcw = 0; day_loss_streak = max(day_loss_streak, dcl)
     cur_day_streak = dcw if dcw else -dcl
 
-    if "dash_edit_mode" not in st.session_state:
-        st.session_state.dash_edit_mode = False
     # ── Header + View selector ───────────────────────────────────────────────
     now_h = datetime.now().hour
     greeting = "Good morning" if now_h < 12 else "Good afternoon" if now_h < 17 else "Good evening"
@@ -299,10 +294,8 @@ def render():
         if "dash_view" not in st.session_state:
             st.session_state.dash_view = "dollar"
         view_label = st.selectbox("View", list(VIEW_OPTIONS.keys()),
-                                   index=0, key="dash_view_sel", label_visibility="collapsed")
-        if st.button("⚙️ Widgets", key="dash_edit_btn", use_container_width=True):
-            st.session_state.dash_edit_mode = not st.session_state.dash_edit_mode
-            st.rerun()
+                                   index=0, key="dash_view_sel",
+                                   label_visibility="collapsed")
         st.session_state.dash_view = VIEW_OPTIONS[view_label]
     VIEW = st.session_state.dash_view
 
@@ -357,12 +350,16 @@ def render():
     }
     if "dash_widgets" not in st.session_state:
         st.session_state.dash_widgets = dict(WIDGET_DEFAULTS)
+    if "dash_edit_mode" not in st.session_state:
+        st.session_state.dash_edit_mode = False
 
     W = st.session_state.dash_widgets  # shorthand — defined BEFORE any use
 
     # Edit widgets button
     _ec, _blank = st.columns([1.2, 8])
     with _ec:
+        if st.button("⚙️ Edit Widgets", key="dash_edit_btn"):
+            st.session_state.dash_edit_mode = not st.session_state.dash_edit_mode
             st.rerun()
 
     if st.session_state.dash_edit_mode:
