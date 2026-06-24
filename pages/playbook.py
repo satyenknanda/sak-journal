@@ -17,8 +17,8 @@ def render():
 
     # ── Row-button CSS ─────────────────────────────────────────────────────────
     st.markdown("""<style>
-    /* Breadcrumb + name/ticker buttons — plain link style */
-    [data-testid="stButton"]:has(button[kind="secondary"]) button {
+    /* Breadcrumb + name/ticker buttons — plain link style — scoped to main content only */
+    [data-testid="stMainBlockContainer"] [data-testid="stButton"]:has(button[kind="secondary"]) button {
         background: transparent !important;
         border: none !important;
         border-bottom: 1px solid #F1F5F9 !important;
@@ -31,7 +31,7 @@ def render():
         font-weight: 600 !important;
         justify-content: flex-start !important;
     }
-    [data-testid="stButton"]:has(button[kind="secondary"]) button:hover {
+    [data-testid="stMainBlockContainer"] [data-testid="stButton"]:has(button[kind="secondary"]) button:hover {
         background: #F5F3FF !important;
         color: #7C3AED !important;
         border-bottom-color: #7C3AED !important;
