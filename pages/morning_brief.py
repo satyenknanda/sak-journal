@@ -135,14 +135,16 @@ def fetch_data():
     sp = mkt.get("sp500",{}); nd = mkt.get("nasdaq",{}); nk = mkt.get("nikkei",{})
     cr = mkt.get("crude",{}); fx = mkt.get("usdinr",{})
     real_data = (
-        f"REAL MARKET DATA - use these exact values:\n"
-        f"Nifty50: Close={nf.get('close','?')} Change={nf.get('change','?')}% High={nf.get('high','?')} Low={nf.get('low','?')}\n"
-        f"BankNifty: Close={bnk.get('close','?')} Change={bnk.get('change','?')}%\n"
-        f"IndiaVIX: {vx.get('close','?')}\n"
-        f"SP500: {sp.get('close','?')} ({sp.get('change','?')}%)\n"
-        f"Nasdaq: {nd.get('close','?')} ({nd.get('change','?')}%)\n"
-        f"Nikkei: {nk.get('close','?')} ({nk.get('change','?')}%)\n"
-        f"Crude: {cr.get('close','?')} USD/INR: {fx.get('close','?')}"
+        f"REAL MARKET DATA - use these EXACT values, do not change them:\n"
+        f"niftyClose={nf.get('close','?')} niftyChange={nf.get('change','?')}% niftyHigh={nf.get('high','?')} niftyLow={nf.get('low','?')}\n"
+        f"bnClose={bnk.get('close','?')} bnChange={bnk.get('change','?')}%\n"
+        f"vix={vx.get('close','?')}\n"
+        f"sp500={sp.get('close','?')} sp500Change={sp.get('change','?')}%\n"
+        f"nasdaq={nd.get('close','?')} nasdaqChange={nd.get('change','?')}%\n"
+        f"nikkei={nk.get('close','?')} nikkeiChange={nk.get('change','?')}%\n"
+        f"crude={cr.get('close','?')} usdinr={fx.get('close','?')}\n"
+        f"niftyPivot={nf.get('pivot','?')} niftyR1={nf.get('r1','?')} niftyR2={nf.get('r2','?')} niftyS1={nf.get('s1','?')} niftyS2={nf.get('s2','?')}\n"
+        f"bnR1={bnk.get('r1','?')} bnS1={bnk.get('s1','?')}"
     )
     prompt = f"""You are an expert Indian stock market analyst. Today is {today_str}.
 {real_data}
