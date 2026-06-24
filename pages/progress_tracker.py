@@ -242,8 +242,6 @@ def rules_dialog():
     ADEFS = [
         ("Start my day by",               "Enter your starting journal entry before your trading session.", "time",   "09:00"),
         ("Trade has stop loss",           "All trades opened today have a stop loss set.",                  "pct",    "100"),
-        ("Max loss per trade",            "Maximum loss on a single trade.",                                "amount", "5000"),
-        ("Max loss per day",              "Maximum loss across all trades for the day.",                    "amount", "10000"),
         ("Link trades to playbook",       "All trades opened must have a playbook attached.",               "pct",    "100"),
         ("Input Stop loss to all trades", "All trades opened must have a stop loss added.",                 "pct",    "100"),
         ("Net max loss /trade",           "The maximum net loss on a single trade.",                        "amount", "45000"),
