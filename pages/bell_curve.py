@@ -89,7 +89,7 @@ def _bell_chart(returns, pnls, title_suffix=""):
         bgcolor="rgba(0,0,0,0)", font=dict(size=10, color=TEXT_MUTED))
     l["margin"] = dict(l=65, r=65, t=20, b=60); l["bargap"] = 0.05
     fig.update_layout(**l)
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False}, key=f"bell_chart_{id(returns)}_{len(returns)}")
 
     # Stats cards
     sc1, sc2, sc3, sc4 = st.columns(4)
