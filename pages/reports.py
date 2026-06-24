@@ -2300,11 +2300,41 @@ def render():
                 pareto_wins = [t for t in pareto_closed if safe_float(t.get("pnl")) > 0]
                 pareto_total_gross = sum(safe_float(t.get("pnl")) for t in pareto_wins)
 
+                # Toggle: trade-level vs stock-level vs strategy-level
+                pg1, pg2 = st.columns([2, 4])
+                pareto_mode = pg1.radio("Group by", ["Trade", "Stock", "Strategy"],
+                                         horizontal=True, key="pareto_mode")
+
                 if not pareto_wins or pareto_total_gross <= 0:
                     st.info("No winning trades yet to analyze.")
                 else:
-                    pareto_wins_sorted = sorted(pareto_wins, key=lambda t: safe_float(t.get("pnl")), reverse=True)
+                    if pareto_mode == "Stock":
+                        from collections import defaultdict as _dd
+                        sym_pnl = _dd(float)
+                        for t in pareto_wins:
+                            sym_pnl[t.get("ticker","")] += safe_float(t.get("pnl"))
+                        pareto_wins_sorted = sorted(
+                            [{"ticker": k, "pnl": v, "strategy": "", "entry_price": 0,
+                              "exit_price": 0, "side": "LONG", "exit_date": ""} 
+                             for k,v in sym_pnl.items()],
+                            key=lambda x: x["pnl"], reverse=True)
+                        pareto_label = "Stock"
+                    elif pareto_mode == "Strategy":
+                        from collections import defaultdict as _dd
+                        strat_pnl = _dd(float)
+                        for t in pareto_wins:
+                            strat_pnl[t.get("strategy","Unknown")] += safe_float(t.get("pnl"))
+                        pareto_wins_sorted = sorted(
+                            [{"ticker": k, "pnl": v, "strategy": k, "entry_price": 0,
+                              "exit_price": 0, "side": "LONG", "exit_date": ""}
+                             for k,v in strat_pnl.items()],
+                            key=lambda x: x["pnl"], reverse=True)
+                        pareto_label = "Strategy"
+                    else:
+                        pareto_wins_sorted = sorted(pareto_wins, key=lambda t: safe_float(t.get("pnl")), reverse=True)
+                        pareto_label = "Trade"
 
+                    pareto_total_gross = sum(safe_float(t.get("pnl")) for t in pareto_wins_sorted)
                     pareto_cum_pct = []
                     pareto_running = 0.0
                     for t in pareto_wins_sorted:
@@ -2364,19 +2394,18 @@ def render():
                         fig_pareto.update_layout(**l_pareto)
                         st.plotly_chart(fig_pareto, use_container_width=True)
 
-                    st.markdown(section_label("Top Winners Breakdown"), unsafe_allow_html=True)
+                    st.markdown(section_label(f"Top {pareto_label}s Breakdown"), unsafe_allow_html=True)
 
                     pareto_rows = []
                     for i, t in enumerate(pareto_wins_sorted[:15]):
                         p = safe_float(t.get("pnl"))
                         pareto_rows.append({
                             "#": f"#{i+1}",
-                            "Symbol": t.get("ticker",""),
-                            "Strategy": t.get("strategy",""),
-                            "Stock Move %": f"{stock_move_pct_pareto(t):+.1f}%",
+                            pareto_label: t.get("ticker","") if pareto_mode != "Strategy" else t.get("strategy",""),
+                            "Stock Move %": f"{stock_move_pct_pareto(t):+.1f}%" if pareto_mode == "Trade" else "—",
                             "P&L": fmt_pnl(p),
                             "PF Impact %": f"{p/pareto_total_gross*100:+.1f}%",
-                            "Exit Date": str(t.get("exit_date",""))[:10],
+                            "Exit Date": str(t.get("exit_date",""))[:10] if pareto_mode == "Trade" else "—",
                         })
                     pareto_df = pd.DataFrame(pareto_rows)
                     st.dataframe(pareto_df, use_container_width=True, hide_index=True)
