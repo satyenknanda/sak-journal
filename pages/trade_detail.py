@@ -42,47 +42,108 @@ def _init():
         except: pass
     c.commit(); c.close()
 
-def _db(sql,params=(),fetch=None):
-    c=sqlite3.connect(_DB); c.row_factory=sqlite3.Row
-    cur=c.execute(sql,params); c.commit()
-    result=cur.fetchall() if fetch=="all" else cur.fetchone() if fetch=="one" else None
-    c.close()
-    return [dict(r) for r in result] if result and fetch=="all" else (dict(result) if result and fetch=="one" else None)
+def _sb():
+    from data.db import _sb as __sb
+    return __sb()
 
-def _save_note(d,t): _db("INSERT INTO daily_notes(note_date,note,updated_at)VALUES(?,?,datetime('now','localtime'))ON CONFLICT(note_date)DO UPDATE SET note=excluded.note,updated_at=excluded.updated_at",(d,t))
+def _save_note(d, t):
+    try:
+        _sb().table("daily_notes").upsert(
+            {"note_date": d, "note": t},
+            on_conflict="note_date"
+        ).execute()
+    except Exception as e:
+        print(f"_save_note error: {e}")
+
 def _get_note(d):
-    r=_db("SELECT note FROM daily_notes WHERE note_date=?",(d,),fetch="one")
-    return r["note"] if r else ""
+    try:
+        r = _sb().table("daily_notes").select("note").eq("note_date", d).execute()
+        return r.data[0]["note"] if r.data else ""
+    except: return ""
 
-def _get_executions(tid): return _db("SELECT * FROM trade_executions WHERE trade_id=? ORDER BY exec_date,exec_time",(tid,),fetch="all") or []
-def _save_execution(tid,ed,et,price,qty,side,fee,comm,swap,notes):
-    _db("INSERT INTO trade_executions(trade_id,exec_date,exec_time,price,qty,side,fee,commission,swap,notes)VALUES(?,?,?,?,?,?,?,?,?,?)",(tid,ed,et,price,qty,side,fee,comm,swap,notes))
-def _del_execution(eid): _db("DELETE FROM trade_executions WHERE id=?",(eid,))
+def _get_executions(tid):
+    try:
+        r = _sb().table("trade_executions").select("*").eq("trade_id", tid).order("exec_date").order("exec_time").execute()
+        return r.data or []
+    except: return []
 
-def _get_attachments(tid): return _db("SELECT * FROM trade_attachments WHERE trade_id=? ORDER BY created_at",(tid,),fetch="all") or []
-def _save_attachment(tid,fn,fp,ft): _db("INSERT INTO trade_attachments(trade_id,filename,filepath,filetype)VALUES(?,?,?,?)",(tid,fn,fp,ft))
-def _del_attachment(aid,fp):
-    _db("DELETE FROM trade_attachments WHERE id=?",(aid,))
-    if os.path.exists(fp): os.remove(fp)
+def _save_execution(tid, ed, et, price, qty, side, fee, comm, swap, notes):
+    try:
+        _sb().table("trade_executions").insert({
+            "trade_id": tid, "exec_date": ed, "exec_time": et,
+            "price": price, "qty": qty, "side": side,
+            "fee": fee, "commission": comm, "swap": swap, "notes": notes
+        }).execute()
+    except Exception as e:
+        print(f"_save_execution error: {e}")
 
-def _get_pt_sl(tid): return _db("SELECT * FROM trade_pt_sl WHERE trade_id=? ORDER BY level_type,sort_order",(tid,),fetch="all") or []
-def _save_pt_sl(tid,levels):
-    _db("DELETE FROM trade_pt_sl WHERE trade_id=?",(tid,))
-    for i,lv in enumerate(levels):
-        _db("INSERT INTO trade_pt_sl(trade_id,level_type,price,qty,sort_order)VALUES(?,?,?,?,?)",(tid,lv["type"],lv["price"],lv["qty"],i))
-    pts=[l for l in levels if l["type"]=="PT" and l["price"]>0]
-    sls=[l for l in levels if l["type"]=="SL" and l["price"]>0]
-    if pts: _db("UPDATE trades SET take_profit=? WHERE id=?",(pts[0]["price"],tid))
-    if sls: _db("UPDATE trades SET stop_loss=? WHERE id=?",(sls[0]["price"],tid))
+def _del_execution(eid):
+    try: _sb().table("trade_executions").delete().eq("id", eid).execute()
+    except Exception as e: print(f"_del_execution error: {e}")
 
-def _get_templates(): return _db("SELECT * FROM note_templates ORDER BY used_at DESC LIMIT 10",fetch="all") or []
-def _save_template(name,content): _db("INSERT INTO note_templates(name,content)VALUES(?,?)",(name,content))
-def _del_template(tid2): _db("DELETE FROM note_templates WHERE id=?",(tid2,))
+def _get_attachments(tid):
+    try:
+        r = _sb().table("trade_attachments").select("*").eq("trade_id", tid).order("created_at").execute()
+        return r.data or []
+    except: return []
 
-def _save_trade_field(tid,**kwargs):
-    for k,v in kwargs.items():
-        try: _db(f"UPDATE trades SET {k}=? WHERE id=?",(v,tid))
-        except: pass
+def _save_attachment(tid, fn, fp, ft):
+    try:
+        _sb().table("trade_attachments").insert({
+            "trade_id": tid, "filename": fn, "filepath": fp, "filetype": ft
+        }).execute()
+    except Exception as e:
+        print(f"_save_attachment error: {e}")
+
+def _del_attachment(aid, fp):
+    try:
+        _sb().table("trade_attachments").delete().eq("id", aid).execute()
+        if os.path.exists(fp): os.remove(fp)
+    except Exception as e:
+        print(f"_del_attachment error: {e}")
+
+def _get_pt_sl(tid):
+    try:
+        r = _sb().table("trade_pt_sl").select("*").eq("trade_id", tid).order("level_type").order("sort_order").execute()
+        return r.data or []
+    except: return []
+
+def _save_pt_sl(tid, levels):
+    try:
+        _sb().table("trade_pt_sl").delete().eq("trade_id", tid).execute()
+        for i, lv in enumerate(levels):
+            _sb().table("trade_pt_sl").insert({
+                "trade_id": tid, "level_type": lv["type"],
+                "price": lv["price"], "qty": lv["qty"], "sort_order": i
+            }).execute()
+        pts = [l for l in levels if l["type"] == "PT" and l["price"] > 0]
+        sls = [l for l in levels if l["type"] == "SL" and l["price"] > 0]
+        from data.db import update_trade
+        if pts: update_trade(tid, {"take_profit": pts[0]["price"]})
+        if sls: update_trade(tid, {"stop_loss": sls[0]["price"]})
+    except Exception as e:
+        print(f"_save_pt_sl error: {e}")
+
+def _get_templates():
+    try:
+        r = _sb().table("note_templates").select("*").order("used_at", desc=True).limit(10).execute()
+        return r.data or []
+    except: return []
+
+def _save_template(name, content):
+    try:
+        _sb().table("note_templates").insert({"name": name, "content": content}).execute()
+    except Exception as e:
+        print(f"_save_template error: {e}")
+
+def _del_template(tid2):
+    try: _sb().table("note_templates").delete().eq("id", tid2).execute()
+    except Exception as e: print(f"_del_template error: {e}")
+
+def _save_trade_field(tid, **kwargs):
+    from data.db import update_trade
+    try: update_trade(tid, kwargs)
+    except Exception as e: print(f"_save_trade_field error: {e}")
 
 def _get_playbooks():
     try:
