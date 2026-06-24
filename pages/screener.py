@@ -218,39 +218,32 @@ def render():
             if not returns:
                 st.info("No returns data. Run Refresh Signals.")
             else:
-                # Parallel filter — each threshold calculated vs full universe
-                all_r = [r for r in returns if r.get("ret_1w") is not None
-                         and r.get("ret_1m") is not None
-                         and r.get("ret_3m") is not None
-                         and r.get("ret_6m") is not None]
+                # Easy Money — sort by 3M, show all with 3M > 0
+                # Display 1W, 1M, 3M, 6M as context columns
+                all_r = [r for r in returns if r.get("ret_3m") is not None]
 
-                # Calculate thresholds from full universe
-                r1w_vals = sorted([float(r.get("ret_1w") or 0) for r in all_r], reverse=True)
-                r1m_vals = sorted([float(r.get("ret_1m") or 0) for r in all_r], reverse=True)
-                r3m_vals = sorted([float(r.get("ret_3m") or 0) for r in all_r], reverse=True)
-                r6m_vals = sorted([float(r.get("ret_6m") or 0) for r in all_r], reverse=True)
+                # Sliders for user to adjust thresholds
+                col_em1, col_em2, col_em3, col_em4 = st.columns(4)
+                min_3m = col_em1.number_input("Min 3M %", value=0.0, step=5.0, key="em_3m")
+                min_1m = col_em2.number_input("Min 1M %", value=-100.0, step=5.0, key="em_1m")
+                min_1w = col_em3.number_input("Min 1W %", value=-100.0, step=1.0, key="em_1w")
+                min_6m = col_em4.number_input("Min 6M %", value=-100.0, step=5.0, key="em_6m")
 
-                p80 = r1w_vals[int(len(r1w_vals)*0.20)] if r1w_vals else 0
-                p75 = r1m_vals[int(len(r1m_vals)*0.25)] if r1m_vals else 0
-                p65 = r3m_vals[int(len(r3m_vals)*0.35)] if r3m_vals else 0
-                p50 = r6m_vals[int(len(r6m_vals)*0.50)] if r6m_vals else 0
-
-                # Keep stocks that pass ALL 4 filters
                 easy_raw = [r for r in all_r
-                            if float(r.get("ret_1w") or 0) >= p80
-                            and float(r.get("ret_1m") or 0) >= p75
-                            and float(r.get("ret_3m") or 0) >= p65
-                            and float(r.get("ret_6m") or 0) >= p50]
+                            if float(r.get("ret_3m") or 0) >= min_3m
+                            and float(r.get("ret_1m") or 0) >= min_1m
+                            and float(r.get("ret_1w") or 0) >= min_1w
+                            and float(r.get("ret_6m") or 0) >= min_6m]
 
-                # Score = average of all 4 returns
-                easy = [{**r, "_score": (float(r.get("ret_1w") or 0) +
-                                         float(r.get("ret_1m") or 0) +
-                                         float(r.get("ret_3m") or 0) +
-                                         float(r.get("ret_6m") or 0)) / 4,
+                easy = sorted(easy_raw, key=lambda x: -(float(x.get("ret_3m") or 0)))
+                easy = [{**r, "_score": float(r.get("ret_3m") or 0),
                          "ret_1d": 0, "volume_ratio": 0, "ti65": None,
                          "close": 0, "pct_from_52w_high": 0, "sector": ""}
-                        for r in easy_raw]
-                easy = sorted(easy, key=lambda x: -x["_score"])
+                        for r in easy]
+
+                p80 = float(easy[0].get("ret_1w") or 0) if easy else 0
+                p75 = float(easy[0].get("ret_1m") or 0) if easy else 0
+                p65 = float(easy[0].get("ret_3m") or 0) if easy else 0
 
                 # Merge with signals for close price
                 sig_map = {s["ticker"]: s for s in signals}
