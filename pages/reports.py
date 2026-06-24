@@ -1809,6 +1809,8 @@ def render():
                     raw = (xp - ep) / ep * 100
                     return raw if side not in ("SHORT","SELL") else -raw
 
+                move_period = st.radio("Period", ["Daily","Weekly","Monthly"], index=2, horizontal=True, key="deep_move_period")
+
                 move_data = []
                 for t in closed:
                     m = stock_move_pct(t)
