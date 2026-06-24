@@ -295,6 +295,9 @@ def render():
             st.session_state.dash_view = "dollar"
         view_label = st.selectbox("View", list(VIEW_OPTIONS.keys()),
                                    index=0, key="dash_view_sel",
+        if st.button("⚙️ Widgets", key="dash_edit_btn", use_container_width=True):
+            st.session_state.dash_edit_mode = not st.session_state.dash_edit_mode
+            st.rerun()
                                    label_visibility="collapsed")
         st.session_state.dash_view = VIEW_OPTIONS[view_label]
     VIEW = st.session_state.dash_view
