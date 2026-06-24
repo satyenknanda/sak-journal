@@ -389,10 +389,27 @@ def render():
     # PERFORMANCE
     # ════════════════════════════════════════════════════════════════════
     with tab_perf:
+        # ── Date range filter ─────────────────────────────────────────────
+        pf_c1, pf_c2, pf_c3 = st.columns([1, 1, 2])
+        pf_date_from = pf_c1.date_input("From", value=None, key="perf_date_from", label_visibility="collapsed")
+        pf_date_to   = pf_c2.date_input("To",   value=None, key="perf_date_to",   label_visibility="collapsed")
+        pf_c1.caption("From date"); pf_c2.caption("To date")
+        if pf_date_from or pf_date_to:
+            perf_closed = [t for t in closed if (
+                (not pf_date_from or str(t.get("exit_date",""))[:10] >= str(pf_date_from)) and
+                (not pf_date_to   or str(t.get("exit_date",""))[:10] <= str(pf_date_to))
+            )]
+        else:
+            perf_closed = closed
+        if not perf_closed:
+            st.info("No trades in this date range.")
+        else:
+            closed = perf_closed  # use filtered set for rest of tab
+
         wins_p   = [t for t in closed if safe_float(t.get("pnl")) > 0]
         losses_p = [t for t in closed if safe_float(t.get("pnl")) < 0]
         total_p  = sum(safe_float(t.get("pnl")) for t in closed)
-        wr_p     = len(wins_p)/len(closed)
+        wr_p     = len(wins_p)/len(closed) if closed else 0
         avg_w_p  = sum(safe_float(t.get("pnl")) for t in wins_p)/len(wins_p) if wins_p else 0
         avg_l_p  = sum(safe_float(t.get("pnl")) for t in losses_p)/len(losses_p) if losses_p else 0
         pf_p     = abs(sum(safe_float(t.get("pnl")) for t in wins_p)/
