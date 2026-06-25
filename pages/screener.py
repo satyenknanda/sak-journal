@@ -6,27 +6,26 @@ from theme import *
 
 def render():
     st.markdown("## 🔍 Scanner")
-    st.markdown(f'<p style="color:{TEXT_SUBTLE};margin-top:-8px;margin-bottom:18px;font-size:11px">NSE Universe · Pradeep Bonde + Cohort 3 Methodology</p>', unsafe_allow_html=True)
+    st.markdown(f'<p style="color:{TEXT_SUBTLE};margin-top:-8px;margin-bottom:18px;font-size:11px">NSE Universe · Pradeep Bonde + Cohort 3 · Per-scan refresh buttons v2</p>', unsafe_allow_html=True)
 
     from data.db import _sb
 
-    # ── Refresh + Cache controls ──────────────────────────────────────────────
-    col_r1, col_r2, col_r3 = st.columns([1,1,4])
-    with col_r1:
-        if st.button("🔄 Refresh Signals", key="refresh_signals", type="primary"):
-            with st.spinner("Fetching data for all tickers... ~15 mins"):
-                try:
-                    import sys; sys.path.insert(0, ".")
-                    from market_universe.market_refresh import refresh_bonde_signals
-                    refresh_bonde_signals()
-                    st.cache_data.clear()
-                    st.success("✅ Signals refreshed!")
-                except Exception as e:
-                    st.error(f"❌ {e}")
-    with col_r2:
-        if st.button("🗑️ Clear Cache", key="clear_cache"):
-            st.cache_data.clear()
-            st.rerun()
+    # ── Cache clear ──────────────────────────────────────────────────────────
+    if st.button("🗑️ Clear Cache", key="clear_cache"):
+        st.cache_data.clear()
+        st.rerun()
+
+    def _do_refresh_signals():
+        import sys; sys.path.insert(0, ".")
+        from market_universe.market_refresh import refresh_bonde_signals
+        refresh_bonde_signals()
+        st.cache_data.clear()
+
+    def _do_refresh_returns():
+        import sys; sys.path.insert(0, ".")
+        from market_universe.refresh_scans import refresh_returns_only
+        refresh_returns_only()
+        st.cache_data.clear()
 
     # ── Upload Universe CSV ───────────────────────────────────────────────────
     with st.expander("⬆️ Upload Universe CSV", expanded=False):
@@ -183,24 +182,41 @@ def render():
         b1, b2, b3, b4 = st.tabs(["🚀 Momentum Burst", "🔵 TTT", "⚡ 20% in 5D", "🔥 50% in 2M"])
 
         with b1:
+            if st.button("🔄 Refresh Momentum Burst", key="ref_burst", type="primary"):
+                with st.spinner("Refreshing signals (~15 mins)..."):
+                    _do_refresh_signals()
+                    st.success("✅ Done!")
+                    st.rerun()
             burst = sorted([s for s in signals if s.get("momentum_burst")], key=lambda x: -(float(x.get("volume_ratio") or 0)))
             signal_table(burst, "Momentum Burst",
                 "📌 +4% single day + volume > previous day — Bonde primary scan — institutional range expansion",
                 "bonde_momentum_burst.csv")
 
         with b2:
+            if st.button("🔄 Refresh TTT", key="ref_ttt", type="primary"):
+                with st.spinner("Refreshing signals (~15 mins)..."):
+                    _do_refresh_signals()
+                    st.success("✅ Done!"); st.rerun()
             ttt = sorted([s for s in signals if s.get("ttt")], key=lambda x: float(x.get("range_3d_pct") or 99))
             signal_table(ttt, "TTT",
                 "📌 3-bar range ≤1.5%, today ≤0.8% — quiet before the storm — institutional accumulation",
                 "bonde_ttt.csv")
 
         with b3:
+            if st.button("🔄 Refresh 20% in 5D", key="ref_r20", type="primary"):
+                with st.spinner("Refreshing signals (~15 mins)..."):
+                    _do_refresh_signals()
+                    st.success("✅ Done!"); st.rerun()
             r20 = sorted([s for s in signals if s.get("ret_20pct_5d")], key=lambda x: -(float(x.get("ret_5d") or 0)))
             signal_table(r20, "20% in 5 Days",
                 "📌 20%+ gain in last 5 days — study the catalyst — explosive momentum",
                 "bonde_20pct_5d.csv")
 
         with b4:
+            if st.button("🔄 Refresh 50% in 2M", key="ref_r50", type="primary"):
+                with st.spinner("Refreshing signals (~15 mins)..."):
+                    _do_refresh_signals()
+                    st.success("✅ Done!"); st.rerun()
             r50 = sorted([s for s in signals if s.get("ret_50pct_2m")], key=lambda x: -(float(x.get("ret_5d") or 0)))
             signal_table(r50, "50% in 2 Months",
                 "📌 50%+ in 2 months — weekend deep dive — what was the catalyst",
@@ -219,6 +235,10 @@ def render():
                 st.info("No returns data. Run Refresh Signals.")
             else:
                 # Easy Money — sequential deduplication, ~7% per section
+                if st.button("🔄 Refresh Easy Money", key="ref_easy", type="primary"):
+                    with st.spinner("Refreshing returns (~15 mins)..."):
+                        _do_refresh_returns()
+                        st.success("✅ Done!"); st.rerun()
                 all_r = [r for r in returns if r.get("ret_1w") is not None]
                 sig_map = {s["ticker"]: s for s in signals}
                 pct = 0.07  # ~7% gives ~280 stocks matching reference
@@ -311,6 +331,10 @@ def render():
                     </table></div>""", unsafe_allow_html=True)
         # ATH Scan — within 10% of 52W high
         with c2:
+            if st.button("🔄 Refresh ATH Scan", key="ref_ath", type="primary"):
+                with st.spinner("Refreshing signals (~15 mins)..."):
+                    _do_refresh_signals()
+                    st.success("✅ Done!"); st.rerun()
             ath = sorted([s for s in signals if s.get("pct_from_52w_high") is not None
                          and float(s.get("pct_from_52w_high") or -99) >= -10],
                         key=lambda x: -(float(x.get("pct_from_52w_high") or -99)))
@@ -320,6 +344,10 @@ def render():
 
         # High ADR
         with c3:
+            if st.button("🔄 Refresh High ADR", key="ref_adr", type="primary"):
+                with st.spinner("Refreshing signals (~15 mins)..."):
+                    _do_refresh_signals()
+                    st.success("✅ Done!"); st.rerun()
             adr_min = st.number_input("Min ADR %", value=5.0, step=0.5, key="adr_min")
             # ADR = (High - Low) / Close * 100 averaged — approximated by ATR/Close
             high_adr = []
@@ -338,6 +366,10 @@ def render():
 
         # Stocks in Play
         with c4:
+            if st.button("🔄 Refresh Stocks in Play", key="ref_sip", type="primary"):
+                with st.spinner("Refreshing signals (~15 mins)..."):
+                    _do_refresh_signals()
+                    st.success("✅ Done!"); st.rerun()
             sip = sorted([s for s in signals
                          if float(s.get("volume_ratio") or 0) >= 3.0
                          and float(s.get("ret_1d") or 0) >= 3.0],
@@ -348,6 +380,10 @@ def render():
 
         # Reversals — top weekly losers
         with c5:
+            if st.button("🔄 Refresh Reversals", key="ref_rev", type="primary"):
+                with st.spinner("Refreshing signals (~15 mins)..."):
+                    _do_refresh_signals()
+                    st.success("✅ Done!"); st.rerun()
             rev = sorted([s for s in signals if float(s.get("ret_5d") or 0) <= -10],
                         key=lambda x: float(x.get("ret_5d") or 0))
             signal_table(rev, "Reversals",
