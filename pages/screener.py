@@ -6,7 +6,7 @@ from theme import *
 
 def render():
     st.markdown("## 🔍 Scanner")
-    st.markdown(f'<p style="color:{TEXT_SUBTLE};margin-top:-8px;margin-bottom:18px;font-size:11px">NSE Universe · Pradeep Bonde + Cohort 3 · v3 — Easy Money sub-tabs</p>', unsafe_allow_html=True)
+    st.markdown(f'<p style="color:{TEXT_SUBTLE};margin-top:-8px;margin-bottom:18px;font-size:11px">NSE Universe · Pradeep Bonde + Cohort 3 · v4 — dedup fixed</p>', unsafe_allow_html=True)
 
     from data.db import _sb
 
