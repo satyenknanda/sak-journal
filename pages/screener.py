@@ -242,23 +242,29 @@ def render():
                     s = sig_map.get(r["ticker"], {})
                     return {**r, "close": s.get("close",0), "sector": s.get("sector","")}
 
-                # Sequential deduplication — once in 1W, excluded from 1M/3M/6M
-                s1_all = sorted(all_r, key=lambda x: -(float(x.get("ret_1w") or 0)))
-                s1 = [_enrich(r) for r in s1_all[:max(1,int(len(s1_all)*0.20))]]
+                # Performance threshold filters with sequential deduplication
+                col_t1, col_t2, col_t3, col_t4 = st.columns(4)
+                t1w = col_t1.number_input("1W min %", value=20.0, step=5.0, key="em_t1w")
+                t1m = col_t2.number_input("1M min %", value=25.0, step=5.0, key="em_t1m")
+                t3m = col_t3.number_input("3M min %", value=30.0, step=5.0, key="em_t3m")
+                t6m = col_t4.number_input("6M min %", value=50.0, step=5.0, key="em_t6m")
+
+                s1 = sorted([_enrich(r) for r in all_r if float(r.get("ret_1w") or 0) >= t1w],
+                            key=lambda x: -(float(x.get("ret_1w") or 0)))
                 seen = {r["ticker"] for r in s1}
 
-                s2_all = sorted(all_r, key=lambda x: -(float(x.get("ret_1m") or 0)))
-                s2 = [_enrich(r) for r in s2_all if r["ticker"] not in seen][:max(1,int(len(all_r)*0.25))]
+                s2 = sorted([_enrich(r) for r in all_r if float(r.get("ret_1m") or 0) >= t1m and r["ticker"] not in seen],
+                            key=lambda x: -(float(x.get("ret_1m") or 0)))
                 seen.update(r["ticker"] for r in s2)
 
-                s3_all = sorted(all_r, key=lambda x: -(float(x.get("ret_3m") or 0)))
-                s3 = [_enrich(r) for r in s3_all if r["ticker"] not in seen][:max(1,int(len(all_r)*0.35))]
+                s3 = sorted([_enrich(r) for r in all_r if float(r.get("ret_3m") or 0) >= t3m and r["ticker"] not in seen],
+                            key=lambda x: -(float(x.get("ret_3m") or 0)))
                 seen.update(r["ticker"] for r in s3)
 
-                s4_all = sorted(all_r, key=lambda x: -(float(x.get("ret_6m") or 0)))
-                s4 = [_enrich(r) for r in s4_all if r["ticker"] not in seen][:max(1,int(len(all_r)*0.50))]
+                s4 = sorted([_enrich(r) for r in all_r if float(r.get("ret_6m") or 0) >= t6m and r["ticker"] not in seen],
+                            key=lambda x: -(float(x.get("ret_6m") or 0)))
 
-                min_1w = float(s1[-1].get("ret_1w") or 0) if s1 else 0
+                min_1w = t1w; min_1m = t1m; min_3m = t3m; min_6m = t6m
                 min_1m = float(s2[-1].get("ret_1m") or 0) if s2 else 0
                 min_3m = float(s3[-1].get("ret_3m") or 0) if s3 else 0
                 min_6m = float(s4[-1].get("ret_6m") or 0) if s4 else 0
