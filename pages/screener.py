@@ -234,39 +234,33 @@ def render():
             if not returns:
                 st.info("No returns data. Run Refresh Signals.")
             else:
-                # Easy Money — sequential deduplication, ~7% per section
-                if st.button("🔄 Refresh Easy Money", key="ref_easy", type="primary"):
-                    with st.spinner("Refreshing returns (~15 mins)..."):
-                        _do_refresh_returns()
-                        st.success("✅ Done!"); st.rerun()
+                # Easy Money — sub-tabs with independent % per timeframe
                 all_r = [r for r in returns if r.get("ret_1w") is not None]
                 sig_map = {s["ticker"]: s for s in signals}
-                pct = 0.07  # ~7% gives ~280 stocks matching reference
 
                 def _enrich(r):
                     s = sig_map.get(r["ticker"], {})
                     return {**r, "close": s.get("close",0), "sector": s.get("sector","")}
 
-                # Section 1 — top 7% by 1W
+                # Each section independent — no deduplication
                 s1 = sorted(all_r, key=lambda x: -(float(x.get("ret_1w") or 0)))
-                s1 = [_enrich(r) for r in s1[:max(1,int(len(s1)*pct))]]
-                seen = {r["ticker"] for r in s1}
+                s1 = [_enrich(r) for r in s1[:max(1,int(len(s1)*0.20))]]  # top 20%
 
-                # Section 2 — top 7% by 1M, exclude already seen
-                s2_all = sorted(all_r, key=lambda x: -(float(x.get("ret_1m") or 0)))
-                s2 = [_enrich(r) for r in s2_all if r["ticker"] not in seen][:max(1,int(len(all_r)*pct))]
-                seen.update(r["ticker"] for r in s2)
+                s2 = sorted(all_r, key=lambda x: -(float(x.get("ret_1m") or 0)))
+                s2 = [_enrich(r) for r in s2[:max(1,int(len(s2)*0.25))]]  # top 25%
 
-                # Section 3 — top 7% by 3M, exclude already seen
-                s3_all = sorted(all_r, key=lambda x: -(float(x.get("ret_3m") or 0)))
-                s3 = [_enrich(r) for r in s3_all if r["ticker"] not in seen][:max(1,int(len(all_r)*pct))]
-                seen.update(r["ticker"] for r in s3)
+                s3 = sorted(all_r, key=lambda x: -(float(x.get("ret_3m") or 0)))
+                s3 = [_enrich(r) for r in s3[:max(1,int(len(s3)*0.35))]]  # top 35%
 
-                # Section 4 — top 7% by 6M, exclude already seen
-                s4_all = sorted(all_r, key=lambda x: -(float(x.get("ret_6m") or 0)))
-                s4 = [_enrich(r) for r in s4_all if r["ticker"] not in seen][:max(1,int(len(all_r)*pct))]
+                s4 = sorted(all_r, key=lambda x: -(float(x.get("ret_6m") or 0)))
+                s4 = [_enrich(r) for r in s4[:max(1,int(len(s4)*0.50))]]  # top 50%
 
-                all_easy = s1 + s2 + s3 + s4
+                # Union for TV export
+                seen = set(); all_easy = []
+                for sec in [s1,s2,s3,s4]:
+                    for r in sec:
+                        if r["ticker"] not in seen:
+                            seen.add(r["ticker"]); all_easy.append(r)
 
                 # TV copy + CSV
                 tv_str = ",".join([f"NSE:{e['ticker']}" for e in all_easy])
@@ -277,34 +271,51 @@ def render():
                     w2 = csv.DictWriter(buf, fieldnames=["ticker","ret_1w","ret_1m","ret_3m","ret_6m"])
                     w2.writeheader()
                     for e in all_easy: w2.writerow({k: e.get(k,"") for k in ["ticker","ret_1w","ret_1m","ret_3m","ret_6m"]})
-                    st.download_button("⬇️ Download CSV", buf.getvalue().encode(), "easy_money.csv", "text/csv", key="dl_easy")
+                    st.download_button("⬇️ Download All CSV", buf.getvalue().encode(), "easy_money.csv", "text/csv", key="dl_easy")
                 with dc2e:
-                    with st.expander("📋 TradingView Import"):
+                    with st.expander("📋 TradingView Import (All)"):
                         st.code(tv_str, language=None)
                         st.caption("👆 Copy → TradingView → Watchlist → Import")
 
-                # KPIs
+                # KPI strip
                 em1,em2,em3,em4,em5 = st.columns(5)
                 for col,(label,val,color) in zip([em1,em2,em3,em4,em5],[
-                    ("Total Stocks", str(len(all_easy)), TEAL),
-                    ("1W Section",   str(len(s1)), BLUE),
-                    ("1M Section",   str(len(s2)), BLUE),
-                    ("3M Section",   str(len(s3)), BLUE),
-                    ("6M Section",   str(len(s4)), BLUE),
+                    ("Total Unique", str(len(all_easy)), TEAL),
+                    ("1W Top 20%",  str(len(s1)), BLUE),
+                    ("1M Top 25%",  str(len(s2)), BLUE),
+                    ("3M Top 35%",  str(len(s3)), BLUE),
+                    ("6M Top 50%",  str(len(s4)), BLUE),
                 ]):
                     col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px 14px;margin-bottom:10px">
                         <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:500;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">{label}</div>
                         <div style="font-size:20px;font-weight:700;color:{color}">{val}</div>
                     </div>''', unsafe_allow_html=True)
 
-                # 4 sections displayed separately
-                for sec, sec_label in [
-                    (s1, "📅 1 Week — Top 7%"),
-                    (s2, "📅 1 Month — Top 7% (new)"),
-                    (s3, "📅 3 Months — Top 7% (new)"),
-                    (s4, "📅 6 Months — Top 7% (new)"),
-                ]:
-                    st.markdown(f'<p style="font-size:11px;font-weight:600;color:{TEXT_H};margin:16px 0 4px">{sec_label} · {len(sec)} stocks</p>', unsafe_allow_html=True)
+                # Sub-tabs
+                em_t1, em_t2, em_t3, em_t4 = st.tabs([
+                    f"📅 1W ({len(s1)})",
+                    f"📅 1M ({len(s2)})",
+                    f"📅 3M ({len(s3)})",
+                    f"📅 6M ({len(s4)})",
+                ])
+
+                def _em_table(sec, sort_key, tab_key):
+                    # TV + CSV per section
+                    tv_sec = ",".join([f"NSE:{e['ticker']}" for e in sec])
+                    dl1, dl2 = st.columns([1,3])
+                    with dl1:
+                        import csv, io as _io3
+                        buf2 = _io3.StringIO()
+                        w3 = csv.DictWriter(buf2, fieldnames=["ticker","ret_1w","ret_1m","ret_3m","ret_6m","ret_ytd"])
+                        w3.writeheader()
+                        for e in sec: w3.writerow({k: e.get(k,"") for k in ["ticker","ret_1w","ret_1m","ret_3m","ret_6m","ret_ytd"]})
+                        st.download_button("⬇️ Download CSV", buf2.getvalue().encode(),
+                            f"easy_{tab_key}.csv", "text/csv", key=f"dl_em_{tab_key}")
+                    with dl2:
+                        with st.expander("📋 TradingView Import"):
+                            st.code(tv_sec, language=None)
+                            st.caption("👆 Copy → TradingView → Watchlist → Import")
+
                     rhtml = ""
                     for e in sec:
                         rhtml += f"""<tr>
@@ -315,8 +326,9 @@ def render():
                             <td style="{TD};text-align:right;color:{'#10B981' if float(e.get('ret_1m') or 0)>=0 else RED}">{float(e.get('ret_1m') or 0):+.1f}%</td>
                             <td style="{TD};text-align:right;color:{'#10B981' if float(e.get('ret_3m') or 0)>=0 else RED}">{float(e.get('ret_3m') or 0):+.1f}%</td>
                             <td style="{TD};text-align:right;color:{'#10B981' if float(e.get('ret_6m') or 0)>=0 else RED}">{float(e.get('ret_6m') or 0):+.1f}%</td>
+                            <td style="{TD};text-align:right;color:{'#10B981' if float(e.get('ret_ytd') or 0)>=0 else RED}">{float(e.get('ret_ytd') or 0):+.1f}%</td>
                         </tr>"""
-                    st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER};margin-bottom:8px">
+                    st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER}">
                     <table style="width:100%;border-collapse:collapse">
                         <thead><tr>
                             <th style="{TH};text-align:left">Ticker</th>
@@ -326,9 +338,15 @@ def render():
                             <th style="{TH};text-align:right">1M%</th>
                             <th style="{TH};text-align:right">3M%</th>
                             <th style="{TH};text-align:right">6M%</th>
+                            <th style="{TH};text-align:right">YTD%</th>
                         </tr></thead>
                         <tbody>{rhtml}</tbody>
                     </table></div>""", unsafe_allow_html=True)
+
+                with em_t1: _em_table(s1, "ret_1w", "1w")
+                with em_t2: _em_table(s2, "ret_1m", "1m")
+                with em_t3: _em_table(s3, "ret_3m", "3m")
+                with em_t4: _em_table(s4, "ret_6m", "6m")
         # ATH Scan — within 10% of 52W high
         with c2:
             if st.button("🔄 Refresh ATH Scan", key="ref_ath", type="primary"):
