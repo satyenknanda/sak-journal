@@ -242,20 +242,19 @@ def render():
                     s = sig_map.get(r["ticker"], {})
                     return {**r, "close": s.get("close",0), "sector": s.get("sector","")}
 
-                # Hard threshold filters — stocks must be UP by the specified %
-                min_1w = st.number_input("Min 1W return %", value=20.0, step=5.0, key="em_min_1w")
-                min_1m = st.number_input("Min 1M return %", value=20.0, step=5.0, key="em_min_1m")
-                min_3m = st.number_input("Min 3M return %", value=20.0, step=5.0, key="em_min_3m")
-                min_6m = st.number_input("Min 6M return %", value=20.0, step=5.0, key="em_min_6m")
-
-                s1 = sorted([_enrich(r) for r in all_r if float(r.get("ret_1w") or 0) >= min_1w],
-                            key=lambda x: -(float(x.get("ret_1w") or 0)))
-                s2 = sorted([_enrich(r) for r in all_r if float(r.get("ret_1m") or 0) >= min_1m],
-                            key=lambda x: -(float(x.get("ret_1m") or 0)))
-                s3 = sorted([_enrich(r) for r in all_r if float(r.get("ret_3m") or 0) >= min_3m],
-                            key=lambda x: -(float(x.get("ret_3m") or 0)))
-                s4 = sorted([_enrich(r) for r in all_r if float(r.get("ret_6m") or 0) >= min_6m],
-                            key=lambda x: -(float(x.get("ret_6m") or 0)))
+                # Rank-based — top % of universe by each timeframe
+                s1 = sorted(all_r, key=lambda x: -(float(x.get("ret_1w") or 0)))
+                s1 = [_enrich(r) for r in s1[:max(1,int(len(s1)*0.20))]]
+                s2 = sorted(all_r, key=lambda x: -(float(x.get("ret_1m") or 0)))
+                s2 = [_enrich(r) for r in s2[:max(1,int(len(s2)*0.25))]]
+                s3 = sorted(all_r, key=lambda x: -(float(x.get("ret_3m") or 0)))
+                s3 = [_enrich(r) for r in s3[:max(1,int(len(s3)*0.35))]]
+                s4 = sorted(all_r, key=lambda x: -(float(x.get("ret_6m") or 0)))
+                s4 = [_enrich(r) for r in s4[:max(1,int(len(s4)*0.50))]]
+                min_1w = float(s1[-1].get("ret_1w") or 0) if s1 else 0
+                min_1m = float(s2[-1].get("ret_1m") or 0) if s2 else 0
+                min_3m = float(s3[-1].get("ret_3m") or 0) if s3 else 0
+                min_6m = float(s4[-1].get("ret_6m") or 0) if s4 else 0
 
                 # Union for TV export
                 seen = set(); all_easy = []
@@ -283,10 +282,10 @@ def render():
                 em1,em2,em3,em4,em5 = st.columns(5)
                 for col,(label,val,color) in zip([em1,em2,em3,em4,em5],[
                     ("Total Unique", str(len(all_easy)), TEAL),
-                    (f"1W ≥{min_1w:.0f}%",  str(len(s1)), BLUE),
-                    (f"1M ≥{min_1m:.0f}%",  str(len(s2)), BLUE),
-                    (f"3M ≥{min_3m:.0f}%",  str(len(s3)), BLUE),
-                    (f"6M ≥{min_6m:.0f}%",  str(len(s4)), BLUE),
+                    (f"1W Top 20% (≥{min_1w:.1f}%)",  str(len(s1)), BLUE),
+                    (f"1M Top 25% (≥{min_1m:.1f}%)",  str(len(s2)), BLUE),
+                    (f"3M Top 35% (≥{min_3m:.1f}%)",  str(len(s3)), BLUE),
+                    (f"6M Top 50% (≥{min_6m:.1f}%)",  str(len(s4)), BLUE),
                 ]):
                     col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px 14px;margin-bottom:10px">
                         <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:500;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">{label}</div>
@@ -295,17 +294,17 @@ def render():
 
                 # Section selector — radio instead of nested tabs (Streamlit limitation)
                 em_section = st.radio("Section", [
-                    f"📅 1W ≥{min_1w:.0f}% ({len(s1)} stocks)",
-                    f"📅 1M ≥{min_1m:.0f}% ({len(s2)} stocks)",
-                    f"📅 3M ≥{min_3m:.0f}% ({len(s3)} stocks)",
-                    f"📅 6M ≥{min_6m:.0f}% ({len(s4)} stocks)",
+                    f"📅 1W — Top 20% ({len(s1)} stocks)",
+                    f"📅 1M — Top 25% ({len(s2)} stocks)",
+                    f"📅 3M — Top 35% ({len(s3)} stocks)",
+                    f"📅 6M — Top 50% ({len(s4)} stocks)",
                 ], horizontal=True, key="em_section_sel", label_visibility="collapsed")
 
                 sec_map = {
-                    f"📅 1W ≥{min_1w:.0f}% ({len(s1)} stocks)": (s1, "1w"),
-                    f"📅 1M ≥{min_1m:.0f}% ({len(s2)} stocks)": (s2, "1m"),
-                    f"📅 3M ≥{min_3m:.0f}% ({len(s3)} stocks)": (s3, "3m"),
-                    f"📅 6M ≥{min_6m:.0f}% ({len(s4)} stocks)": (s4, "6m"),
+                    f"📅 1W — Top 20% ({len(s1)} stocks)": (s1, "1w"),
+                    f"📅 1M — Top 25% ({len(s2)} stocks)": (s2, "1m"),
+                    f"📅 3M — Top 35% ({len(s3)} stocks)": (s3, "3m"),
+                    f"📅 6M — Top 50% ({len(s4)} stocks)": (s4, "6m"),
                 }
                 active_sec, active_key = sec_map[em_section]
 
