@@ -218,32 +218,37 @@ def render():
             if not returns:
                 st.info("No returns data. Run Refresh Signals.")
             else:
-                # Easy Money — 4 sections like TradingView watchlist
+                # Easy Money — sequential deduplication, ~7% per section
                 all_r = [r for r in returns if r.get("ret_1w") is not None]
                 sig_map = {s["ticker"]: s for s in signals}
+                pct = 0.07  # ~7% gives ~280 stocks matching reference
 
                 def _enrich(r):
                     s = sig_map.get(r["ticker"], {})
                     return {**r, "close": s.get("close",0), "sector": s.get("sector","")}
 
-                # 4 sections — sorted by each timeframe, top %
+                # Section 1 — top 7% by 1W
                 s1 = sorted(all_r, key=lambda x: -(float(x.get("ret_1w") or 0)))
-                s1 = [_enrich(r) for r in s1[:max(1,int(len(s1)*0.20))]]
-                s2 = sorted(all_r, key=lambda x: -(float(x.get("ret_1m") or 0)))
-                s2 = [_enrich(r) for r in s2[:max(1,int(len(s2)*0.25))]]
-                s3 = sorted(all_r, key=lambda x: -(float(x.get("ret_3m") or 0)))
-                s3 = [_enrich(r) for r in s3[:max(1,int(len(s3)*0.35))]]
-                s4 = sorted(all_r, key=lambda x: -(float(x.get("ret_6m") or 0)))
-                s4 = [_enrich(r) for r in s4[:max(1,int(len(s4)*0.50))]]
+                s1 = [_enrich(r) for r in s1[:max(1,int(len(s1)*pct))]]
+                seen = {r["ticker"] for r in s1}
 
-                # Union for TV export
-                seen = set(); all_easy = []
-                for section in [s1,s2,s3,s4]:
-                    for r in section:
-                        if r["ticker"] not in seen:
-                            seen.add(r["ticker"]); all_easy.append(r)
+                # Section 2 — top 7% by 1M, exclude already seen
+                s2_all = sorted(all_r, key=lambda x: -(float(x.get("ret_1m") or 0)))
+                s2 = [_enrich(r) for r in s2_all if r["ticker"] not in seen][:max(1,int(len(all_r)*pct))]
+                seen.update(r["ticker"] for r in s2)
 
-                # TV copy + CSV download
+                # Section 3 — top 7% by 3M, exclude already seen
+                s3_all = sorted(all_r, key=lambda x: -(float(x.get("ret_3m") or 0)))
+                s3 = [_enrich(r) for r in s3_all if r["ticker"] not in seen][:max(1,int(len(all_r)*pct))]
+                seen.update(r["ticker"] for r in s3)
+
+                # Section 4 — top 7% by 6M, exclude already seen
+                s4_all = sorted(all_r, key=lambda x: -(float(x.get("ret_6m") or 0)))
+                s4 = [_enrich(r) for r in s4_all if r["ticker"] not in seen][:max(1,int(len(all_r)*pct))]
+
+                all_easy = s1 + s2 + s3 + s4
+
+                # TV copy + CSV
                 tv_str = ",".join([f"NSE:{e['ticker']}" for e in all_easy])
                 dc1e, dc2e = st.columns([1,3])
                 with dc1e:
@@ -273,11 +278,11 @@ def render():
                     </div>''', unsafe_allow_html=True)
 
                 # 4 sections displayed separately
-                for sec, sec_label, key in [
-                    (s1, "📅 1 Week — Top 20%",   "ret_1w"),
-                    (s2, "📅 1 Month — Top 25%",  "ret_1m"),
-                    (s3, "📅 3 Months — Top 35%", "ret_3m"),
-                    (s4, "📅 6 Months — Top 50%", "ret_6m"),
+                for sec, sec_label in [
+                    (s1, "📅 1 Week — Top 7%"),
+                    (s2, "📅 1 Month — Top 7% (new)"),
+                    (s3, "📅 3 Months — Top 7% (new)"),
+                    (s4, "📅 6 Months — Top 7% (new)"),
                 ]:
                     st.markdown(f'<p style="font-size:11px;font-weight:600;color:{TEXT_H};margin:16px 0 4px">{sec_label} · {len(sec)} stocks</p>', unsafe_allow_html=True)
                     rhtml = ""
