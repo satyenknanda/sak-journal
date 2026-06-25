@@ -291,13 +291,21 @@ def render():
                         <div style="font-size:20px;font-weight:700;color:{color}">{val}</div>
                     </div>''', unsafe_allow_html=True)
 
-                # Sub-tabs
-                em_t1, em_t2, em_t3, em_t4 = st.tabs([
-                    f"📅 1W ({len(s1)})",
-                    f"📅 1M ({len(s2)})",
-                    f"📅 3M ({len(s3)})",
-                    f"📅 6M ({len(s4)})",
-                ])
+                # Section selector — radio instead of nested tabs (Streamlit limitation)
+                em_section = st.radio("Section", [
+                    f"📅 1W — Top 20% ({len(s1)} stocks)",
+                    f"📅 1M — Top 25% ({len(s2)} stocks)",
+                    f"📅 3M — Top 35% ({len(s3)} stocks)",
+                    f"📅 6M — Top 50% ({len(s4)} stocks)",
+                ], horizontal=True, key="em_section_sel", label_visibility="collapsed")
+
+                sec_map = {
+                    f"📅 1W — Top 20% ({len(s1)} stocks)": (s1, "1w"),
+                    f"📅 1M — Top 25% ({len(s2)} stocks)": (s2, "1m"),
+                    f"📅 3M — Top 35% ({len(s3)} stocks)": (s3, "3m"),
+                    f"📅 6M — Top 50% ({len(s4)} stocks)": (s4, "6m"),
+                }
+                active_sec, active_key = sec_map[em_section]
 
                 def _em_table(sec, sort_key, tab_key):
                     # TV + CSV per section
@@ -343,10 +351,7 @@ def render():
                         <tbody>{rhtml}</tbody>
                     </table></div>""", unsafe_allow_html=True)
 
-                with em_t1: _em_table(s1, "ret_1w", "1w")
-                with em_t2: _em_table(s2, "ret_1m", "1m")
-                with em_t3: _em_table(s3, "ret_3m", "3m")
-                with em_t4: _em_table(s4, "ret_6m", "6m")
+                _em_table(active_sec, f"ret_{active_key}", active_key)
         # ATH Scan — within 10% of 52W high
         with c2:
             if st.button("🔄 Refresh ATH Scan", key="ref_ath", type="primary"):
