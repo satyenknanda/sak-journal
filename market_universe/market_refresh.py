@@ -36,7 +36,7 @@ def ensure_universe_seeded():
     rows = [{"ticker": t, "sector": s, "industry": i} for (t, s, i) in UNIVERSE]
     for r in rows:
         sb.table("market_universe").upsert(r, on_conflict="ticker").execute()
-    print(f"✅ Seeded {len(rows)} tickers into market_universe")
+    print(f"✅ Universe: {len(rows)} tickers seeded/updated")
 
 
 def pct_change(hist, days_back):
