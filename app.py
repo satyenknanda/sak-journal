@@ -1,4 +1,19 @@
 import streamlit as st
+
+# ── Simple password protection ────────────────────────────────────────────────
+def _check_password():
+    if st.session_state.get("_authenticated"):
+        return True
+    st.markdown("## 🔐 SAK Journal")
+    st.markdown("Enter password to continue.")
+    pwd = st.text_input("Password", type="password", key="_pwd_input")
+    if st.button("Login", type="primary"):
+        if pwd == st.secrets.get("APP_PASSWORD", "sak2026"):
+            st.session_state["_authenticated"] = True
+            st.rerun()
+        else:
+            st.error("❌ Incorrect password")
+    st.stop()
 import warnings
 warnings.filterwarnings("ignore", message=".*use_container_width.*")
 warnings.filterwarnings("ignore", message=".*label.*empty.*")
@@ -415,6 +430,8 @@ button[kind="header"],
 inject_clean_css()  # Apply clean neutral skin
 
 # ── Sidebar ────────────────────────────────────────────────────────────────
+_check_password()
+
 with st.sidebar:
     st.markdown(f"""
     <div style="padding:18px 14px 14px;border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:4px">
