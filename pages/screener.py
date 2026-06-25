@@ -218,93 +218,92 @@ def render():
             if not returns:
                 st.info("No returns data. Run Refresh Signals.")
             else:
-                # Easy Money — sort by 3M, show all with 3M > 0
-                # Display 1W, 1M, 3M, 6M as context columns
-                all_r = [r for r in returns if r.get("ret_3m") is not None]
-
-                # Sliders for user to adjust thresholds
-                col_em1, col_em2, col_em3, col_em4 = st.columns(4)
-                min_3m = col_em1.number_input("Min 3M %", value=0.0, step=5.0, key="em_3m")
-                min_1m = col_em2.number_input("Min 1M %", value=-100.0, step=5.0, key="em_1m")
-                min_1w = col_em3.number_input("Min 1W %", value=-100.0, step=1.0, key="em_1w")
-                min_6m = col_em4.number_input("Min 6M %", value=-100.0, step=5.0, key="em_6m")
-
-                easy_raw = [r for r in all_r
-                            if float(r.get("ret_3m") or 0) >= min_3m
-                            and float(r.get("ret_1m") or 0) >= min_1m
-                            and float(r.get("ret_1w") or 0) >= min_1w
-                            and float(r.get("ret_6m") or 0) >= min_6m]
-
-                easy = sorted(easy_raw, key=lambda x: -(float(x.get("ret_3m") or 0)))
-                easy = [{**r, "_score": float(r.get("ret_3m") or 0),
-                         "ret_1d": 0, "volume_ratio": 0, "ti65": None,
-                         "close": 0, "pct_from_52w_high": 0, "sector": ""}
-                        for r in easy]
-
-                p80 = float(easy[0].get("ret_1w") or 0) if easy else 0
-                p75 = float(easy[0].get("ret_1m") or 0) if easy else 0
-                p65 = float(easy[0].get("ret_3m") or 0) if easy else 0
-
-                # Merge with signals for close price
+                # Easy Money — 4 sections like TradingView watchlist
+                all_r = [r for r in returns if r.get("ret_1w") is not None]
                 sig_map = {s["ticker"]: s for s in signals}
-                for e in easy:
-                    if e["ticker"] in sig_map:
-                        e.update({k: sig_map[e["ticker"]].get(k, e.get(k)) 
-                                  for k in ["close","ret_1d","volume_ratio","ti65","pct_from_52w_high","sector"]})
 
-                # TV copy
-                tv_str = ",".join([f"NSE:{e['ticker']}" for e in easy])
-                dc1, dc2 = st.columns([1,3])
-                with dc1:
+                def _enrich(r):
+                    s = sig_map.get(r["ticker"], {})
+                    return {**r, "close": s.get("close",0), "sector": s.get("sector","")}
+
+                # 4 sections — sorted by each timeframe, top %
+                s1 = sorted(all_r, key=lambda x: -(float(x.get("ret_1w") or 0)))
+                s1 = [_enrich(r) for r in s1[:max(1,int(len(s1)*0.20))]]
+                s2 = sorted(all_r, key=lambda x: -(float(x.get("ret_1m") or 0)))
+                s2 = [_enrich(r) for r in s2[:max(1,int(len(s2)*0.25))]]
+                s3 = sorted(all_r, key=lambda x: -(float(x.get("ret_3m") or 0)))
+                s3 = [_enrich(r) for r in s3[:max(1,int(len(s3)*0.35))]]
+                s4 = sorted(all_r, key=lambda x: -(float(x.get("ret_6m") or 0)))
+                s4 = [_enrich(r) for r in s4[:max(1,int(len(s4)*0.50))]]
+
+                # Union for TV export
+                seen = set(); all_easy = []
+                for section in [s1,s2,s3,s4]:
+                    for r in section:
+                        if r["ticker"] not in seen:
+                            seen.add(r["ticker"]); all_easy.append(r)
+
+                # TV copy + CSV download
+                tv_str = ",".join([f"NSE:{e['ticker']}" for e in all_easy])
+                dc1e, dc2e = st.columns([1,3])
+                with dc1e:
                     import csv, io as _io2
                     buf = _io2.StringIO()
-                    w2 = csv.DictWriter(buf, fieldnames=["ticker","ret_1w","ret_1m","ret_3m","ret_6m","ret_ytd","_score"])
+                    w2 = csv.DictWriter(buf, fieldnames=["ticker","ret_1w","ret_1m","ret_3m","ret_6m"])
                     w2.writeheader()
-                    for e in easy: w2.writerow({k: e.get(k,"") for k in ["ticker","ret_1w","ret_1m","ret_3m","ret_6m","ret_ytd","_score"]})
-                    st.download_button("⬇️ Download CSV", buf.getvalue().encode(), "cohort3_easy_money.csv", "text/csv", key="dl_easy")
-                with dc2:
+                    for e in all_easy: w2.writerow({k: e.get(k,"") for k in ["ticker","ret_1w","ret_1m","ret_3m","ret_6m"]})
+                    st.download_button("⬇️ Download CSV", buf.getvalue().encode(), "easy_money.csv", "text/csv", key="dl_easy")
+                with dc2e:
                     with st.expander("📋 TradingView Import"):
                         st.code(tv_str, language=None)
                         st.caption("👆 Copy → TradingView → Watchlist → Import")
 
                 # KPIs
-                em1,em2,em3,em4 = st.columns(4)
-                for col,(label,val,color) in zip([em1,em2,em3,em4],[
-                    ("Easy Money Stocks", str(len(easy)), TEAL),
-                    (f"Min 1W (top 20%)", f"{p80:+.1f}%", TEAL),
-                    (f"Min 1M (top 25%)", f"{p75:+.1f}%", TEAL),
-                    (f"Min 3M (top 35%)", f"{p65:+.1f}%", TEAL),
+                em1,em2,em3,em4,em5 = st.columns(5)
+                for col,(label,val,color) in zip([em1,em2,em3,em4,em5],[
+                    ("Total Stocks", str(len(all_easy)), TEAL),
+                    ("1W Section",   str(len(s1)), BLUE),
+                    ("1M Section",   str(len(s2)), BLUE),
+                    ("3M Section",   str(len(s3)), BLUE),
+                    ("6M Section",   str(len(s4)), BLUE),
                 ]):
                     col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px 14px;margin-bottom:10px">
                         <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:500;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">{label}</div>
                         <div style="font-size:20px;font-weight:700;color:{color}">{val}</div>
                     </div>''', unsafe_allow_html=True)
 
-                rows_em = ""
-                for e in easy:
-                    rows_em += f"""<tr>
-                        <td style="{TD};font-weight:700;color:{TEXT_H}">{e['ticker']}</td>
-                        <td style="{TD};text-align:right;color:#10B981">{float(e.get('ret_1w') or 0):+.1f}%</td>
-                        <td style="{TD};text-align:right;color:#10B981">{float(e.get('ret_1m') or 0):+.1f}%</td>
-                        <td style="{TD};text-align:right;color:#10B981">{float(e.get('ret_3m') or 0):+.1f}%</td>
-                        <td style="{TD};text-align:right;color:#10B981">{float(e.get('ret_6m') or 0):+.1f}%</td>
-                        <td style="{TD};text-align:right;color:#10B981">{float(e.get('ret_ytd') or 0):+.1f}%</td>
-                        <td style="{TD};text-align:right;font-weight:700;color:{TEAL}">{e['_score']:.2f}</td>
-                    </tr>"""
-                st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER}">
-                <table style="width:100%;border-collapse:collapse">
-                    <thead><tr>
-                        <th style="{TH};text-align:left">Ticker</th>
-                        <th style="{TH};text-align:right">1W%</th>
-                        <th style="{TH};text-align:right">1M%</th>
-                        <th style="{TH};text-align:right">3M%</th>
-                        <th style="{TH};text-align:right">6M%</th>
-                        <th style="{TH};text-align:right">YTD%</th>
-                        <th style="{TH};text-align:right">Score</th>
-                    </tr></thead>
-                    <tbody>{rows_em}</tbody>
-                </table></div>""", unsafe_allow_html=True)
-
+                # 4 sections displayed separately
+                for sec, sec_label, key in [
+                    (s1, "📅 1 Week — Top 20%",   "ret_1w"),
+                    (s2, "📅 1 Month — Top 25%",  "ret_1m"),
+                    (s3, "📅 3 Months — Top 35%", "ret_3m"),
+                    (s4, "📅 6 Months — Top 50%", "ret_6m"),
+                ]:
+                    st.markdown(f'<p style="font-size:11px;font-weight:600;color:{TEXT_H};margin:16px 0 4px">{sec_label} · {len(sec)} stocks</p>', unsafe_allow_html=True)
+                    rhtml = ""
+                    for e in sec:
+                        rhtml += f"""<tr>
+                            <td style="{TD};font-weight:700;color:{TEXT_H}">{e['ticker']}</td>
+                            <td style="{TD};color:{TEXT_SUBTLE};font-size:11px">{str(e.get('sector',''))[:18]}</td>
+                            <td style="{TD};text-align:right">₹{float(e.get('close') or 0):,.2f}</td>
+                            <td style="{TD};text-align:right;color:{'#10B981' if float(e.get('ret_1w') or 0)>=0 else RED}">{float(e.get('ret_1w') or 0):+.1f}%</td>
+                            <td style="{TD};text-align:right;color:{'#10B981' if float(e.get('ret_1m') or 0)>=0 else RED}">{float(e.get('ret_1m') or 0):+.1f}%</td>
+                            <td style="{TD};text-align:right;color:{'#10B981' if float(e.get('ret_3m') or 0)>=0 else RED}">{float(e.get('ret_3m') or 0):+.1f}%</td>
+                            <td style="{TD};text-align:right;color:{'#10B981' if float(e.get('ret_6m') or 0)>=0 else RED}">{float(e.get('ret_6m') or 0):+.1f}%</td>
+                        </tr>"""
+                    st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER};margin-bottom:8px">
+                    <table style="width:100%;border-collapse:collapse">
+                        <thead><tr>
+                            <th style="{TH};text-align:left">Ticker</th>
+                            <th style="{TH};text-align:left">Sector</th>
+                            <th style="{TH};text-align:right">Close</th>
+                            <th style="{TH};text-align:right">1W%</th>
+                            <th style="{TH};text-align:right">1M%</th>
+                            <th style="{TH};text-align:right">3M%</th>
+                            <th style="{TH};text-align:right">6M%</th>
+                        </tr></thead>
+                        <tbody>{rhtml}</tbody>
+                    </table></div>""", unsafe_allow_html=True)
         # ATH Scan — within 10% of 52W high
         with c2:
             ath = sorted([s for s in signals if s.get("pct_from_52w_high") is not None
