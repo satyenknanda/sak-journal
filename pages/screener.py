@@ -242,15 +242,22 @@ def render():
                     s = sig_map.get(r["ticker"], {})
                     return {**r, "close": s.get("close",0), "sector": s.get("sector","")}
 
-                # Rank-based — top % of universe by each timeframe
-                s1 = sorted(all_r, key=lambda x: -(float(x.get("ret_1w") or 0)))
-                s1 = [_enrich(r) for r in s1[:max(1,int(len(s1)*0.20))]]
-                s2 = sorted(all_r, key=lambda x: -(float(x.get("ret_1m") or 0)))
-                s2 = [_enrich(r) for r in s2[:max(1,int(len(s2)*0.25))]]
-                s3 = sorted(all_r, key=lambda x: -(float(x.get("ret_3m") or 0)))
-                s3 = [_enrich(r) for r in s3[:max(1,int(len(s3)*0.35))]]
-                s4 = sorted(all_r, key=lambda x: -(float(x.get("ret_6m") or 0)))
-                s4 = [_enrich(r) for r in s4[:max(1,int(len(s4)*0.50))]]
+                # Sequential deduplication — once in 1W, excluded from 1M/3M/6M
+                s1_all = sorted(all_r, key=lambda x: -(float(x.get("ret_1w") or 0)))
+                s1 = [_enrich(r) for r in s1_all[:max(1,int(len(s1_all)*0.20))]]
+                seen = {r["ticker"] for r in s1}
+
+                s2_all = sorted(all_r, key=lambda x: -(float(x.get("ret_1m") or 0)))
+                s2 = [_enrich(r) for r in s2_all if r["ticker"] not in seen][:max(1,int(len(all_r)*0.25))]
+                seen.update(r["ticker"] for r in s2)
+
+                s3_all = sorted(all_r, key=lambda x: -(float(x.get("ret_3m") or 0)))
+                s3 = [_enrich(r) for r in s3_all if r["ticker"] not in seen][:max(1,int(len(all_r)*0.35))]
+                seen.update(r["ticker"] for r in s3)
+
+                s4_all = sorted(all_r, key=lambda x: -(float(x.get("ret_6m") or 0)))
+                s4 = [_enrich(r) for r in s4_all if r["ticker"] not in seen][:max(1,int(len(all_r)*0.50))]
+
                 min_1w = float(s1[-1].get("ret_1w") or 0) if s1 else 0
                 min_1m = float(s2[-1].get("ret_1m") or 0) if s2 else 0
                 min_3m = float(s3[-1].get("ret_3m") or 0) if s3 else 0
