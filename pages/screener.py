@@ -263,12 +263,12 @@ def render():
                 min_3m = float(s3[-1].get("ret_3m") or 0) if s3 else 0
                 min_6m = float(s4[-1].get("ret_6m") or 0) if s4 else 0
 
-                # Union for TV export
-                seen = set(); all_easy = []
+                # Union for TV export — use different variable name
+                _seen_union = set(); all_easy = []
                 for sec in [s1,s2,s3,s4]:
                     for r in sec:
-                        if r["ticker"] not in seen:
-                            seen.add(r["ticker"]); all_easy.append(r)
+                        if r["ticker"] not in _seen_union:
+                            _seen_union.add(r["ticker"]); all_easy.append(r)
 
                 # TV copy + CSV
                 tv_str = ",".join([f"NSE:{e['ticker']}" for e in all_easy])
