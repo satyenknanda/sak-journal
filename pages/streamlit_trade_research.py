@@ -6,8 +6,8 @@ def render():
     import os
     
     # ── Supabase ────────────────────────────────────────────────────────────────
-    SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://dvfxkcjugpvvpijxgnow.supabase.co")
-    SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+    SUPABASE_URL = st.secrets.get("SUPABASE_URL", "https://dvfxkcjugpvvpijxgnow.supabase.co")
+    SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "")
     
     @st.cache_resource
     def get_supabase():
