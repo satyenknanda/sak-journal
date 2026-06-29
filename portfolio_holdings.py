@@ -118,8 +118,9 @@ def render_portfolio_holdings(open_all, all_trades_raw, price_data):
                 rr_display = "—"
 
             peak_val = _calc_peak_size(tk, all_trades_raw)
-            rem_size = c["cost"]
-            pct_of_peak = (rem_size / peak_val * 100) if peak_val else 100.0
+            current_cost = c["cost"]
+            rem_size = max(0, peak_val - current_cost) if peak_val else 0
+            pct_of_peak = (current_cost / peak_val * 100) if peak_val else 100.0
 
             strat_display = ", ".join(sorted(c["strategy"])) or "—"
 
@@ -150,6 +151,6 @@ def render_portfolio_holdings(open_all, all_trades_raw, price_data):
                     <div style="border-top:1px solid {BORDER_LIGHT};padding-top:6px;font-size:10px">
                         <div style="color:{TEXT_SUBTLE}">REM. SIZE</div>
                         <div style="color:{BLUE};font-weight:700">₹{rem_size:,.2f}</div>
-                        <div style="color:{TEXT_SUBTLE};font-size:9px;margin-top:1px">{pct_of_peak:.0f}% of peak</div>
+                        <div style="color:{TEXT_SUBTLE};font-size:9px;margin-top:1px">{pct_of_peak:.0f}% deployed of peak</div>
                     </div>
                 </div>""", unsafe_allow_html=True)
