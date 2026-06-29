@@ -1,15 +1,32 @@
 import streamlit as st
 
-# ── Simple password protection ────────────────────────────────────────────────
+# ── Simple password protection with remember me ──────────────────────────────
 def _check_password():
+    from streamlit_cookies_manager import EncryptedCookieManager
+    cookies = EncryptedCookieManager(
+        prefix="sak_journal_",
+        password=st.secrets.get("COOKIE_SECRET", "sak_cookie_secret_2026")
+    )
+    if not cookies.ready():
+        st.stop()
+
+    # Check cookie first
+    if cookies.get("authenticated") == "true":
+        st.session_state["_authenticated"] = True
+
     if st.session_state.get("_authenticated"):
         return True
+
     st.markdown("## 🔐 SAK Journal")
     st.markdown("Enter password to continue.")
     pwd = st.text_input("Password", type="password", key="_pwd_input")
+    remember = st.checkbox("Remember me for 30 days", value=True, key="_remember")
     if st.button("Login", type="primary"):
         if pwd == st.secrets.get("APP_PASSWORD", "sak2026"):
             st.session_state["_authenticated"] = True
+            if remember:
+                cookies["authenticated"] = "true"
+                cookies.save()
             st.rerun()
         else:
             st.error("❌ Incorrect password")
