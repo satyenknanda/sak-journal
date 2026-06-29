@@ -86,6 +86,8 @@ def render():
     from data.db import get_trades
     all_trades = get_trades()
     closed = [t for t in all_trades if t.get("status")=="CLOSED" and t.get("r_multiple")]
+    # Sort by exit date for chronological running expectancy
+    closed = sorted(closed, key=lambda x: str(x.get("exit_date") or x.get("entry_date") or ""))
     if not closed:
         st.info("No closed trades with R-multiple data."); return
 
