@@ -860,6 +860,10 @@ def render():
             if r_mult:
                 try: rv2=float(r_mult); ref+=chip("R-MULT",f"{rv2:+.2f}R",G if rv2>0 else R,f"{'#F0FDF4' if rv2>0 else '#FEF2F2'}")
                 except: pass
+            if str(trade.get("funding_type","CASH") or "CASH").upper()=="MTF":
+                from data.db import calc_mtf_interest_total
+                mtf_int=calc_mtf_interest_total(trade)
+                if mtf_int>0: ref+=chip("MTF INT",f"₹{mtf_int:,.2f}",AM,"#FFFBEB")
             if mae: ref+=chip("▼ MAE",f"₹{mae:,.2f}",R,"#FEF2F2")
             if mfe: ref+=chip("▲ MFE",f"₹{mfe:,.2f}",G,"#F0FDF4")
             if best_ep: ref+=chip("★ BEST EXIT",f"₹{best_ep:,.2f}",AM,"#FFFBEB")

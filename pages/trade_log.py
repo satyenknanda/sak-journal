@@ -26,7 +26,7 @@ def select_columns_dialog():
     st.caption("Choose the columns you want to display in the table")
     ALL_COLS = ["Open Date","Symbol","Strategy","Status","Side","Close Date",
                 "Entry Price","Exit Price","Net P&L","Net ROI","R-Multiple",
-                "Stop Loss","Qty","Gross P&L","Commissions","Zella Scale"]
+                "Stop Loss","Qty","Gross P&L","Commissions","MTF Interest","Zella Scale"]
     DEFAULT = ["Open Date","Symbol","Strategy","Status","Side","Close Date",
                "Entry Price","Exit Price","Net P&L","R-Multiple"]
     if "tl_cols" not in st.session_state:
@@ -295,6 +295,12 @@ def render():
             c2=float(t.get("commission_entry") or 0)+float(t.get("commission_exit") or 0)
             return f'₹{c2:,.0f}'
         if col=="Gross P&L":   return f'<span style="color:{rc}">{"+"if p>0 else ""}₹{abs(p):,.0f}</span>'
+        if col=="MTF Interest":
+            from data.db import calc_mtf_interest_total
+            if str(t.get("funding_type","CASH") or "CASH").upper()=="MTF":
+                mi=calc_mtf_interest_total(t)
+                return f'<span style="color:{AM if mi>0 else MUTED}">₹{mi:,.2f}</span>' if mi>0 else "—"
+            return "—"
         return "—"
 
     for t in page_t:

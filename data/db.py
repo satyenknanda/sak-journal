@@ -1,7 +1,38 @@
 # data/db.py — Auto-switches between Supabase (cloud) and SQLite (local)
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, date as _date, timedelta as _timedelta
+
+ZERODHA_MTF_DAILY_RATE = 0.0004  # 0.04% per day
+
+def calc_mtf_interest_total(t):
+    """Total MTF interest for a single trade (entry+1 day to exit/today).
+    Mirrors the per-trade logic in fund_management.py but returns one float."""
+    if str(t.get("funding_type", "CASH") or "CASH").upper() != "MTF":
+        return 0.0
+    qty = float(t.get("qty") or 0)
+    price = float(t.get("entry_price") or 0)
+    margin_pct = float(t.get("mtf_margin_pct") or 50.0)
+    position_value = qty * price
+    borrowed = position_value * (1 - margin_pct / 100)
+    if borrowed <= 0:
+        return 0.0
+    try:
+        entry_dt = datetime.strptime(str(t.get("entry_date", ""))[:10], "%Y-%m-%d").date()
+    except Exception:
+        return 0.0
+    if t.get("status") == "CLOSED" and t.get("exit_date"):
+        try:
+            exit_dt = datetime.strptime(str(t.get("exit_date", ""))[:10], "%Y-%m-%d").date()
+        except Exception:
+            exit_dt = _date.today()
+    else:
+        exit_dt = _date.today()
+    start = entry_dt + _timedelta(days=1)
+    if start > exit_dt:
+        return 0.0
+    holding_days = (exit_dt - start).days + 1
+    return round(borrowed * ZERODHA_MTF_DAILY_RATE * holding_days, 2)
 
 # ── Backend detection ─────────────────────────────────────────────────────────
 def _use_supabase():
