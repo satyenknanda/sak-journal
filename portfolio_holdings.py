@@ -123,6 +123,14 @@ def render_portfolio_holdings(open_all, all_trades_raw, price_data):
             pct_of_peak = (current_cost / peak_val * 100) if peak_val else 100.0
 
             strat_display = ", ".join(sorted(c["strategy"])) or "—"
+            from data.db import calc_mtf_interest_total
+            mtf_int_total = sum(
+                calc_mtf_interest_total(t)
+                for t in all_trades_raw
+                if t.get("ticker") == tk
+                and t.get("status") == "OPEN"
+                and str(t.get("funding_type","CASH") or "CASH").upper() == "MTF"
+            )
 
             with cols[j]:
                 st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:12px;
@@ -152,5 +160,5 @@ def render_portfolio_holdings(open_all, all_trades_raw, price_data):
                         <div style="color:{TEXT_SUBTLE}">REM. SIZE</div>
                         <div style="color:{BLUE};font-weight:700">₹{rem_size:,.2f}</div>
                         <div style="color:{TEXT_SUBTLE};font-size:9px;margin-top:1px">{pct_of_peak:.0f}% deployed of peak</div>
-                    </div>
+                    </div>{'<div style="border-top:1px solid '+BORDER_LIGHT+';padding-top:6px;margin-top:6px;font-size:10px"><div style="color:'+TEXT_SUBTLE+'">MTF INTEREST</div><div style="color:'+AMBER+';font-weight:700">₹'+f'{mtf_int_total:,.2f}'+'</div></div>' if mtf_int_total>0 else ''}
                 </div>""", unsafe_allow_html=True)
