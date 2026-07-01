@@ -151,24 +151,24 @@ def exit_trade(trade_id, exit_price, exit_date, exit_qty=None, commission=0):
     if exit_qty: data["exit_qty"] = exit_qty
     if commission: data["commission_exit"] = commission
     update_trade(trade_id, data)
-    # Auto-calculate MAE/MFE in background after exit
-    def _auto_mae_mfe():
-        try:
-            import sys, os, time
-            sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            import calc_mae_mfe
-            trades = get_trades()
-            t = next((x for x in trades if x.get("id") == trade_id), None)
-            if not t: return
+    # Auto-calculate MAE/MFE synchronously after exit
+    try:
+        import sys, os
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        import calc_mae_mfe
+        trades = get_trades()
+        t = next((x for x in trades if x.get("id") == trade_id), None)
+        if t:
+            t["exit_price"] = exit_price
+            t["exit_date"] = str(exit_date)
+            t["status"] = "CLOSED"
             df = calc_mae_mfe.get_price_data(t.get("ticker"), t.get("entry_date"), str(exit_date))
-            if df is None or df.empty: return
-            mv, fv = calc_mae_mfe.calc_mae_mfe(t, df)
-            if mv is not None and fv is not None:
-                update_trade(trade_id, {"mae_price": mv, "mfe_price": fv})
-        except Exception as e:
-            print(f"auto MAE/MFE error: {e}")
-    import threading
-    threading.Thread(target=_auto_mae_mfe, daemon=True).start()
+            if df is not None and not df.empty:
+                mv, fv = calc_mae_mfe.calc_mae_mfe(t, df)
+                if mv is not None and fv is not None:
+                    update_trade(trade_id, {"mae_price": mv, "mfe_price": fv})
+    except Exception as e:
+        print(f"auto MAE/MFE error: {e}")
 
 def get_strategies():
     try:
