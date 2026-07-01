@@ -307,7 +307,10 @@ def render():
                             df2=calc_mae_mfe.get_price_data(ticker,trade.get("entry_date"),trade.get("exit_date"))
                             t2={"id":trade_id,"ticker":ticker,"side":side,"entry_price":entry_p,"exit_price":exit_p,"qty":qty,"entry_date":trade.get("entry_date"),"exit_date":trade.get("exit_date")}
                             mv,fv=calc_mae_mfe.calc_mae_mfe(t2,df2)
-                            if mv: calc_mae_mfe.save_mae_mfe(trade_id,mv,fv); st.success(f"✅ MAE:₹{mv:,.2f} MFE:₹{fv:,.2f}"); st.rerun()
+                            if mv:
+                                from data.db import update_trade
+                                update_trade(trade_id, {"mae_price": mv, "mfe_price": fv})
+                                st.success(f"✅ MAE:₹{mv:,.2f} MFE:₹{fv:,.2f}"); st.rerun()
                             else: st.warning("No price data.")
                         except Exception as e: st.error(str(e))
 
