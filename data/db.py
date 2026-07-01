@@ -156,8 +156,11 @@ def exit_trade(trade_id, exit_price, exit_date, exit_qty=None, commission=0):
         import sys, os
         sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         import calc_mae_mfe
-        trades = get_trades()
-        t = next((x for x in trades if x.get("id") == trade_id), None)
+        if _use_supabase():
+            res = _sb().table("trades").select("*").eq("id", trade_id).execute()
+            t = res.data[0] if res.data else None
+        else:
+            t = None
         if t:
             t["exit_price"] = exit_price
             t["exit_date"] = str(exit_date)
