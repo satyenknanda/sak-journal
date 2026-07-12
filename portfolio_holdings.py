@@ -140,28 +140,28 @@ def render_portfolio_holdings(open_all, all_trades_raw, price_data):
                     padding:14px 16px;margin-bottom:10px;box-shadow:{SHADOW_SM}">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
                         <div>
-                            <div style="font-size:14px;font-weight:700;color:{TEXT_H}">{tk}</div>
-                            <div style="font-size:10px;color:{TEXT_SUBTLE}">{strat_display}</div>
+                            <div style="font-size:15px;font-weight:800;color:{TEXT_H}">{tk}</div>
+                            <div style="font-size:11px;color:{TEXT_SUBTLE};font-weight:500">{strat_display}</div>
                         </div>
                         <div style="text-align:right">
-                            <div style="font-size:14px;font-weight:700;color:{pnl_col}">{'+' if unrealized>=0 else ''}₹{unrealized:,.0f}</div>
-                            <div style="font-size:10px;color:{pnl_col}">{unrealized_pct:+.2f}%</div>
+                            <div style="font-size:15px;font-weight:800;color:{pnl_col}">{'+' if unrealized>=0 else ''}₹{unrealized:,.0f}</div>
+                            <div style="font-size:11px;font-weight:600;color:{pnl_col}">{unrealized_pct:+.2f}%</div>
                         </div>
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:10px;
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:11px;
                         border-top:1px solid {BORDER_LIGHT};padding-top:8px;margin-bottom:6px">
-                        <div><div style="color:{TEXT_SUBTLE}">AVG</div><div style="color:{TEXT_H};font-weight:600">₹{avg:,.2f}</div></div>
-                        <div><div style="color:{TEXT_SUBTLE}">LTP</div><div style="color:{TEXT_H};font-weight:600">₹{live:,.2f}</div></div>
-                        <div><div style="color:{TEXT_SUBTLE}">ALLOC</div><div style="color:{TEXT_H};font-weight:600">{alloc:.2f}%</div></div>
+                        <div><div style="color:{TEXT_MUTED};font-weight:600;font-size:10px">AVG</div><div style="color:{TEXT_H};font-weight:700">₹{avg:,.2f}</div></div>
+                        <div><div style="color:{TEXT_MUTED};font-weight:600;font-size:10px">LTP</div><div style="color:{TEXT_H};font-weight:700">₹{live:,.2f}</div></div>
+                        <div><div style="color:{TEXT_MUTED};font-weight:600;font-size:10px">ALLOC</div><div style="color:{TEXT_H};font-weight:700">{alloc:.2f}%</div></div>
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:10px;margin-bottom:6px">
-                        <div><div style="color:{TEXT_SUBTLE}">AT RISK</div><div style="color:{risk_col};font-weight:600">{at_risk}</div></div>
-                        <div><div style="color:{TEXT_SUBTLE}">R:R</div><div style="color:{TEXT_H};font-weight:600">{rr_display}</div></div>
-                        <div><div style="color:{TEXT_SUBTLE}">SL</div><div style="color:{RED};font-weight:600">{sl_display}</div></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:11px;margin-bottom:6px">
+                        <div><div style="color:{TEXT_MUTED};font-weight:600;font-size:10px">AT RISK</div><div style="color:{risk_col};font-weight:700">{at_risk}</div></div>
+                        <div><div style="color:{TEXT_MUTED};font-weight:600;font-size:10px">R:R</div><div style="color:{TEXT_H};font-weight:700">{rr_display}</div></div>
+                        <div><div style="color:{TEXT_MUTED};font-weight:600;font-size:10px">SL</div><div style="color:{RED};font-weight:700">{sl_display}</div></div>
                     </div>
-                    <div style="border-top:1px solid {BORDER_LIGHT};padding-top:6px;font-size:10px">
-                        <div style="color:{TEXT_SUBTLE}">REM. SIZE</div>
-                        <div style="color:{BLUE};font-weight:700">₹{rem_size:,.2f}</div>
-                        <div style="color:{TEXT_SUBTLE};font-size:9px;margin-top:1px">{pct_of_peak:.0f}% deployed of peak</div>
+                    <div style="border-top:1px solid {BORDER_LIGHT};padding-top:6px;font-size:11px">
+                        <div style="color:{TEXT_MUTED};font-weight:600;font-size:10px">REM. SIZE</div>
+                        <div style="color:{BLUE};font-weight:800">₹{rem_size:,.2f}</div>
+                        <div style="color:{TEXT_MUTED};font-size:10px;font-weight:500;margin-top:1px">{pct_of_peak:.0f}% deployed of peak</div>
                     </div>{'<div style="border-top:1px solid '+BORDER_LIGHT+';padding-top:6px;margin-top:6px;font-size:10px"><div style="color:'+TEXT_SUBTLE+'">MTF INTEREST</div><div style="color:'+AMBER+';font-weight:700">₹'+f'{mtf_int_total:,.2f}'+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px"><div><div style="color:'+TEXT_SUBTLE+'">YOUR MARGIN ('+f'{mtf_margin_pct:.1f}'+'%)</div><div style="color:'+TEXT_H+';font-weight:600">₹'+f'{mtf_your_margin:,.0f}'+'</div></div><div><div style="color:'+TEXT_SUBTLE+'">BROKER LOAN</div><div style="color:'+RED+';font-weight:600">₹'+f'{mtf_broker_loan:,.0f}'+'</div></div></div></div>' if mtf_int_total>0 else ''}
                 </div>""", unsafe_allow_html=True)
