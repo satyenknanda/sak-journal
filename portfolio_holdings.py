@@ -124,13 +124,16 @@ def render_portfolio_holdings(open_all, all_trades_raw, price_data):
 
             strat_display = ", ".join(sorted(c["strategy"])) or "—"
             from data.db import calc_mtf_interest_total
-            mtf_int_total = sum(
-                calc_mtf_interest_total(t)
-                for t in all_trades_raw
-                if t.get("ticker") == tk
-                and t.get("status") == "OPEN"
-                and str(t.get("funding_type","CASH") or "CASH").upper() == "MTF"
-            )
+            mtf_trades = [t for t in all_trades_raw
+                         if t.get("ticker") == tk
+                         and t.get("status") == "OPEN"
+                         and str(t.get("funding_type","CASH") or "CASH").upper() == "MTF"]
+            mtf_int_total = sum(calc_mtf_interest_total(t) for t in mtf_trades)
+            # Margin bifurcation
+            mtf_position_val = sum(float(t.get("qty") or 0) * float(t.get("entry_price") or 0) for t in mtf_trades)
+            mtf_margin_pct = float(mtf_trades[0].get("mtf_margin_pct") or 50.0) if mtf_trades else 50.0
+            mtf_your_margin = mtf_position_val * (mtf_margin_pct / 100)
+            mtf_broker_loan = mtf_position_val * (1 - mtf_margin_pct / 100)
 
             with cols[j]:
                 st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:12px;
@@ -160,5 +163,5 @@ def render_portfolio_holdings(open_all, all_trades_raw, price_data):
                         <div style="color:{TEXT_SUBTLE}">REM. SIZE</div>
                         <div style="color:{BLUE};font-weight:700">₹{rem_size:,.2f}</div>
                         <div style="color:{TEXT_SUBTLE};font-size:9px;margin-top:1px">{pct_of_peak:.0f}% deployed of peak</div>
-                    </div>{'<div style="border-top:1px solid '+BORDER_LIGHT+';padding-top:6px;margin-top:6px;font-size:10px"><div style="color:'+TEXT_SUBTLE+'">MTF INTEREST</div><div style="color:'+AMBER+';font-weight:700">₹'+f'{mtf_int_total:,.2f}'+'</div></div>' if mtf_int_total>0 else ''}
+                    </div>{'<div style="border-top:1px solid '+BORDER_LIGHT+';padding-top:6px;margin-top:6px;font-size:10px"><div style="color:'+TEXT_SUBTLE+'">MTF INTEREST</div><div style="color:'+AMBER+';font-weight:700">₹'+f'{mtf_int_total:,.2f}'+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px"><div><div style="color:'+TEXT_SUBTLE+'">YOUR MARGIN ('+f'{mtf_margin_pct:.1f}'+'%)</div><div style="color:'+TEXT_H+';font-weight:600">₹'+f'{mtf_your_margin:,.0f}'+'</div></div><div><div style="color:'+TEXT_SUBTLE+'">BROKER LOAN</div><div style="color:'+RED+';font-weight:600">₹'+f'{mtf_broker_loan:,.0f}'+'</div></div></div></div>' if mtf_int_total>0 else ''}
                 </div>""", unsafe_allow_html=True)
