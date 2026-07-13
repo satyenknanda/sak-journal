@@ -115,7 +115,28 @@ def add_trade(data):
     try:
         if _use_supabase():
             res = _sb().table("trades").insert(data).execute()
-            return res.data[0] if res.data else None
+            trade = res.data[0] if res.data else None
+            if trade:
+                # Auto entry quality check
+                try:
+                    import threading
+                    def _run_eq():
+                        import time; time.sleep(2)  # wait for data to settle
+                        from agents.entry_quality import get_intraday_data, check_entry_quality
+                        ticker = trade.get("ticker","")
+                        entry_date = str(trade.get("entry_date",""))[:10]
+                        df = get_intraday_data(ticker, entry_date)
+                        result = check_entry_quality(trade, df)
+                        if result.get("grade"):
+                            update_trade(trade["id"], {
+                                "entry_quality": result,
+                                "entry_grade": result.get("grade","")
+                            })
+                            print(f"✅ Entry quality: {ticker} Grade {result.get('grade')}")
+                    threading.Thread(target=_run_eq, daemon=True).start()
+                except Exception as e:
+                    print(f"entry quality error: {e}")
+            return trade
     except Exception as e: print(f"add_trade error: {e}")
     try:
         c = _local_db()
