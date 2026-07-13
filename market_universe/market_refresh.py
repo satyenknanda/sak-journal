@@ -62,6 +62,43 @@ def ytd_change(hist):
     return round((latest - first) / first * 100, 2)
 
 
+def fetch_ath_for_ticker(ticker):
+    """Fetch all-time high using max period."""
+    try:
+        import yfinance as yf
+        hist = yf.Ticker(f"{ticker}.NS").history(period="max", auto_adjust=False)
+        if hist.empty: return None, None
+        ath = round(float(hist["High"].max()), 2)
+        close = round(float(hist["Close"].iloc[-1]), 2)
+        pct_from_ath = round((close - ath) / ath * 100, 2)
+        return ath, pct_from_ath
+    except: return None, None
+
+def refresh_ath(tickers=None):
+    """Refresh ATH for all tickers in market_universe."""
+    import time
+    sb = _sb()
+    if not tickers:
+        universe = sb.table("market_universe").select("ticker").execute().data
+        tickers = [r["ticker"] for r in universe]
+    print(f"Refreshing ATH for {len(tickers)} tickers...")
+    success = 0
+    for ticker in tickers:
+        ath, pct = fetch_ath_for_ticker(ticker)
+        if ath:
+            try:
+                sb.table("market_universe").update({
+                    "all_time_high": ath,
+                    "pct_from_ath": pct
+                }).eq("ticker", ticker).execute()
+                success += 1
+                if success % 50 == 0:
+                    print(f"  ✅ {success}/{len(tickers)}")
+            except Exception as e:
+                print(f"  ❌ {ticker}: {e}")
+        time.sleep(0.3)
+    print(f"✅ ATH refresh done — {success} tickers updated")
+
 def fetch_hist_for_ticker(ticker):
     """Pulls 1y daily history once. Returns the DataFrame or None on failure."""
     try:
