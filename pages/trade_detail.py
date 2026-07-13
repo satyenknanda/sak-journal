@@ -870,12 +870,40 @@ def render():
             if mae: ref+=chip("▼ MAE",f"₹{mae:,.2f}",R,"#FEF2F2")
             if mfe: ref+=chip("▲ MFE",f"₹{mfe:,.2f}",G,"#F0FDF4")
             if best_ep: ref+=chip("★ BEST EXIT",f"₹{best_ep:,.2f}",AM,"#FFFBEB")
+            # Auto-tags from Agent 2
+            auto_tags = trade.get("tags") or []
+            if isinstance(auto_tags, str):
+                try: import json; auto_tags = json.loads(auto_tags)
+                except: auto_tags = [t.strip() for t in auto_tags.split(",") if t.strip()]
+            TAG_COLORS = {
+                "big_winner": (G,"#F0FDF4"), "early_exit": (AM,"#FFFBEB"),
+                "held_drawdown": (R,"#FEF2F2"), "clean_stop": (B,"#EFF6FF"),
+                "stopped_out": (R,"#FEF2F2"), "breakeven": (MUTED,"#F3F4F6"),
+                "followed_plan": (G,"#F0FDF4"), "deviated_plan": (AM,"#FFFBEB"),
+                "good_entry": (G,"#F0FDF4"), "poor_entry": (R,"#FEF2F2"),
+                "patient": (G,"#F0FDF4"), "impulsive": (AM,"#FFFBEB"),
+                "vcp_setup": (B,"#EFF6FF"), "reversal_setup": (B,"#EFF6FF"),
+                "ep_setup": (B,"#EFF6FF"),
+            }
+            for tag in auto_tags:
+                c,bg = TAG_COLORS.get(tag, (MUTED,"#F3F4F6"))
+                ref += chip(tag.replace("_"," ").upper(), "", c, bg)
             for lv in (st.session_state.get("td_pts") or []):
                 if lv.get("price",0)>0: ref+=chip("▲ PT",f"₹{lv['price']:,.2f}",G,"#F0FDF4")
             for lv in (st.session_state.get("td_sls") or []):
                 if lv.get("price",0)>0: ref+=chip("▼ SL",f"₹{lv['price']:,.2f}",R,"#FEF2F2")
             ref+='</div>'
             st.markdown(ref,unsafe_allow_html=True)
+            # Coaching note + grade from Agent 2
+            grade = trade.get("session_grade","")
+            note  = trade.get("auto_tag_notes","")
+            if grade or note:
+                grade_col = G if grade in ("A","B") else AM if grade=="C" else R
+                st.markdown(f'''<div style="background:#F8FAFC;border:1px solid {BORDER};border-radius:8px;
+                    padding:8px 12px;margin-top:6px;display:flex;align-items:center;gap:10px">
+                    {f'<span style="font-size:18px;font-weight:800;color:{grade_col}">{grade}</span>' if grade else ""}
+                    {f'<span style="font-size:11px;color:{MUTED}">{note}</span>' if note else ""}
+                </div>''', unsafe_allow_html=True)
 
         with ct2:
             # Templates
