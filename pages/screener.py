@@ -33,24 +33,32 @@ def render():
         st.caption("CSV columns: Stock Name, RS Rating, Basic Industry, % from 52W High, Returns since Earnings(%)")
         uploaded = st.file_uploader("Choose CSV", type="csv", key="universe_csv")
         if uploaded is not None:
-            csv_text = uploaded.read().decode("utf-8")
-            rows = list(csv.DictReader(_io.StringIO(csv_text)))
-            records = []
-            for row in rows:
-                ticker = row.get("Stock Name","").strip()
-                if not ticker: continue
-                rs = row.get("RS Rating","").strip()
-                industry = row.get("Basic Industry","").strip()
-                pct52 = row.get("% from 52W High","").strip()
-                ret_earn = row.get("Returns since Earnings(%)","").strip()
-                records.append({
-                    "ticker": ticker, "sector": industry, "industry": industry,
-                    "rs_rating": int(rs) if rs.lstrip("-").isdigit() else None,
-                    "pct_from_52w_high": float(pct52) if pct52 not in ("","NA") else None,
-                    "returns_since_earnings": float(ret_earn) if ret_earn not in ("","NA") else None,
-                })
-            st.session_state["_universe_records"] = records
-            st.info(f"Found {len(records)} tickers")
+            try:
+                csv_bytes = uploaded.read()
+                if csv_bytes:
+                    csv_text = csv_bytes.decode("utf-8")
+                    rows = list(csv.DictReader(_io.StringIO(csv_text)))
+                    records = []
+                    for row in rows:
+                        ticker = row.get("Stock Name","").strip()
+                        if not ticker: continue
+                        rs = row.get("RS Rating","").strip()
+                        industry = row.get("Basic Industry","").strip()
+                        pct52 = row.get("% from 52W High","").strip()
+                        ret_earn = row.get("Returns since Earnings(%)","").strip()
+                        records.append({
+                            "ticker": ticker, "sector": industry, "industry": industry,
+                            "rs_rating": int(rs) if rs.lstrip("-").isdigit() else None,
+                            "pct_from_52w_high": float(pct52) if pct52 not in ("","NA") else None,
+                            "returns_since_earnings": float(ret_earn) if ret_earn not in ("","NA") else None,
+                        })
+                    if records:
+                        st.session_state["_universe_records"] = records
+                        st.success(f"✅ File read: {len(records)} tickers — click Upload below")
+                    else:
+                        st.warning("No valid tickers found in CSV")
+            except Exception as e:
+                st.error(f"❌ File read error: {e}")
 
         if st.session_state.get("_universe_records"):
             records = st.session_state["_universe_records"]
