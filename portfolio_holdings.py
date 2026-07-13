@@ -154,6 +154,7 @@ def render_portfolio_holdings(open_all, all_trades_raw, price_data):
             with cols[j]:
                 # Build entry quality HTML separately
                 if eq_grade:
+                    G = "#10B981"; R = "#EF4444"; AM = "#F59E0B"
                     eq_grade_col = G if eq_grade in ("A","B") else AM if eq_grade=="C" else R
                     eq_rows = ""
                     for ck, cv in eq_checks.items():
