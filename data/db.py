@@ -170,6 +170,14 @@ def exit_trade(trade_id, exit_price, exit_date, exit_qty=None, commission=0):
                 mv, fv = calc_mae_mfe.calc_mae_mfe(t, df)
                 if mv is not None and fv is not None:
                     update_trade(trade_id, {"mae_price": mv, "mfe_price": fv})
+                    t["mae_price"] = mv
+                    t["mfe_price"] = fv
+            # Auto-tag trade after MAE/MFE calculated
+            try:
+                from agents.auto_tagger import tag_trade
+                tag_trade(trade_id, t)
+            except Exception as te:
+                print(f"auto tag error: {te}")
     except Exception as e:
         print(f"auto MAE/MFE error: {e}")
 
