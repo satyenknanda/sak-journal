@@ -123,6 +123,22 @@ def render_portfolio_holdings(open_all, all_trades_raw, price_data):
             pct_of_peak = (current_cost / peak_val * 100) if peak_val else 100.0
 
             strat_display = ", ".join(sorted(c["strategy"])) or "—"
+            # Entry Quality from agent
+            import json as _json
+            eq_data = c.get("entry_quality") or {}
+            if not eq_data and all_trades_raw:
+                # Get from first open trade for this ticker
+                for _t in all_trades_raw:
+                    if _t.get("ticker")==tk and _t.get("status")=="OPEN" and _t.get("entry_quality"):
+                        eq_data = _t.get("entry_quality") or {}
+                        break
+            if isinstance(eq_data, str):
+                try: eq_data = _json.loads(eq_data)
+                except: eq_data = {}
+            eq_grade = eq_data.get("grade","")
+            eq_score = eq_data.get("score_pct",0)
+            eq_checks = eq_data.get("checks",{})
+
             from data.db import calc_mtf_interest_total
             mtf_trades = [t for t in all_trades_raw
                          if t.get("ticker") == tk
@@ -136,6 +152,24 @@ def render_portfolio_holdings(open_all, all_trades_raw, price_data):
             mtf_broker_loan = mtf_position_val * (1 - mtf_margin_pct / 100)
 
             with cols[j]:
+                # Build entry quality HTML separately
+                if eq_grade:
+                    eq_grade_col = G if eq_grade in ("A","B") else AM if eq_grade=="C" else R
+                    eq_rows = ""
+                    for ck, cv in eq_checks.items():
+                        status = cv.get("status","—")
+                        label = cv.get("label","")
+                        detail = cv.get("detail","")
+                        s_col = G if status=="✅" else R if status=="❌" else TEXT_SUBTLE
+                        eq_rows += f'<div style="display:flex;justify-content:space-between;align-items:center;font-size:9px;margin-bottom:3px"><span style="color:{TEXT_MUTED}">{label}</span><span style="color:{s_col};font-weight:600">{status}</span></div>'
+                    eq_html = f'''<div style="border-top:1px solid {BORDER_LIGHT};padding-top:6px;margin-top:6px;font-size:10px">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                            <span style="color:{TEXT_MUTED};font-weight:600;font-size:10px">ENTRY QUALITY</span>
+                            <span style="font-size:16px;font-weight:800;color:{eq_grade_col}">{eq_grade} <span style="font-size:9px;color:{TEXT_SUBTLE}">({eq_score:.0f}%)</span></span>
+                        </div>{eq_rows}</div>'''
+                else:
+                    eq_html = ""
+
                 st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:12px;
                     padding:14px 16px;margin-bottom:10px;box-shadow:{SHADOW_SM}">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
@@ -163,5 +197,5 @@ def render_portfolio_holdings(open_all, all_trades_raw, price_data):
                         <div style="color:{TEXT_MUTED};font-weight:600;font-size:10px">REM. SIZE</div>
                         <div style="color:{BLUE};font-weight:800">₹{rem_size:,.2f}</div>
                         <div style="color:{TEXT_MUTED};font-size:10px;font-weight:500;margin-top:1px">{pct_of_peak:.0f}% deployed of peak</div>
-                    </div>{'<div style="border-top:1px solid '+BORDER_LIGHT+';padding-top:6px;margin-top:6px;font-size:10px"><div style="color:'+TEXT_SUBTLE+'">MTF INTEREST</div><div style="color:'+AMBER+';font-weight:700">₹'+f'{mtf_int_total:,.2f}'+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px"><div><div style="color:'+TEXT_SUBTLE+'">YOUR MARGIN ('+f'{mtf_margin_pct:.1f}'+'%)</div><div style="color:'+TEXT_H+';font-weight:600">₹'+f'{mtf_your_margin:,.0f}'+'</div></div><div><div style="color:'+TEXT_SUBTLE+'">BROKER LOAN</div><div style="color:'+RED+';font-weight:600">₹'+f'{mtf_broker_loan:,.0f}'+'</div></div></div></div>' if mtf_int_total>0 else ''}
+                    </div>{eq_html}{'<div style="border-top:1px solid '+BORDER_LIGHT+';padding-top:6px;margin-top:6px;font-size:10px"><div style="color:'+TEXT_SUBTLE+'">MTF INTEREST</div><div style="color:'+AMBER+';font-weight:700">₹'+f'{mtf_int_total:,.2f}'+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px"><div><div style="color:'+TEXT_SUBTLE+'">YOUR MARGIN ('+f'{mtf_margin_pct:.1f}'+'%)</div><div style="color:'+TEXT_H+';font-weight:600">₹'+f'{mtf_your_margin:,.0f}'+'</div></div><div><div style="color:'+TEXT_SUBTLE+'">BROKER LOAN</div><div style="color:'+RED+';font-weight:600">₹'+f'{mtf_broker_loan:,.0f}'+'</div></div></div></div>' if mtf_int_total>0 else ''}
                 </div>""", unsafe_allow_html=True)
