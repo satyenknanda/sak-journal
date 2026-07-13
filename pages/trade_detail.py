@@ -484,6 +484,14 @@ def render():
             # Playbook dropdown
             pbs=_get_playbooks()
             cur_pb=trade.get("playbook","") or ""
+            # Auto-fill playbook from strategy if not set
+            if not cur_pb and trade.get("strategy"):
+                strat = trade.get("strategy","")
+                # Find playbook matching strategy name
+                matched = next((p for p in pbs if strat.lower() in p.lower() or p.lower() in strat.lower()), None)
+                if matched:
+                    cur_pb = matched
+                    _save_trade_field(trade_id, playbook=matched)
             if pbs:
                 opts=["— Select Playbook —"]+pbs
                 idx_pb=pbs.index(cur_pb)+1 if cur_pb in pbs else 0
