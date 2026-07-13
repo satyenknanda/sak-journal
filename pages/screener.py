@@ -415,12 +415,15 @@ def render():
                 with st.spinner("Refreshing signals (~15 mins)..."):
                     _do_refresh_signals()
                     st.success("✅ Done!"); st.rerun()
+            col_rvol, col_ret = st.columns(2)
+            sip_rvol = col_rvol.number_input("Min RVOL", value=5.0, step=0.5, key="sip_rvol")
+            sip_ret  = col_ret.number_input("Min 1D %", value=3.0, step=0.5, key="sip_ret")
             sip = sorted([s for s in signals
-                         if float(s.get("volume_ratio") or 0) >= 3.0
-                         and float(s.get("ret_1d") or 0) >= 3.0],
+                         if float(s.get("volume_ratio") or 0) >= sip_rvol
+                         and float(s.get("ret_1d") or 0) >= sip_ret],
                         key=lambda x: -(float(x.get("volume_ratio") or 0)))
             signal_table(sip, "Stocks in Play",
-                "📌 Volume 3x+ normal AND price 3%+ today — today's actionable names — highest conviction",
+                f"📌 RVOL ≥{sip_rvol:.0f}x AND price +{sip_ret:.0f}%+ today — highest conviction intraday names",
                 "cohort3_stocks_in_play.csv")
 
         # Reversals — top weekly losers
