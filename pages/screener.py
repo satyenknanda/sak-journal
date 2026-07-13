@@ -374,17 +374,28 @@ def render():
                     </table></div>""", unsafe_allow_html=True)
 
                 _em_table(active_sec, f"ret_{active_key}", active_key)
-        # ATH Scan — within 10% of 52W high
+        # ATH Scan — within X% of All-Time High
         with c2:
             if st.button("🔄 Refresh ATH Scan", key="ref_ath", type="primary"):
                 with st.spinner("Refreshing signals (~15 mins)..."):
                     _do_refresh_signals()
-                    st.success("✅ Done!"); st.rerun()
-            ath = sorted([s for s in signals if s.get("pct_from_52w_high") is not None
-                         and float(s.get("pct_from_52w_high") or -99) >= -10],
-                        key=lambda x: -(float(x.get("pct_from_52w_high") or -99)))
-            signal_table(ath, "ATH Scan",
-                "📌 Within 10% of 52-week high — near-breakout candidates — sort by closest to ATH",
+                    st.rerun()
+            @st.cache_data(ttl=300)
+            def _load_ath():
+                r = _sb().table("market_universe").select("ticker,all_time_high,pct_from_ath").not_.is_("pct_from_ath","null").execute()
+                return {row["ticker"]: row for row in (r.data or [])}
+            ath_map = _load_ath()
+            ath_pct = st.number_input("Max % below ATH", value=10.0, step=1.0, key="ath_pct")
+            ath_list = []
+            for s in signals:
+                ticker = s.get("ticker","")
+                if ticker in ath_map:
+                    pct = float(ath_map[ticker].get("pct_from_ath") or -99)
+                    if pct >= -ath_pct:
+                        ath_list.append({**s, "pct_from_52w_high": pct})
+            ath_list = sorted(ath_list, key=lambda x: -(float(x.get("pct_from_52w_high") or -99)))
+            signal_table(ath_list, "ATH Scan",
+                f"📌 Within {ath_pct:.0f}% of All-Time High — sorted closest to ATH first",
                 "cohort3_ath.csv")
 
         # High ADR
