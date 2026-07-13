@@ -369,8 +369,8 @@ def render():
     # PERFORMANCE
     # ════════════════════════════════════════════════════════════════════
     # ── TOP TABS ──────────────────────────────────────────────────────
-    tab_perf, tab_ov, tab_reports, tab_cmp, tab_deep, tab_bell, tab_strat = st.tabs([
-        "📈 Performance", "📊 Overview", "📊 Reports", "⚖️ Compare", "🔬 Deep Analytics", "🔔 Bell Curve", "🎯 Strategy"
+    tab_perf, tab_ov, tab_reports, tab_cmp, tab_deep, tab_bell, tab_strat, tab_ai = st.tabs([
+        "📈 Performance", "📊 Overview", "📊 Reports", "⚖️ Compare", "🔬 Deep Analytics", "🔔 Bell Curve", "🎯 Strategy", "🤖 AI Insights"
     ])
 
     # ════════════════════════════════════════════════════════════════════
@@ -3103,3 +3103,195 @@ def render():
                     else:
                         st.info("No trades match this filter.")
                     st.markdown("</div>", unsafe_allow_html=True)
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # 🤖 AI INSIGHTS TAB
+    # ═══════════════════════════════════════════════════════════════════════
+    with tab_ai:
+        st.markdown("## 🤖 AI Agents Insights")
+        st.markdown(f'<p style="color:{TEXT_SUBTLE};font-size:11px;margin-top:-8px;margin-bottom:16px">Auto Tagger · Entry Quality · Session Reviews</p>', unsafe_allow_html=True)
+
+        from data.db import _sb, _use_supabase
+        if not _use_supabase():
+            st.info("AI Insights requires Supabase connection.")
+        else:
+            sb = _sb()
+            ai1, ai2, ai3 = st.tabs(["🏷️ Auto Tagger", "📊 Entry Quality", "📋 Session Reviews"])
+
+            # ── Sub-tab 1: Auto Tagger ────────────────────────────────────────
+            with ai1:
+                import json
+                tagged = [t for t in closed if t.get("tags") or t.get("session_grade")]
+                st.markdown(f'<p style="font-size:11px;color:{TEXT_SUBTLE}">{len(tagged)} of {len(closed)} closed trades auto-tagged</p>', unsafe_allow_html=True)
+
+                if not tagged:
+                    st.info("No tagged trades yet. Tags are added automatically when you close a trade.")
+                else:
+                    # Grade distribution
+                    grades = [t.get("session_grade","") for t in tagged if t.get("session_grade")]
+                    grade_counts = {g: grades.count(g) for g in ["A","B","C","D","F"] if grades.count(g) > 0}
+
+                    g1,g2,g3,g4,g5 = st.columns(5)
+                    grade_cols = {"A": (g1,TEAL), "B": (g2,"#3B82F6"), "C": (g3,AMBER), "D": (g4,RED), "F": (g5,RED)}
+                    for grade, (col, color) in grade_cols.items():
+                        count = grade_counts.get(grade, 0)
+                        col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px;text-align:center">
+                            <div style="font-size:24px;font-weight:800;color:{color}">{grade}</div>
+                            <div style="font-size:20px;font-weight:700;color:{TEXT_H}">{count}</div>
+                            <div style="font-size:9px;color:{TEXT_SUBTLE}">trades</div>
+                        </div>''', unsafe_allow_html=True)
+
+                    st.markdown("<br>", unsafe_allow_html=True)
+
+                    # Tag frequency
+                    all_tags = []
+                    for t in tagged:
+                        tags = t.get("tags") or []
+                        if isinstance(tags, str):
+                            try: tags = json.loads(tags)
+                            except: tags = [x.strip() for x in tags.split(",") if x.strip()]
+                        all_tags.extend(tags)
+
+                    if all_tags:
+                        from collections import Counter
+                        tag_counts = Counter(all_tags).most_common(15)
+                        import plotly.graph_objects as go
+                        fig_tags = go.Figure(go.Bar(
+                            x=[t[1] for t in tag_counts],
+                            y=[t[0].replace("_"," ").title() for t in tag_counts],
+                            orientation="h",
+                            marker_color=TEAL
+                        ))
+                        fig_tags.update_layout(
+                            title="Most Common Tags",
+                            paper_bgcolor="white", plot_bgcolor="white",
+                            height=400, margin=dict(l=10,r=10,t=40,b=10),
+                            xaxis_title="Count"
+                        )
+                        st.plotly_chart(fig_tags, use_container_width=True)
+
+                    # Coaching notes
+                    notes = [(t.get("ticker",""), t.get("session_grade",""), t.get("auto_tag_notes",""), float(t.get("r_multiple") or 0))
+                             for t in tagged if t.get("auto_tag_notes")]
+                    if notes:
+                        st.markdown("### 💬 Coaching Notes")
+                        TH = f"padding:8px 12px;font-size:10px;color:white;background:#1E293B;text-align:left"
+                        TD = f"padding:8px 12px;font-size:11px;border-bottom:1px solid {BORDER_LIGHT}"
+                        rows_html = ""
+                        for ticker, grade, note, r in sorted(notes, key=lambda x: -(abs(x[3]))):
+                            gc = TEAL if grade in ("A","B") else AMBER if grade=="C" else RED
+                            rc = TEAL if r >= 0 else RED
+                            rows_html += f"""<tr>
+                                <td style="{TD};font-weight:700">{ticker}</td>
+                                <td style="{TD};color:{gc};font-weight:700">{grade}</td>
+                                <td style="{TD};color:{rc}">{r:+.2f}R</td>
+                                <td style="{TD};color:{TEXT_SUBTLE}">{note}</td>
+                            </tr>"""
+                        st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER}">
+                        <table style="width:100%;border-collapse:collapse">
+                            <thead><tr>
+                                <th style="{TH}">Ticker</th>
+                                <th style="{TH}">Grade</th>
+                                <th style="{TH}">R</th>
+                                <th style="{TH}">Coaching Note</th>
+                            </tr></thead>
+                            <tbody>{rows_html}</tbody>
+                        </table></div>""", unsafe_allow_html=True)
+
+            # ── Sub-tab 2: Entry Quality ──────────────────────────────────────
+            with ai2:
+                open_trades = sb.table("trades").select("*").eq("status","OPEN").not_.is_("entry_grade","null").execute().data
+                st.markdown(f'<p style="font-size:11px;color:{TEXT_SUBTLE}">{len(open_trades)} open trades with entry quality scores</p>', unsafe_allow_html=True)
+
+                if not open_trades:
+                    st.info("No entry quality data yet. Added automatically when you open a new trade.")
+                else:
+                    # Grade distribution
+                    eq_grades = [t.get("entry_grade","") for t in open_trades]
+                    e1,e2,e3,e4,e5 = st.columns(5)
+                    for grade, col in zip(["A","B","C","D","F"],[e1,e2,e3,e4,e5]):
+                        count = eq_grades.count(grade)
+                        color = TEAL if grade in ("A","B") else AMBER if grade=="C" else RED
+                        col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px;text-align:center">
+                            <div style="font-size:24px;font-weight:800;color:{color}">{grade}</div>
+                            <div style="font-size:20px;font-weight:700;color:{TEXT_H}">{count}</div>
+                            <div style="font-size:9px;color:{TEXT_SUBTLE}">trades</div>
+                        </div>''', unsafe_allow_html=True)
+
+                    st.markdown("<br>", unsafe_allow_html=True)
+
+                    # Check breakdown table
+                    st.markdown("### 📋 Entry Quality Breakdown")
+                    TH2 = f"padding:8px 12px;font-size:10px;color:white;background:#1E293B;text-align:left"
+                    TD2 = f"padding:8px 12px;font-size:11px;border-bottom:1px solid {BORDER_LIGHT}"
+                    rows2 = ""
+                    for t in sorted(open_trades, key=lambda x: x.get("entry_grade","Z")):
+                        eq = t.get("entry_quality") or {}
+                        if isinstance(eq, str):
+                            try: eq = json.loads(eq)
+                            except: eq = {}
+                        checks = eq.get("checks",{})
+                        check_str = " ".join([v.get("status","—") for v in checks.values()])
+                        score = eq.get("score_pct", 0)
+                        gc = TEAL if t.get("entry_grade") in ("A","B") else AMBER if t.get("entry_grade")=="C" else RED
+                        rows2 += f"""<tr>
+                            <td style="{TD2};font-weight:700">{t.get('ticker')}</td>
+                            <td style="{TD2};color:{TEXT_SUBTLE};font-size:10px">{t.get('strategy','')}</td>
+                            <td style="{TD2};color:{gc};font-weight:700;font-size:16px">{t.get('entry_grade','—')}</td>
+                            <td style="{TD2}">{score:.0f}%</td>
+                            <td style="{TD2};letter-spacing:4px">{check_str}</td>
+                            <td style="{TD2};color:{TEXT_SUBTLE};font-size:10px">{str(t.get('entry_date',''))[:10]}</td>
+                        </tr>"""
+                    st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER}">
+                    <table style="width:100%;border-collapse:collapse">
+                        <thead><tr>
+                            <th style="{TH2}">Ticker</th>
+                            <th style="{TH2}">Strategy</th>
+                            <th style="{TH2}">Grade</th>
+                            <th style="{TH2}">Score</th>
+                            <th style="{TH2}">Checks</th>
+                            <th style="{TH2}">Entry Date</th>
+                        </tr></thead>
+                        <tbody>{rows2}</tbody>
+                    </table></div>""", unsafe_allow_html=True)
+
+            # ── Sub-tab 3: Session Reviews ────────────────────────────────────
+            with ai3:
+                reviews = sb.table("daily_notes").select("*").eq("note_type","session_review").order("date", desc=True).limit(30).execute().data
+                st.markdown(f'<p style="font-size:11px;color:{TEXT_SUBTLE}">{len(reviews)} session reviews</p>', unsafe_allow_html=True)
+
+                if not reviews:
+                    st.info("No session reviews yet. Reviews run automatically at 4:15 PM IST on trading days.")
+                else:
+                    # Grade extraction
+                    def extract_grade(text):
+                        for line in text.split("\n"):
+                            if "grade" in line.lower() or "Grade" in line:
+                                for g in ["A","B","C","D","F"]:
+                                    if f"**{g}**" in line or f": {g}" in line or f"Grade {g}" in line:
+                                        return g
+                        return "?"
+
+                    r_grades = [(r["date"][:10], extract_grade(r.get("content",""))) for r in reviews]
+
+                    # Grade summary
+                    rv1,rv2,rv3,rv4,rv5 = st.columns(5)
+                    all_rev_grades = [g for _,g in r_grades if g != "?"]
+                    for grade, col in zip(["A","B","C","D","F"],[rv1,rv2,rv3,rv4,rv5]):
+                        count = all_rev_grades.count(grade)
+                        color = TEAL if grade in ("A","B") else AMBER if grade=="C" else RED
+                        col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px;text-align:center">
+                            <div style="font-size:24px;font-weight:800;color:{color}">{grade}</div>
+                            <div style="font-size:20px;font-weight:700;color:{TEXT_H}">{count}</div>
+                            <div style="font-size:9px;color:{TEXT_SUBTLE}">sessions</div>
+                        </div>''', unsafe_allow_html=True)
+
+                    st.markdown("<br>", unsafe_allow_html=True)
+
+                    # Review list
+                    for r in reviews:
+                        date_str = r["date"][:10]
+                        grade = extract_grade(r.get("content",""))
+                        gc = TEAL if grade in ("A","B") else AMBER if grade=="C" else RED
+                        with st.expander(f"{date_str} — Grade {grade}", expanded=False):
+                            st.markdown(r.get("content",""), unsafe_allow_html=False)
