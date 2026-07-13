@@ -552,6 +552,34 @@ def render():
                                 <div style="font-size:11px;color:{TEXT};line-height:1.5">{ins['desc']}</div>
                             </div>""", unsafe_allow_html=True)
 
+                # Session Review from Agent 3
+                try:
+                    from data.db import _sb, _use_supabase
+                    if _use_supabase():
+                        sr = _sb().table("daily_notes").select("*").eq("date", d_str).eq("note_type","session_review").execute().data
+                        if sr:
+                            review = sr[0].get("content","")
+                            grade = ""
+                            grade_col = G
+                            for line in review.split("\n"):
+                                if "grade" in line.lower():
+                                    for g in ["A","B","C","D","F"]:
+                                        if f"**{g}**" in line or f": {g}" in line or f"Grade {g}" in line or f"grade {g}" in line:
+                                            grade = g
+                                            grade_col = G if g in ("A","B") else AM if g=="C" else R
+                                            break
+                                    if grade: break
+                            st.markdown(f'''<div style="background:#F8FAFC;border:1px solid {BORDER};border-radius:10px;padding:14px 16px;margin:10px 0">
+                                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                                    <span style="font-size:11px;font-weight:700;color:{MUTED}">🤖 AI SESSION REVIEW</span>
+                                    {f'<span style="font-size:20px;font-weight:800;color:{grade_col};margin-left:auto">{grade}</span>' if grade else ""}
+                                </div>
+                                <div style="font-size:12px;color:{TEXT};line-height:1.7">{review.replace(chr(10),"<br>")}</div>
+                            </div>''', unsafe_allow_html=True)
+                        else:
+                            st.markdown(f'<div style="font-size:11px;color:{MUTED};padding:8px 0">🤖 AI Session Review runs at 4:15 PM IST after market close</div>', unsafe_allow_html=True)
+                except: pass
+
                 # Trade table
                 th = f"padding:7px 10px;text-align:left;color:{MUTED};font-size:0.65rem;text-transform:uppercase;letter-spacing:0.07em;font-weight:600;white-space:nowrap;border-bottom:2px solid {BORDER};background:{HEADER_BG}"
                 td_s = f"padding:7px 10px;font-size:0.8rem;white-space:nowrap;border-bottom:1px solid {BORDER}"
