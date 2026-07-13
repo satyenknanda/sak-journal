@@ -3155,7 +3155,6 @@ def render():
                     if all_tags:
                         from collections import Counter
                         tag_counts = Counter(all_tags).most_common(15)
-                        import plotly.graph_objects as go
                         fig_tags = go.Figure(go.Bar(
                             x=[t[1] for t in tag_counts],
                             y=[t[0].replace("_"," ").title() for t in tag_counts],
