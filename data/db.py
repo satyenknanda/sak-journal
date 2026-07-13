@@ -199,6 +199,18 @@ def exit_trade(trade_id, exit_price, exit_date, exit_qty=None, commission=0):
                 tag_trade(trade_id, t)
             except Exception as te:
                 print(f"auto tag error: {te}")
+            # Entry quality on closed trade
+            try:
+                from agents.entry_quality import get_intraday_data, check_entry_quality
+                eq_df = get_intraday_data(t.get("ticker",""), str(t.get("entry_date",""))[:10])
+                eq_result = check_entry_quality(t, eq_df)
+                if eq_result.get("grade"):
+                    update_trade(trade_id, {
+                        "entry_quality": eq_result,
+                        "entry_grade": eq_result.get("grade","")
+                    })
+            except Exception as eqe:
+                print(f"entry quality error: {eqe}")
     except Exception as e:
         print(f"auto MAE/MFE error: {e}")
 
