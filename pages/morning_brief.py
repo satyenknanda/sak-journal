@@ -47,6 +47,17 @@ def save_brief(brief_date, data):
                 "data": json.dumps(data),
                 "updated_at": str(__import__("datetime").datetime.now())
             }).execute()
+            # Save to daily_notes for session review agent
+            try:
+                from data.db import _sb as _db_sb
+                brief_text = json.dumps(data)[:1000]
+                _db_sb().table('daily_notes').upsert({
+                    'date': str(brief_date),
+                    'note_type': 'morning_brief',
+                    'content': brief_text,
+                }, on_conflict='date,note_type').execute()
+            except Exception as _e2:
+                print(f'daily_notes save error: {_e2}')
             return
         except Exception as e:
             print(f"save_brief supabase error: {e}")
