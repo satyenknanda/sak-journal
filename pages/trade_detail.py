@@ -147,6 +147,12 @@ def _save_trade_field(tid, **kwargs):
 
 def _get_playbooks():
     try:
+        from data.db import _sb, _use_supabase
+        if _use_supabase():
+            res = _sb().table("playbooks").select("name").order("name").execute()
+            return [r["name"] for r in res.data] if res.data else []
+    except: pass
+    try:
         rows=_db("SELECT name FROM playbooks ORDER BY name",fetch="all") or []
         return [r["name"] for r in rows]
     except: return []
