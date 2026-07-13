@@ -919,6 +919,31 @@ def render():
                     {f'<span style="font-size:11px;color:{MUTED}">{note}</span>' if note else ""}
                 </div>''', unsafe_allow_html=True)
 
+            # Entry Quality display
+            import json as _json
+            eq = trade.get("entry_quality") or {}
+            if isinstance(eq, str):
+                try: eq = _json.loads(eq)
+                except: eq = {}
+            eq_grade = trade.get("entry_grade","") or eq.get("grade","")
+            eq_checks = eq.get("checks",{})
+            eq_score = eq.get("score_pct",0)
+            if eq_grade:
+                eq_gc = G if eq_grade in ("A","B") else AM if eq_grade=="C" else R
+                checks_html = ""
+                for ck, cv in eq_checks.items():
+                    status = cv.get("status","—")
+                    label = cv.get("label","")
+                    detail = cv.get("detail","")
+                    sc = G if status=="✅" else R if status=="❌" else MUTED
+                    checks_html += f'<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid {BORDER_LIGHT}"><span style="font-size:10px;color:{MUTED}">{label}</span><span style="font-size:10px;font-weight:600;color:{sc}">{status} <span style="color:{MUTED};font-weight:400">{detail}</span></span></div>'
+                st.markdown(f'''<div style="background:#F8FAFC;border:1px solid {BORDER};border-radius:8px;padding:10px 12px;margin-top:6px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                        <span style="font-size:10px;font-weight:700;color:{MUTED}">📊 ENTRY QUALITY</span>
+                        <span style="font-size:16px;font-weight:800;color:{eq_gc}">{eq_grade} <span style="font-size:10px;color:{MUTED}">({eq_score:.0f}%)</span></span>
+                    </div>{checks_html}
+                </div>''', unsafe_allow_html=True)
+
         with ct2:
             # Templates
             templates=_get_templates()

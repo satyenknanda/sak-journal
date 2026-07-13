@@ -3199,11 +3199,18 @@ def render():
 
             # ── Sub-tab 2: Entry Quality ──────────────────────────────────────
             with ai2:
-                open_trades = sb.table("trades").select("*").eq("status","OPEN").not_.is_("entry_grade","null").execute().data
-                st.markdown(f'<p style="font-size:11px;color:{TEXT_SUBTLE}">{len(open_trades)} open trades with entry quality scores</p>', unsafe_allow_html=True)
+                all_eq_trades = sb.table("trades").select("*").not_.is_("entry_grade","null").execute().data
+                open_eq = [t for t in all_eq_trades if t.get("status")=="OPEN"]
+                closed_eq = [t for t in all_eq_trades if t.get("status")=="CLOSED"]
+                st.markdown(f'<p style="font-size:11px;color:{TEXT_SUBTLE}">{len(all_eq_trades)} trades with entry quality scores ({len(open_eq)} open, {len(closed_eq)} closed)</p>', unsafe_allow_html=True)
+
+                view_eq = st.radio("Show", ["Open Trades", "Closed Trades", "All"], horizontal=True, key="eq_view")
+                if view_eq == "Open Trades": open_trades = open_eq
+                elif view_eq == "Closed Trades": open_trades = closed_eq
+                else: open_trades = all_eq_trades
 
                 if not open_trades:
-                    st.info("No entry quality data yet. Added automatically when you open a new trade.")
+                    st.info("No entry quality data for this selection.")
                 else:
                     # Grade distribution
                     eq_grades = [t.get("entry_grade","") for t in open_trades]
