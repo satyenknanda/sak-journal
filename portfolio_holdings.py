@@ -154,14 +154,14 @@ def render_portfolio_holdings(open_all, all_trades_raw, price_data):
             with cols[j]:
                 # Build entry quality HTML separately
                 if eq_grade:
-                    G = "#10B981"; R = "#EF4444"; AM = "#F59E0B"
-                    eq_grade_col = G if eq_grade in ("A","B") else AM if eq_grade=="C" else R
+                    _G = "#10B981"; _R = "#EF4444"; _AM = "#F59E0B"
+                    eq_grade_col = _G if eq_grade in ("A","B") else _AM if eq_grade=="C" else _R
                     eq_rows = ""
                     for ck, cv in eq_checks.items():
                         status = cv.get("status","—")
                         label = cv.get("label","")
                         detail = cv.get("detail","")
-                        s_col = G if status=="✅" else R if status=="❌" else TEXT_SUBTLE
+                        s_col = "#10B981" if status=="✅" else "#EF4444" if status=="❌" else TEXT_SUBTLE
                         eq_rows += f'<div style="display:flex;justify-content:space-between;align-items:center;font-size:9px;margin-bottom:3px"><span style="color:{TEXT_MUTED}">{label}</span><span style="color:{s_col};font-weight:600">{status}</span></div>'
                     eq_html = f'''<div style="border-top:1px solid {BORDER_LIGHT};padding-top:6px;margin-top:6px;font-size:10px">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
