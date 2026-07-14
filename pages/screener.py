@@ -491,10 +491,21 @@ def render():
                     listing = str(r.get("listing_date") or "")[:10]
                     if listing and listing >= cutoff:
                         s = sig_map.get(r["ticker"], {})
-                        ipo_filtered.append({**r, **{k: s.get(k) for k in ["close","ret_1d","ret_5d","volume_ratio","ti65","pct_from_52w_high","sector","atr_20d"]}})
+                        ipo_filtered.append({**r, **{k: s.get(k) for k in ["close","ret_1d","ret_5d","volume_ratio","ti65","pct_from_52w_high","sector","atr_20d","above_50sma","above_200sma","sma_50","sma_200"]}})
                 ipo_filtered = sorted(ipo_filtered, key=lambda x: str(x.get("listing_date") or ""), reverse=True)
+
+                # Split by SMA filter
+                ipo_view = st.radio("Filter by trend", 
+                    ["All", "Above 50 SMA", "Above 200 SMA"], 
+                    horizontal=True, key="ipo_sma_filter")
+                
+                if ipo_view == "Above 50 SMA":
+                    ipo_filtered = [r for r in ipo_filtered if r.get("above_50sma")]
+                elif ipo_view == "Above 200 SMA":
+                    ipo_filtered = [r for r in ipo_filtered if r.get("above_200sma")]
+
                 tv_ipo = ",".join([f"NSE:{r['ticker']}" for r in ipo_filtered])
-                st.caption(f"{len(ipo_filtered)} IPO stocks")
+                st.caption(f"{len(ipo_filtered)} IPO stocks — {ipo_view}")
                 with st.expander("📋 TradingView Import"):
                     st.code(tv_ipo, language=None)
                 TH_i = f"padding:8px 12px;font-size:10px;color:white;background:#1E293B;text-align:left"
