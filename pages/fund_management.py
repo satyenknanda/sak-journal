@@ -154,28 +154,19 @@ def render():
             st.caption("No tickers added yet.")
 
         st.markdown("<br>", unsafe_allow_html=True)
-        ac1, ac2, ac3 = st.columns([2, 2, 1])
-        with ac1:
-            new_ticker = st.text_input("Ticker", key="mtf_lookup_ticker", placeholder="e.g. TATATECH").upper()
-        with ac2:
-            _auto_margin = 50.0
-            if new_ticker:
-                _match = next((m for m in margins if m["ticker"] == new_ticker), None)
-                if _match:
-                    _auto_margin = float(_match.get("margin_pct") or 50.0)
-                    st.markdown(f'<div style="font-size:10px;color:#10B981">✅ {float(_match.get("leverage") or 0):.2f}x leverage</div>', unsafe_allow_html=True)
-            new_margin = st.number_input("Margin %", key="mtf_lookup_margin", min_value=1.0, max_value=100.0,
-                                          step=0.01, value=_auto_margin, format="%.2f")
-        with ac3:
-            st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-            if st.button("Save", key="mtf_lookup_save", use_container_width=True):
-                if new_ticker:
-                    save_mtf_margin(new_ticker, new_margin)
-                    st.success(f"✅ Saved {new_ticker} at {new_margin:.2f}%")
-                    st.rerun()
-                else:
-                    st.error("Enter a ticker first.")
-
+        if margins:
+            ticker_opts = [m["ticker"] for m in margins]
+            sel_mtf = st.selectbox("Search & select ticker", ["— Search —"] + ticker_opts,
+                key="mtf_lookup_search", label_visibility="visible")
+            if sel_mtf != "— Search —":
+                _m = next((m for m in margins if m["ticker"] == sel_mtf), None)
+                if _m:
+                    mc1, mc2, mc3 = st.columns(3)
+                    mc1.metric("Ticker", sel_mtf)
+                    mc2.metric("Margin %", f"{float(_m.get('margin_pct') or 0):.2f}%")
+                    mc3.metric("Leverage", f"{float(_m.get('leverage') or 0):.2f}x")
+        else:
+            st.info("No MTF list uploaded yet. Go to Imports → Weekly → MTF/MIS List to upload.")
         if margins:
             del_ticker = st.selectbox("Remove a ticker", ["—"] + [m["ticker"] for m in margins], key="mtf_lookup_del")
             if del_ticker != "—" and st.button(f"🗑️ Remove {del_ticker}", key="mtf_lookup_del_btn"):
