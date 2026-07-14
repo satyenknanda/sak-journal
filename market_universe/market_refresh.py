@@ -239,7 +239,7 @@ def bonde_signals_from_hist(ticker, hist, sector="", industry=""):
 
     # TI65 — Trend Intensity: % of last 65 days closing above their prior close
     if len(closes) >= 65:
-        _n = min(65, len(closes)-1)
+    _n = min(65, len(closes)-1)
     up_days = sum(1 for i in range(1, _n+1) if closes[-i] > closes[-i-1])
         ti65 = round(up_days / 65 * 100, 1)
     else:
