@@ -237,13 +237,10 @@ def bonde_signals_from_hist(ticker, hist, sector="", industry=""):
     # 50% in 2 months
     ret_50pct_2m = bool(ret_2m >= 50.0)
 
-    # TI65 — Trend Intensity: % of last 65 days closing above their prior close
-    if len(closes) >= 65:
+    # TI65 calculation
     _n = min(65, len(closes)-1)
-    up_days = sum(1 for i in range(1, _n+1) if closes[-i] > closes[-i-1])
-        ti65 = round(up_days / 65 * 100, 1)
-    else:
-        ti65 = None
+    up_days = sum(1 for j in range(1, _n+1) if closes[-j] > closes[-j-1])
+    ti65 = round(up_days / _n * 100, 1) if _n > 0 else None
 
     # ATR 20-day
     if len(closes) >= 21:
