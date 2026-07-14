@@ -204,9 +204,9 @@ def bonde_signals_from_hist(ticker, hist, sector="", industry=""):
     prev_close = float(closes[-2])
     prev_vol = int(volumes[-2])
 
-    # Volume ratio vs 50-day avg
-    avg_vol_50 = int(np.mean(volumes[-50:])) if len(volumes) >= 50 else int(np.mean(volumes))
-    vol_ratio = round(last_vol / avg_vol_50, 2) if avg_vol_50 > 0 else 0
+    # Volume ratio vs 20-day avg (matches TradingView RVOL)
+    avg_vol_20 = int(np.mean(volumes[-20:])) if len(volumes) >= 20 else int(np.mean(volumes))
+    vol_ratio = round(last_vol / avg_vol_20, 2) if avg_vol_20 > 0 else 0
 
     # Returns
     ret_1d = round((last_close - prev_close) / prev_close * 100, 2) if prev_close else 0

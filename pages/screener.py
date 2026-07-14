@@ -153,14 +153,17 @@ def render():
             r1d = float(s.get("ret_1d") or 0); r5d = float(s.get("ret_5d") or 0)
             vr  = float(s.get("volume_ratio") or 0); ti = s.get("ti65")
             p52 = float(s.get("pct_from_52w_high") or 0)
+            adr = float(s.get("atr_20d") or 0) / float(s.get("close") or 1) * 100 if s.get("close") else 0
+            extra_col = s.get("_adr", adr)
             rows_html += f"""<tr>
                 <td style="{TD};font-weight:700"><a href="https://www.tradingview.com/chart/?symbol=NSE:{s['ticker']}" target="_blank" style="color:{TEXT_H};text-decoration:none">{s['ticker']} 🔗</a></td>
                 <td style="{TD};color:{TEXT_SUBTLE};font-size:11px">{s.get('sector','')[:18]}</td>
                 <td style="{TD};text-align:right">₹{float(s.get('close') or 0):,.2f}</td>
                 <td style="{TD};text-align:right;color:{'#10B981' if r1d>=0 else RED};font-weight:600">{r1d:+.2f}%</td>
                 <td style="{TD};text-align:right;color:{'#10B981' if r5d>=0 else RED}">{r5d:+.2f}%</td>
-                <td style="{TD};text-align:right;color:{'#10B981' if vr>=1.5 else AMBER if vr>=1 else TEXT_SUBTLE}">{vr:.2f}x</td>
+                <td style="{TD};text-align:right;color:{'#10B981' if vr>=1.5 else AMBER if vr>=1 else TEXT_SUBTLE};font-weight:600">{vr:.2f}x</td>
                 <td style="{TD};text-align:right;color:{'#10B981' if (ti or 0)>=55 else AMBER}">{ti or '—'}%</td>
+                <td style="{TD};text-align:right;color:{TEXT_SUBTLE}">{adr:.1f}%</td>
                 <td style="{TD};text-align:right;color:{TEXT_SUBTLE}">{p52:+.1f}%</td>
             </tr>"""
 
@@ -172,9 +175,10 @@ def render():
                 <th style="{TH};text-align:right">Close</th>
                 <th style="{TH};text-align:right">1D%</th>
                 <th style="{TH};text-align:right">5D%</th>
-                <th style="{TH};text-align:right">Vol</th>
+                <th style="{TH};text-align:right">RVOL</th>
                 <th style="{TH};text-align:right">TI65</th>
-                <th style="{TH};text-align:right">vs 52W</th>
+                <th style="{TH};text-align:right">ADR%</th>
+                <th style="{TH};text-align:right">vs ATH</th>
             </tr></thead>
             <tbody>{rows_html}</tbody>
         </table></div>""", unsafe_allow_html=True)
