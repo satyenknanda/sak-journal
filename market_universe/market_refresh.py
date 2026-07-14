@@ -258,7 +258,7 @@ def bonde_signals_from_hist(ticker, hist, sector="", industry=""):
         "as_of_date": str(date.today()),
         "close": round(last_close, 2),
         "volume": last_vol,
-        "avg_volume_50d": avg_vol_50,
+        "avg_volume_50d": avg_vol_20,
         "volume_ratio": vol_ratio,
         "ret_1d": ret_1d,
         "ret_5d": ret_5d,
