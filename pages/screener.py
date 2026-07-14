@@ -294,7 +294,7 @@ def render():
                     import io as _io2
                     # TradingView watchlist format with section headers
                     tv_buf = _io2.StringIO()
-                    tv_buf.write("### ONE WEEK
+                    tv_buf.write("### ONE WEEK\n")
 ")
                     for e in s1: tv_buf.write(f"NSE:{e['ticker']},
 ")
