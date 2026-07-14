@@ -158,8 +158,14 @@ def render():
         with ac1:
             new_ticker = st.text_input("Ticker", key="mtf_lookup_ticker", placeholder="e.g. TATATECH").upper()
         with ac2:
+            _auto_margin = 50.0
+            if new_ticker:
+                _match = next((m for m in margins if m["ticker"] == new_ticker), None)
+                if _match:
+                    _auto_margin = float(_match.get("margin_pct") or 50.0)
+                    st.markdown(f'<div style="font-size:10px;color:#10B981">✅ {float(_match.get("leverage") or 0):.2f}x leverage</div>', unsafe_allow_html=True)
             new_margin = st.number_input("Margin %", key="mtf_lookup_margin", min_value=1.0, max_value=100.0,
-                                          step=0.01, value=50.0, format="%.2f")
+                                          step=0.01, value=_auto_margin, format="%.2f")
         with ac3:
             st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
             if st.button("Save", key="mtf_lookup_save", use_container_width=True):
