@@ -153,12 +153,21 @@ def render():
                     sb = _sb()
                     records = []
                     for row in rows:
-                        tk = str(row.get(sym_c,"") or "").strip()
+                        tk = str(row.get(sym_c,"") or "").strip().lstrip("﻿")
                         if not tk: continue
+                        listing_date = None
+                        if date_c != "None":
+                            raw_date = str(row.get(date_c,"") or "").strip()
+                            try:
+                                from datetime import datetime
+                                listing_date = datetime.strptime(raw_date, "%d-%b-%y").strftime("%Y-%m-%d")
+                            except:
+                                try: listing_date = datetime.strptime(raw_date, "%Y-%m-%d").strftime("%Y-%m-%d")
+                                except: listing_date = raw_date
                         records.append({
                             "ticker": tk,
                             "is_ipo": True,
-                            "listing_date": row.get(date_c,"") if date_c != "None" else None,
+                            "listing_date": listing_date,
                         })
                     success = 0
                     for i in range(0, len(records), 50):
