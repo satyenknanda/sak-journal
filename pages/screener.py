@@ -27,6 +27,63 @@ def render():
         refresh_returns_only()
         st.cache_data.clear()
 
+    # ── Upload MTF List ───────────────────────────────────────────────────────
+    with st.expander("🏦 Upload Zerodha MTF List", expanded=False):
+        import csv, io as _mtf_io
+        st.caption("Upload Zerodha MTF CSV — columns: Symbol, Margin%, Leverage (or similar)")
+        mtf_uploaded = st.file_uploader("Choose MTF CSV", type="csv", key="mtf_csv")
+        if mtf_uploaded is not None:
+            try:
+                mtf_text = mtf_uploaded.read().decode("utf-8")
+                mtf_rows = list(csv.DictReader(_mtf_io.StringIO(mtf_text)))
+                st.write(f"Columns found: {list(mtf_rows[0].keys()) if mtf_rows else 'none'}")
+                st.write(f"Sample row: {mtf_rows[0] if mtf_rows else 'none'}")
+                st.session_state["_mtf_rows"] = mtf_rows
+                st.info(f"Found {len(mtf_rows)} rows — map columns below")
+            except Exception as e:
+                st.error(f"❌ Read error: {e}")
+
+        if st.session_state.get("_mtf_rows"):
+            mtf_rows = st.session_state["_mtf_rows"]
+            cols = list(mtf_rows[0].keys()) if mtf_rows else []
+            mc1, mc2, mc3 = st.columns(3)
+            sym_col    = mc1.selectbox("Ticker column", cols, key="mtf_sym_col")
+            margin_col = mc2.selectbox("Margin% column", ["None"]+cols, key="mtf_margin_col")
+            lev_col    = mc3.selectbox("Leverage column", ["None"]+cols, key="mtf_lev_col")
+
+            if st.button("⬆️ Upload MTF List", key="mtf_upload_btn", type="primary"):
+                sb = _sb()
+                success = 0
+                # Clear existing MTF data
+                sb.table("mtf_margins").delete().neq("id", 0).execute()
+                records = []
+                for row in mtf_rows:
+                    ticker = str(row.get(sym_col,"") or "").strip().replace("NSE:","").replace("-EQ","")
+                    if not ticker: continue
+                    margin = None
+                    lev = None
+                    if margin_col != "None":
+                        try: margin = float(str(row.get(margin_col,"") or "").replace("%",""))
+                        except: pass
+                    if lev_col != "None":
+                        try: lev = float(str(row.get(lev_col,"") or ""))
+                        except: pass
+                    records.append({"ticker": ticker, "margin_pct": margin, "leverage": lev})
+
+                prog = st.progress(0, text="Uploading MTF list...")
+                for i in range(0, len(records), 50):
+                    chunk = records[i:i+50]
+                    try:
+                        sb.table("mtf_margins").upsert(chunk, on_conflict="ticker").execute()
+                        success += len(chunk)
+                    except Exception as e:
+                        st.error(f"❌ {e}"); break
+                    prog.progress(min((i+50)/len(records),1.0), text=f"Uploading {min(i+50,len(records))}/{len(records)}...")
+                prog.empty()
+                st.success(f"✅ {success} MTF stocks uploaded!")
+                st.session_state.pop("_mtf_rows", None)
+                st.cache_data.clear()
+
     # ── Upload Universe CSV ───────────────────────────────────────────────────
     with st.expander("⬆️ Upload Universe CSV", expanded=False):
         import csv, io as _io
