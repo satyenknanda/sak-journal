@@ -529,49 +529,5 @@ def render():
 
             # Upload section
             st.markdown("---")
-            st.markdown("#### ⬆️ Update MTF List")
-            st.caption("Download latest from Zerodha → zerodha.com/margin-calculator/MTF → Upload here")
-            import csv, io as _fm_io
-            mtf_up = st.file_uploader("Upload Zerodha MTF CSV", type="csv", key="fm_mtf_csv")
-            if mtf_up is not None:
-                try:
-                    mtf_text = mtf_up.read().decode("utf-8")
-                    mtf_rows = list(csv.DictReader(_fm_io.StringIO(mtf_text)))
-                    st.write(f"Columns: {list(mtf_rows[0].keys()) if mtf_rows else []}")
-                    st.session_state["_fm_mtf_rows"] = mtf_rows
-                    st.info(f"Found {len(mtf_rows)} rows")
-                except Exception as e:
-                    st.error(f"❌ {e}")
-
-            if st.session_state.get("_fm_mtf_rows"):
-                fm_mtf_rows = st.session_state["_fm_mtf_rows"]
-                cols_m = list(fm_mtf_rows[0].keys())
-                fc1, fc2, fc3 = st.columns(3)
-                sym_c  = fc1.selectbox("Ticker col", cols_m, key="fm_mtf_sym")
-                mar_c  = fc2.selectbox("Margin% col", ["None"]+cols_m, key="fm_mtf_mar")
-                lev_c  = fc3.selectbox("Leverage col", ["None"]+cols_m, key="fm_mtf_lev")
-                if st.button("⬆️ Upload", key="fm_mtf_btn", type="primary"):
-                    sb2 = _fm_sb()
-                    sb2.table("mtf_margins").delete().neq("id",0).execute()
-                    recs = []
-                    for row in fm_mtf_rows:
-                        tk = str(row.get(sym_c,"") or "").strip().replace("NSE:","").replace("-EQ","")
-                        if not tk: continue
-                        mg = None; lv = None
-                        if mar_c != "None":
-                            try: mg = float(str(row.get(mar_c,"") or "").replace("%",""))
-                            except: pass
-                        if lev_c != "None":
-                            try: lv = float(str(row.get(lev_c,"") or ""))
-                            except: pass
-                        recs.append({"ticker": tk, "margin_pct": mg, "leverage": lv})
-                    success2 = 0
-                    for i in range(0, len(recs), 50):
-                        try:
-                            sb2.table("mtf_margins").upsert(recs[i:i+50], on_conflict="ticker").execute()
-                            success2 += len(recs[i:i+50])
-                        except Exception as e: st.error(f"❌ {e}"); break
-                    st.success(f"✅ {success2} MTF stocks uploaded!")
-                    st.session_state.pop("_fm_mtf_rows", None)
-                    st.rerun()
+            st.info("📌 To update the MTF list go to **Imports → Weekly → MTF/MIS List**")
 
