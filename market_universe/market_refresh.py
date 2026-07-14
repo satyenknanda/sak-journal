@@ -250,6 +250,11 @@ def bonde_signals_from_hist(ticker, hist, sector="", industry=""):
         atr_20d = round(float(np.mean(trs)), 2)
     else:
         atr_20d = None
+    # SMA 50 and 200
+    sma_50 = round(float(np.mean(closes[-50:])), 2) if len(closes) >= 50 else None
+    sma_200 = round(float(np.mean(closes[-200:])), 2) if len(closes) >= 200 else None
+    above_50sma = bool(last_close > sma_50) if sma_50 else None
+    above_200sma = bool(last_close > sma_200) if sma_200 else None
 
     return {
         "ticker": ticker,
@@ -270,6 +275,11 @@ def bonde_signals_from_hist(ticker, hist, sector="", industry=""):
         "ti65": ti65,
         "atr_20d": atr_20d,
         "range_3d_pct": range_3d_pct,
+        "gap_pct": gap_pct,
+        "sma_50": sma_50,
+        "sma_200": sma_200,
+        "above_50sma": above_50sma,
+        "above_200sma": above_200sma,
         "sector": sector,
         "industry": industry,
     }
