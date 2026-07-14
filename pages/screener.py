@@ -214,7 +214,7 @@ def render():
             extra_col = s.get("_adr", adr)
             rows_html += f"""<tr>
                 <td style="{TD};font-weight:700"><a href="https://www.tradingview.com/chart/?symbol=NSE:{s['ticker']}" target="_blank" style="color:{TEXT_H};text-decoration:none">{s['ticker']} 🔗</a></td>
-                <td style="{TD};color:{TEXT_SUBTLE};font-size:11px">{s.get('sector','')[:18]}</td>
+                <td style="{TD};color:{TEXT_SUBTLE};font-size:11px">{str(s.get('sector','') or '')[:18]}</td>
                 <td style="{TD};text-align:right">₹{float(s.get('close') or 0):,.2f}</td>
                 <td style="{TD};text-align:right;color:{'#10B981' if r1d>=0 else RED};font-weight:600">{r1d:+.2f}%</td>
                 <td style="{TD};text-align:right;color:{'#10B981' if r5d>=0 else RED}">{r5d:+.2f}%</td>
