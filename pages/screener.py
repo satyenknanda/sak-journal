@@ -448,13 +448,11 @@ def render():
                     _do_refresh_signals()
                     st.rerun()
             gap_min = st.number_input("Min Gap %", value=3.0, step=0.5, key="gap_min")
-            gap_rvol = st.number_input("Min RVOL", value=5.0, step=0.5, key="gap_rvol")
             gap_list = sorted([s for s in signals
-                              if float(s.get("gap_pct") or 0) >= gap_min
-                              and float(s.get("volume_ratio") or 0) >= gap_rvol],
+                              if float(s.get("gap_pct") or 0) >= gap_min],
                              key=lambda x: -(float(x.get("gap_pct") or 0)))
             signal_table(gap_list, "Gap Up",
-                f"📌 Gap ≥{gap_min:.0f}% AND RVOL ≥{gap_rvol:.0f}x — institutional gap up with volume confirmation",
+                f"📌 Gap ≥{gap_min:.0f}% — stocks gapping up from previous close",
                 "cohort3_gap_up.csv")
 
         # Reversals — 1W performance <= -10%
