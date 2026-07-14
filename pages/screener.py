@@ -304,7 +304,6 @@ def render():
                     for e in s4: tv_buf.write("NSE:" + e['ticker'] + ",\n")
                     st.download_button("⬇️ Download TV Watchlist", tv_buf.getvalue().encode(),
                         "easy_money_tv.txt", "text/plain", key="dl_easy")
-                        "easy_money_tv.csv", "text/csv", key="dl_easy")
                 with dc2e:
                     with st.expander("📋 TradingView Import (All)"):
                         st.code(tv_buf.getvalue(), language=None)
