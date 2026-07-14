@@ -21,8 +21,39 @@ def render():
     with tab_daily:
         st.markdown("### 📅 Daily Trade Import")
         st.caption("Upload your Daily Plan .xlsx to bulk-import trades from your Excel journal")
-        from pages.import_excel import render as _render_excel
-        _render_excel()
+        # Import only the core upload logic, not the full render
+        import pandas as pd
+        from pages.import_excel import parse_daily_plan_excel
+        from data.db import add_trade, get_trades, update_trade
+
+        uploaded_xl = st.file_uploader("Choose Daily Plan Excel", type=["xlsx","xls"], key="imp_excel_upload")
+        if uploaded_xl:
+            try:
+                trades_parsed = parse_daily_plan_excel(uploaded_xl)
+                if trades_parsed:
+                    existing = get_trades()
+                    existing_ids = {str(t.get("trade_no","") or ""): t for t in existing if t.get("trade_no")}
+                    add_list = []; upd_list = []
+                    for t in trades_parsed:
+                        tid = str(t.get("trade_no","") or "")
+                        if tid and tid in existing_ids:
+                            upd_list.append((existing_ids[tid]["id"], t))
+                        else:
+                            add_list.append(t)
+                    st.info(f"Found {len(trades_parsed)} trades — {len(add_list)} new, {len(upd_list)} updates")
+                    if st.button(f"⬆️ Import All ({len(trades_parsed)})", key="imp_xl_all", type="primary"):
+                        success = 0
+                        for t in add_list:
+                            try: add_trade(t); success += 1
+                            except: pass
+                        for tid, t in upd_list:
+                            try: update_trade(tid, t); success += 1
+                            except: pass
+                        st.success(f"✅ {success} trades imported!")
+                else:
+                    st.warning("No trades found in Excel file")
+            except Exception as e:
+                st.error(f"❌ {e}")
 
     # ── WEEKLY: Universe CSV ──────────────────────────────────────────────────
     with tab_weekly:
