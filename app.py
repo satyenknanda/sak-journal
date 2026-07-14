@@ -599,7 +599,7 @@ try:
     elif p=="progress": from pages.progress_tracker import render; render()
     elif p=="morning":   from pages.morning_brief      import render; render()
     elif p=="terminal":  from pages.terminal           import render; render()
-    elif p=="import":    from pages.import_excel      import render; render()
+    elif p=="import":    from pages.imports           import render; render()
     elif p=="tax_analytics":   from pages.tax_analytics     import render; render()
     elif p=="tracker": from pages.tracker import render; render()
     elif p=="portfolio_dna":   from pages.portfolio_dna     import render; render()
