@@ -295,25 +295,15 @@ def render():
                     # TradingView watchlist format with section headers
                     tv_buf = _io2.StringIO()
                     tv_buf.write("### ONE WEEK\n")
-")
-                    for e in s1: tv_buf.write(f"NSE:{e['ticker']},
-")
-                    tv_buf.write("
-### ONE MONTH
-")
-                    for e in s2: tv_buf.write(f"NSE:{e['ticker']},
-")
-                    tv_buf.write("
-### QUARTERLY
-")
-                    for e in s3: tv_buf.write(f"NSE:{e['ticker']},
-")
-                    tv_buf.write("
-### SIX MONTHS
-")
-                    for e in s4: tv_buf.write(f"NSE:{e['ticker']},
-")
+                    for e in s1: tv_buf.write("NSE:" + e['ticker'] + ",\n")
+                    tv_buf.write("\n### ONE MONTH\n")
+                    for e in s2: tv_buf.write("NSE:" + e['ticker'] + ",\n")
+                    tv_buf.write("\n### QUARTERLY\n")
+                    for e in s3: tv_buf.write("NSE:" + e['ticker'] + ",\n")
+                    tv_buf.write("\n### SIX MONTHS\n")
+                    for e in s4: tv_buf.write("NSE:" + e['ticker'] + ",\n")
                     st.download_button("⬇️ Download TV Watchlist", tv_buf.getvalue().encode(),
+                        "easy_money_tv.txt", "text/plain", key="dl_easy")
                         "easy_money_tv.csv", "text/csv", key="dl_easy")
                 with dc2e:
                     with st.expander("📋 TradingView Import (All)"):
