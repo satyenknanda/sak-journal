@@ -291,15 +291,33 @@ def render():
                 tv_str = ",".join([f"NSE:{e['ticker']}" for e in all_easy])
                 dc1e, dc2e = st.columns([1,3])
                 with dc1e:
-                    import csv, io as _io2
-                    buf = _io2.StringIO()
-                    w2 = csv.DictWriter(buf, fieldnames=["ticker","ret_1w","ret_1m","ret_3m","ret_6m"])
-                    w2.writeheader()
-                    for e in all_easy: w2.writerow({k: e.get(k,"") for k in ["ticker","ret_1w","ret_1m","ret_3m","ret_6m"]})
-                    st.download_button("⬇️ Download All CSV", buf.getvalue().encode(), "easy_money.csv", "text/csv", key="dl_easy")
+                    import io as _io2
+                    # TradingView watchlist format with section headers
+                    tv_buf = _io2.StringIO()
+                    tv_buf.write("### ONE WEEK
+")
+                    for e in s1: tv_buf.write(f"NSE:{e['ticker']},
+")
+                    tv_buf.write("
+### ONE MONTH
+")
+                    for e in s2: tv_buf.write(f"NSE:{e['ticker']},
+")
+                    tv_buf.write("
+### QUARTERLY
+")
+                    for e in s3: tv_buf.write(f"NSE:{e['ticker']},
+")
+                    tv_buf.write("
+### SIX MONTHS
+")
+                    for e in s4: tv_buf.write(f"NSE:{e['ticker']},
+")
+                    st.download_button("⬇️ Download TV Watchlist", tv_buf.getvalue().encode(),
+                        "easy_money_tv.csv", "text/csv", key="dl_easy")
                 with dc2e:
                     with st.expander("📋 TradingView Import (All)"):
-                        st.code(tv_str, language=None)
+                        st.code(tv_buf.getvalue(), language=None)
                         st.caption("👆 Copy → TradingView → Watchlist → Import")
 
                 # KPI strip
