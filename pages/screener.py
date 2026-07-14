@@ -238,7 +238,7 @@ def render():
     # COHORT 3 SCANS
     # ═══════════════════════════════════════════════════════════════════════════
     with main2:
-        c1, c2, c3, c4, c5 = st.tabs(["💰 Easy Money", "🏔️ ATH Scan", "⚡ High ADR", "🎯 Stocks in Play", "🔄 Reversals"])
+        c1, c2, c3, c4, c5, c6 = st.tabs(["💰 Easy Money", "🏔️ ATH Scan", "⚡ High ADR", "🎯 Stocks in Play", "📈 Gap Up", "🔄 Reversals"])
 
         # Easy Money
         with c1:
@@ -441,16 +441,33 @@ def render():
                 f"📌 RVOL ≥{sip_rvol:.0f}x AND price +{sip_ret:.0f}%+ today — highest conviction intraday names",
                 "cohort3_stocks_in_play.csv")
 
-        # Reversals — top weekly losers
+        # Gap Up
         with c5:
+            if st.button("🔄 Refresh Gap Up", key="ref_gap", type="primary"):
+                with st.spinner("Refreshing signals (~15 mins)..."):
+                    _do_refresh_signals()
+                    st.rerun()
+            gap_min = st.number_input("Min Gap %", value=3.0, step=0.5, key="gap_min")
+            gap_rvol = st.number_input("Min RVOL", value=5.0, step=0.5, key="gap_rvol")
+            gap_list = sorted([s for s in signals
+                              if float(s.get("gap_pct") or 0) >= gap_min
+                              and float(s.get("volume_ratio") or 0) >= gap_rvol],
+                             key=lambda x: -(float(x.get("gap_pct") or 0)))
+            signal_table(gap_list, "Gap Up",
+                f"📌 Gap ≥{gap_min:.0f}% AND RVOL ≥{gap_rvol:.0f}x — institutional gap up with volume confirmation",
+                "cohort3_gap_up.csv")
+
+        # Reversals — 1W performance <= -10%
+        with c6:
             if st.button("🔄 Refresh Reversals", key="ref_rev", type="primary"):
                 with st.spinner("Refreshing signals (~15 mins)..."):
                     _do_refresh_signals()
                     st.success("✅ Done!"); st.rerun()
-            rev = sorted([s for s in signals if float(s.get("ret_5d") or 0) <= -10],
+            rev_pct = st.number_input("Max 1W %", value=-10.0, step=1.0, key="rev_pct")
+            rev = sorted([s for s in signals if float(s.get("ret_5d") or 0) <= rev_pct],
                         key=lambda x: float(x.get("ret_5d") or 0))
             signal_table(rev, "Reversals",
-                "📌 Down 10%+ in last week — potential bounce setups — use in weak market conditions",
+                f"📌 1W performance ≤{rev_pct:.0f}% — potential bounce setups",
                 "cohort3_reversals.csv")
 
     # ═══════════════════════════════════════════════════════════════════════════
