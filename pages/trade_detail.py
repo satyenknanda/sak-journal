@@ -369,7 +369,20 @@ def render():
                 FUNDING=["CASH","MTF"]
                 cur_fund=str(trade.get("funding_type","CASH") or "CASH").upper()
                 new_funding=fm1.selectbox("Funding Type",FUNDING,index=FUNDING.index(cur_fund) if cur_fund in FUNDING else 0,key="td_funding_edit")
-                new_mtf_margin=fm2.number_input("MTF Margin %",value=float(trade.get("mtf_margin_pct") or 50.0),min_value=1.0,max_value=100.0,step=0.5,format="%.1f",key="td_mtf_margin_edit")
+                # Auto-fetch MTF margin from mtf_margins table
+                _mtf_default = float(trade.get("mtf_margin_pct") or 50.0)
+                try:
+                    from data.db import _sb, _use_supabase
+                    if _use_supabase() and ticker:
+                        _mtf_res = _sb().table("mtf_margins").select("margin_pct,leverage").eq("ticker", ticker).execute()
+                        if _mtf_res.data:
+                            _mtf_default = float(_mtf_res.data[0].get("margin_pct") or 50.0)
+                            _mtf_lev = float(_mtf_res.data[0].get("leverage") or 0)
+                            fm2.markdown(f'<div style="font-size:10px;color:#10B981;margin-bottom:4px">✅ MTF Eligible · {_mtf_lev:.2f}x leverage</div>', unsafe_allow_html=True)
+                        else:
+                            fm2.markdown(f'<div style="font-size:10px;color:#EF4444;margin-bottom:4px">❌ Not in MTF list</div>', unsafe_allow_html=True)
+                except: pass
+                new_mtf_margin=fm2.number_input("MTF Margin %",value=_mtf_default,min_value=1.0,max_value=100.0,step=0.5,format="%.1f",key="td_mtf_margin_edit")
 
                 # ── Open/Close/Best Exit ──────────────────────────────
                 st.markdown(f'<div style="font-size:10px;font-weight:700;color:{MUTED};letter-spacing:1px;margin:8px 0 4px">TIMES & BEST EXIT</div>', unsafe_allow_html=True)
