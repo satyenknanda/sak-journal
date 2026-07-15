@@ -504,11 +504,11 @@ def render():
                 elif ipo_view == "Above 200 SMA":
                     ipo_filtered = [r for r in ipo_filtered if r.get("above_200sma")]
 
+                st.caption(f"{len(ipo_filtered)} IPO stocks — {ipo_view}")
                 import io as _ipo_io
                 ipo_buf = _ipo_io.StringIO()
-                ipo_buf.write("### IPO WATCHLIST,\n")
+                ipo_buf.write(f"### IPO {ipo_view.upper()},\n")
                 for r in ipo_filtered: ipo_buf.write("NSE:" + r["ticker"] + ",\n")
-                st.caption(f"{len(ipo_filtered)} IPO stocks — {ipo_view}")
                 st.download_button("⬇️ Download TV List", ipo_buf.getvalue().encode(),
                     "ipo_watchlist.txt", "text/plain", key="dl_ipo")
                 with st.expander("📋 TradingView Import"):
