@@ -199,6 +199,7 @@ def bonde_signals_from_hist(ticker, hist, sector="", industry=""):
     highs = hist["High"].values
     lows = hist["Low"].values
     opens = hist["Open"].values
+    opens = hist["Open"].values
 
     last_close = float(closes[-1])
     last_vol = int(volumes[-1])
