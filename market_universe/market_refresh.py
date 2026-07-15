@@ -210,6 +210,8 @@ def bonde_signals_from_hist(ticker, hist, sector="", industry=""):
 
     # Returns
     ret_1d = round((last_close - prev_close) / prev_close * 100, 2) if prev_close else 0
+    last_open = float(opens[-1]) if len(opens) >= 1 else last_close
+    gap_pct = round((last_open - prev_close) / prev_close * 100, 2) if prev_close else 0
     ret_5d = round((last_close - closes[-6]) / closes[-6] * 100, 2) if len(closes) >= 6 else 0
     ret_2m = round((last_close - closes[-42]) / closes[-42] * 100, 2) if len(closes) >= 42 else 0
 
