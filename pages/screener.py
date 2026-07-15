@@ -509,13 +509,10 @@ def render():
                 ipo_buf.write("### IPO WATCHLIST,\n")
                 for r in ipo_filtered: ipo_buf.write("NSE:" + r["ticker"] + ",\n")
                 st.caption(f"{len(ipo_filtered)} IPO stocks — {ipo_view}")
-                ic1, ic2 = st.columns([1,3])
-                with ic1:
-                    st.download_button("⬇️ Download TV List", ipo_buf.getvalue().encode(),
-                        "ipo_watchlist.txt", "text/plain", key="dl_ipo")
-                with ic2:
-                    with st.expander("📋 TradingView Import"):
-                        st.code(ipo_buf.getvalue(), language=None)
+                st.download_button("⬇️ Download TV List", ipo_buf.getvalue().encode(),
+                    "ipo_watchlist.txt", "text/plain", key="dl_ipo")
+                with st.expander("📋 TradingView Import"):
+                    st.code(ipo_buf.getvalue(), language=None)
                 TH_i = f"padding:8px 12px;font-size:10px;color:white;background:#1E293B;text-align:left"
                 TD_i = f"padding:8px 12px;font-size:11px;border-bottom:1px solid {BORDER_LIGHT}"
                 rows_i = ""
