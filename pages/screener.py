@@ -294,13 +294,13 @@ def render():
                     import io as _io2
                     # TradingView watchlist format with section headers
                     tv_buf = _io2.StringIO()
-                    tv_buf.write("### ONE WEEK\n")
+                    tv_buf.write("### ONE WEEK,\n")
                     for e in s1: tv_buf.write("NSE:" + e['ticker'] + ",\n")
-                    tv_buf.write("\n### ONE MONTH\n")
+                    tv_buf.write("\n### ONE MONTH,\n")
                     for e in s2: tv_buf.write("NSE:" + e['ticker'] + ",\n")
-                    tv_buf.write("\n### QUARTERLY\n")
+                    tv_buf.write("\n### QUARTERLY,\n")
                     for e in s3: tv_buf.write("NSE:" + e['ticker'] + ",\n")
-                    tv_buf.write("\n### SIX MONTHS\n")
+                    tv_buf.write("\n### SIX MONTHS,\n")
                     for e in s4: tv_buf.write("NSE:" + e['ticker'] + ",\n")
                     st.download_button("⬇️ Download TV Watchlist", tv_buf.getvalue().encode(),
                         "easy_money_tv.txt", "text/plain", key="dl_easy")
@@ -504,10 +504,18 @@ def render():
                 elif ipo_view == "Above 200 SMA":
                     ipo_filtered = [r for r in ipo_filtered if r.get("above_200sma")]
 
-                tv_ipo = ",".join([f"NSE:{r['ticker']}" for r in ipo_filtered])
+                import io as _ipo_io
+                ipo_buf = _ipo_io.StringIO()
+                ipo_buf.write("### IPO WATCHLIST,\n")
+                for r in ipo_filtered: ipo_buf.write("NSE:" + r["ticker"] + ",\n")
                 st.caption(f"{len(ipo_filtered)} IPO stocks — {ipo_view}")
-                with st.expander("📋 TradingView Import"):
-                    st.code(tv_ipo, language=None)
+                ic1, ic2 = st.columns([1,3])
+                with ic1:
+                    st.download_button("⬇️ Download TV List", ipo_buf.getvalue().encode(),
+                        "ipo_watchlist.txt", "text/plain", key="dl_ipo")
+                with ic2:
+                    with st.expander("📋 TradingView Import"):
+                        st.code(ipo_buf.getvalue(), language=None)
                 TH_i = f"padding:8px 12px;font-size:10px;color:white;background:#1E293B;text-align:left"
                 TD_i = f"padding:8px 12px;font-size:11px;border-bottom:1px solid {BORDER_LIGHT}"
                 rows_i = ""
