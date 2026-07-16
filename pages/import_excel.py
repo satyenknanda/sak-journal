@@ -182,7 +182,7 @@ Entry Price | Stop Loss | Take Profit | Commission | TSL |
 Live Price | Change% | Exit Date | Qty | Exit Price |
 Commission | Risk Status""", language=None)
 
-    uploaded = st.file_uploader("Choose your Daily Plan Excel file", type=["xlsx","xls"], key="import_excel_upload")
+    uploaded = st.file_uploader("Choose your Daily Plan Excel file", type=["xlsx","xls","xlsm"], key="import_excel_upload")
 
     if uploaded:
         try:
