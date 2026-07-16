@@ -91,6 +91,18 @@ def render():
     signals = _load_signals()
     returns = _load_returns()
 
+    # Load circuit filter — exclude 5% band stocks from all scans
+    @st.cache_data(ttl=3600)
+    def _load_circuit():
+        try:
+            r = _sb().table("circuit_filter").select("ticker").execute()
+            return {row["ticker"] for row in (r.data or [])}
+        except: return set()
+    circuit_tickers = _load_circuit()
+    if circuit_tickers:
+        signals = [s for s in signals if s.get("ticker") not in circuit_tickers]
+        st.caption(f"⚡ {len(circuit_tickers)} circuit-filter stocks excluded from all scans")
+
     if not signals:
         st.info("No signals. Click Refresh Signals."); return
 
