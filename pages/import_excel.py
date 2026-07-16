@@ -97,11 +97,12 @@ def parse_daily_plan_excel(file):
     else:
         file.seek(0)
         df = pd.read_excel(file, sheet_name=0, header=None)
-        if df.shape[1] < len(EXPECTED_COLS):
-            raise ValueError(f"File has {df.shape[1]} columns, expected at least {len(EXPECTED_COLS)} "
-                              f"(Status/No/Entry Date/.../Risk Status). Could not auto-detect format.")
-        df = df.iloc[:, :len(EXPECTED_COLS)]
-        df.columns = EXPECTED_COLS
+        # Flexible — use however many columns are present
+        available_cols = EXPECTED_COLS[:df.shape[1]]
+        if df.shape[1] < 8:
+            raise ValueError(f"File has only {df.shape[1]} columns — need at least 8 (Status through Entry Price).")
+        df = df.iloc[:, :len(available_cols)]
+        df.columns = available_cols
 
     trades = []
     cols = list(df.columns)
