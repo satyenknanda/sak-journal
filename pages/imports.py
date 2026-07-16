@@ -16,7 +16,7 @@ def render():
         "📅 Daily",
         "🌱 Seasonal",
         "⚡ Situational",
-        "📊 Excel Import"
+        "📊 Import Trades"
     ])
 
     # ═══════════════════════════════════════════════════════════════════════
