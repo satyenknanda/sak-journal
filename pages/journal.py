@@ -353,7 +353,7 @@ def render():
     headers = [
         "Status","No","Entry Date","Side","Qty","Ticker","Strategy",
         "Entry ₹","Stop Loss","Target ₹","Comm","TSL",
-        "Live ₹","Chg %","Exit Date","Exit Qty","Exit ₹","Comm(X)","Risk Status","P&L","R-Mult"
+        "Live ₹","Exit Date","Exit Qty","Exit ₹","Comm(X)","Risk Status","P&L","R-Mult"
     ]
 
     rows_html = []
