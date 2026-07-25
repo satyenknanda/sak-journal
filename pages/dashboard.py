@@ -63,7 +63,23 @@ def render():
     closed  = [t for t in all_closed
                if FY_START <= str(t.get("exit_date","") or "")[:10] <= FY_END]
 
-    acct    = float(kpi.get("account_balance", 10_000_000))  # ₹1 crore default
+    # Auto-calculate opening capital = cash deployed in open trades - closed P&L
+    try:
+        open_trades_raw = [t for t in trades if t.get("status") == "OPEN"]
+        cash_deployed = 0
+        for _t in open_trades_raw:
+            _qty = float(_t.get("qty") or 0)
+            _ep  = float(_t.get("entry_price") or 0)
+            _pos = _qty * _ep
+            if str(_t.get("funding_type","") or "").upper() == "MTF":
+                _margin = float(_t.get("mtf_margin_pct") or 50) / 100
+                cash_deployed += _pos * _margin
+            else:
+                cash_deployed += _pos
+        auto_capital = max(cash_deployed - pnl, 1_000_000)
+    except:
+        auto_capital = 10_000_000
+    acct = float(kpi.get("account_balance", auto_capital))
     wr      = float(kpi.get("win_rate", 0))
     pnl     = sum(float(t.get("pnl") or 0) for t in closed)
 
