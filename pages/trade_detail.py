@@ -288,12 +288,12 @@ def render():
             # Best Exit
             rows+=sr("Best Exit Price",f"₹{best_ep:,.2f}" if best_ep else "—")
             rows+=sr("Best Exit Time",best_et[:16] if best_et else "—")
-            # Zella Scale
+            # SAK Scale
             if r_mult:
                 try:
                     rv=float(r_mult); pct=min(abs(rv)/5*100,100); zc=G if rv>0 else R
                     zb=f'<div style="display:flex;align-items:center;gap:5px"><div style="width:65px;height:6px;background:#F3F4F6;border-radius:3px;overflow:hidden"><div style="width:{pct}%;height:100%;background:{zc}"></div></div><span style="color:{zc};font-size:11px">{rv:+.2f}R</span></div>'
-                    rows+=sr("Zella Scale",zb)
+                    rows+=sr("SAK Scale",zb)
                 except: pass
             # MAE/MFE
             if mae or mfe:

@@ -26,7 +26,7 @@ def select_columns_dialog():
     st.caption("Choose the columns you want to display in the table")
     ALL_COLS = ["Open Date","Symbol","Strategy","Status","Side","Close Date",
                 "Entry Price","Exit Price","Net P&L","Net ROI","R-Multiple",
-                "Stop Loss","Qty","Gross P&L","Commissions","MTF Interest","Zella Scale"]
+                "Stop Loss","Qty","Gross P&L","Commissions","MTF Interest","SAK Scale"]
     DEFAULT = ["Open Date","Symbol","Strategy","Status","Side","Close Date",
                "Entry Price","Exit Price","Net P&L","R-Multiple"]
     if "tl_cols" not in st.session_state:
@@ -290,7 +290,7 @@ def render():
             return "—"
         if col=="Stop Loss":   return f'<span style="color:{R}">₹{float(t.get("stop_loss") or 0):,.2f}</span>' if t.get("stop_loss") else "—"
         if col=="Qty":         return f'{int(t.get("qty") or 0):,}'
-        if col=="Zella Scale": return zella_bar(r)
+        if col=="SAK Scale": return zella_bar(r)
         if col=="Commissions":
             c2=float(t.get("commission_entry") or 0)+float(t.get("commission_exit") or 0)
             return f'₹{c2:,.0f}'

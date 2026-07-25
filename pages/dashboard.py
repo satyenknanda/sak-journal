@@ -1007,7 +1007,7 @@ def render():
                     for n,v in zip(metric_names, metric_vals))
                 st.markdown(f"""<div style="display:flex;flex-direction:column;
                     justify-content:center;height:{BOTTOM_H}px;padding:0 8px">
-                    <div style="font-size:9px;color:{TEXT_SUBTLE};letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">ZELLA SCORE</div>
+                    <div style="font-size:9px;color:{TEXT_SUBTLE};letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">SAK SCORE</div>
                     <div style="font-size:40px;font-weight:800;color:{score_col};
                         line-height:1;margin-bottom:4px">{sak_score}</div>
                     <div style="position:relative;height:8px;
