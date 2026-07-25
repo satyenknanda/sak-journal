@@ -682,8 +682,8 @@ def render():
     with rt_tab:
         recent = sorted([t for t in closed if t.get("exit_date")],
                        key=lambda x: str(x.get("exit_date","")), reverse=True)[:12]
-        TH = f"font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.05em;padding:0 0 6px"
-        TD = f"font-size:12px;border-bottom:1px solid {BORDER_LIGHT};padding:6px 0"
+        TH = f"padding:7px 10px;font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid {BORDER}"
+        TD = f"padding:8px 10px;font-size:12px;border-bottom:1px solid {BORDER_LIGHT}"
         rows_html = ""
         for t in recent:
             p = float(t.get("pnl") or 0)
@@ -691,9 +691,9 @@ def render():
             d  = str(t.get("exit_date",""))[:10]
             pnl_sign = "+" if p > 0 else "-" if p < 0 else ""
             rows_html += (f'<tr>'
-                f'<td style="{TD};color:{TEXT_MUTED};width:100px">{d}</td>'
-                f'<td style="{TD};font-weight:600;color:{TEXT_H}">{t.get("ticker","")}</td>'
-                f'<td style="{TD};font-weight:600;color:{pc};text-align:right">'
+                f'<td style="{TD};color:{TEXT_MUTED};width:110px">{d}</td>'
+                f'<td style="{TD};font-weight:700;color:{TEXT_H}">{t.get("ticker","")}</td>'
+                f'<td style="{TD};font-weight:600;color:{pc};text-align:right;width:110px">'
                 f'{fmt_val(p, acct)}</td></tr>')
         st.markdown(f'<table style="width:100%;border-collapse:collapse">'
             f'<thead><tr><th style="{TH};text-align:left">Close Date</th>'
