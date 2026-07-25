@@ -362,7 +362,7 @@ def render():
         "streak":"Current Streak","max_dd":"Max Drawdown",
         "drawdown_chart":"Drawdown","balance_chart":"Account Balance",
         "daily_cum_chart":"Daily & Cumulative P&L","net_daily_chart":"Net Daily P&L",
-        "your_score":"Your Score","progress_tracker":"Progress Tracker",
+        "your_score":"SAK Score","progress_tracker":"Progress Tracker",
     }
     if "dash_widgets" not in st.session_state:
         st.session_state.dash_widgets = dict(WIDGET_DEFAULTS)
@@ -899,7 +899,7 @@ def render():
     with ch5:
         with st.container(border=True):
 
-            # ── Zella Score — 6 metrics with correct formulas ────────────────
+            # ── SAK Score — 6 metrics with correct formulas ────────────────
             # 1. Avg Win/Loss ratio (using ₹ P&L, not R)
             awl_ratio = avg_win / abs(avg_loss) if avg_loss else 0
             if   awl_ratio >= 2.6:  awl_score = 100
@@ -947,9 +947,9 @@ def render():
             else:
                 cons_score = 0
 
-            # Weighted Zella Score
+            # Weighted SAK Score
             # Recovery 10%, Win% 15%, AvgWL 20%, PF 25%, MaxDD 20%, Consistency 10%
-            zella_score = (
+            sak_score = (
                 rf_score      * 0.10 +
                 win_pct_score * 0.15 +
                 awl_score     * 0.20 +
@@ -957,9 +957,9 @@ def render():
                 max_dd_score  * 0.20 +
                 cons_score    * 0.10
             )
-            zella_score = round(zella_score, 2)
+            sak_score = round(sak_score, 2)
 
-            # Radar data — 6 axes with score values in labels like TradeZella
+            # Radar data — 6 axes with score values in labels
             cats = [
                 f"Win % ({win_pct_score:.0f})",
                 f"Profit Factor ({pf_score:.0f})",
@@ -995,7 +995,7 @@ def render():
 
             with _sc2:
                 # Score color
-                score_col = "#EF4444" if zella_score < 40 else "#F59E0B" if zella_score < 65 else "#10B981"
+                score_col = "#EF4444" if sak_score < 40 else "#F59E0B" if sak_score < 65 else "#10B981"
                 # Metric rows without the label suffix
                 metric_names = ["Win %","Profit Factor","Avg Win/Loss","Recovery","Max Drawdown","Consistency"]
                 metric_vals  = [win_pct_score, pf_score, awl_score, rf_score, max_dd_score, cons_score]
@@ -1009,11 +1009,11 @@ def render():
                     justify-content:center;height:{BOTTOM_H}px;padding:0 8px">
                     <div style="font-size:9px;color:{TEXT_SUBTLE};letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">ZELLA SCORE</div>
                     <div style="font-size:40px;font-weight:800;color:{score_col};
-                        line-height:1;margin-bottom:4px">{zella_score}</div>
+                        line-height:1;margin-bottom:4px">{sak_score}</div>
                     <div style="position:relative;height:8px;
                         background:linear-gradient(to right,#EF4444,#F59E0B,#10B981);
                         border-radius:4px;margin-bottom:3px">
-                        <div style="position:absolute;top:-4px;left:{min(zella_score,97):.0f}%;
+                        <div style="position:absolute;top:-4px;left:{min(sak_score,97):.0f}%;
                             width:16px;height:16px;background:white;
                             border:2px solid {score_col};border-radius:50%;
                             transform:translateX(-50%)"></div>
