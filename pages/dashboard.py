@@ -689,15 +689,24 @@ def render():
             p = float(t.get("pnl") or 0)
             pc = TEAL if p >= 0 else RED
             d  = str(t.get("exit_date",""))[:10]
+            strat = t.get("strategy","") or "—"
+            ep = float(t.get("entry_price") or 0)
+            xp = float(t.get("exit_price") or 0)
             pnl_sign = "+" if p > 0 else "-" if p < 0 else ""
             rows_html += (f'<tr>'
-                f'<td style="{TD};color:{TEXT_MUTED};width:110px">{d}</td>'
+                f'<td style="{TD};color:{TEXT_MUTED};width:100px">{d}</td>'
                 f'<td style="{TD};font-weight:700;color:{TEXT_H}">{t.get("ticker","")}</td>'
-                f'<td style="{TD};font-weight:600;color:{pc};text-align:right;width:110px">'
+                f'<td style="{TD};color:{TEXT_MUTED}">{strat}</td>'
+                f'<td style="{TD};color:{TEXT_H}">{f"₹{ep:,.2f}" if ep else "—"}</td>'
+                f'<td style="{TD};color:{TEXT_H}">{f"₹{xp:,.2f}" if xp else "—"}</td>'
+                f'<td style="{TD};font-weight:600;color:{pc};text-align:right;width:100px">'
                 f'{fmt_val(p, acct)}</td></tr>')
         st.markdown(f'<table style="width:100%;border-collapse:collapse">'
             f'<thead><tr><th style="{TH};text-align:left">Close Date</th>'
             f'<th style="{TH};text-align:left">Symbol</th>'
+            f'<th style="{TH};text-align:left">Strategy</th>'
+            f'<th style="{TH};text-align:left">Entry ₹</th>'
+            f'<th style="{TH};text-align:left">Exit ₹</th>'
             f'<th style="{TH};text-align:right">Net P&L</th>'
             f'</tr></thead><tbody>{rows_html}</tbody></table>',
             unsafe_allow_html=True)
