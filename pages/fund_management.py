@@ -194,6 +194,34 @@ def render():
             else:
                 monthly_pnl_cash[dt.month] += p
 
+    # ── Add / Withdraw Funds Form ─────────────────────────────────────────
+    st.markdown(section_label("Add / Withdraw Funds"), unsafe_allow_html=True)
+    fw1, fw2, fw3, fw4 = st.columns([1,1,1,1])
+    with fw1:
+        flow_type = st.radio("Type", ["➕ Add Funds", "➖ Withdraw Funds"], horizontal=True, key="flow_type")
+    with fw2:
+        flow_amount = st.number_input("Amount (₹)", min_value=0.0, step=10000.0, key="flow_amount", format="%.0f")
+    with fw3:
+        from datetime import date
+        flow_date = st.date_input("Date", value=date.today(), key="flow_date")
+        flow_month = flow_date.month
+        flow_year = flow_date.year
+    with fw4:
+        st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+        if st.button("💾 Save", key="flow_save_btn", type="primary", use_container_width=True):
+            if flow_amount > 0:
+                existing = get_capital_flows(flow_year).get(flow_month, {"added": 0, "withdrawn": 0})
+                if "➕" in flow_type:
+                    new_added = float(existing.get("added", 0)) + flow_amount
+                    save_capital_flow(flow_year, flow_month, new_added, float(existing.get("withdrawn", 0)))
+                else:
+                    new_withdrawn = float(existing.get("withdrawn", 0)) + flow_amount
+                    save_capital_flow(flow_year, flow_month, float(existing.get("added", 0)), new_withdrawn)
+                st.success(f"✅ {'Added' if '➕' in flow_type else 'Withdrawn'} ₹{flow_amount:,.0f} for {flow_date.strftime('%B %Y')}")
+                st.rerun()
+            else:
+                st.warning("Enter an amount greater than 0")
+
     # ── compute starting capital roll-forward ───────────────────────────
     # Auto-calculate opening capital = cash deployed in open trades - closed P&L
     try:
