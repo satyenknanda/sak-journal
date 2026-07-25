@@ -195,9 +195,31 @@ def render():
                 monthly_pnl_cash[dt.month] += p
 
     # ── compute starting capital roll-forward ───────────────────────────
+    # Auto-calculate opening capital = cash deployed in open trades - closed P&L
+    try:
+        from data.db import get_trades as _get_trades
+        _all_trades = _get_trades()
+        _open = [t for t in _all_trades if t.get("status") == "OPEN"]
+        _closed = [t for t in _all_trades if t.get("status") == "CLOSED"]
+        _cash = 0
+        for _t in _open:
+            _qty = float(_t.get("qty") or 0)
+            _ep  = float(_t.get("entry_price") or 0)
+            _pos = _qty * _ep
+            if str(_t.get("funding_type","") or "").upper() == "MTF":
+                _margin = float(_t.get("mtf_margin_pct") or 50) / 100
+                _cash += _pos * _margin
+            else:
+                _cash += _pos
+        _closed_pnl = sum(float(t.get("pnl") or 0) for t in _closed)
+        _auto_capital = max(_cash - _closed_pnl, 0)
+    except:
+        _auto_capital = 0.0
+    _saved_capital = safe_float(flows.get(0, {}).get("base_capital", 0.0))
+    _default_capital = _saved_capital if _saved_capital > 0 else _auto_capital
     starting_capital = st.number_input(
-        "Starting capital for Jan (or first traded month) of this year (₹)",
-        min_value=0.0, value=safe_float(flows.get(0, {}).get("base_capital", 0.0)),
+        f"Starting capital (₹) — auto-calculated: ₹{_auto_capital:,.0f}",
+        min_value=0.0, value=_default_capital,
         step=10000.0, key=f"base_cap_{year_sel}",
         help="One-time anchor — only needed once per year you start tracking. Leave 0 if unknown."
     )
