@@ -63,7 +63,7 @@ def render():
     closed  = [t for t in all_closed
                if FY_START <= str(t.get("exit_date","") or "")[:10] <= FY_END]
 
-    acct    = float(kpi.get("account_balance", 10_000_000))
+    acct    = float(kpi.get("account_balance", 20_000_000))  # ₹2 crore default
     wr      = float(kpi.get("win_rate", 0))
     pnl     = sum(float(t.get("pnl") or 0) for t in closed)
 
