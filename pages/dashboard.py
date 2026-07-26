@@ -76,7 +76,7 @@ def render():
                 cash_deployed += _pos * _margin
             else:
                 cash_deployed += _pos
-        auto_capital = max(cash_deployed - pnl, 1_000_000)
+        auto_capital = max(cash_deployed - pnl, 7_131_000)  # Rs71.31L opening capital
     except:
         auto_capital = 10_000_000
     acct = float(kpi.get("account_balance", auto_capital))
