@@ -132,6 +132,34 @@ def get_cash_balance():
 
     ledger_balance, ledger_date = get_ledger_balance()
     if ledger_balance is not None:
+        # ── Pending settlement: trades exited AFTER the ledger's as-of date
+        # haven't hit the broker's actual cash balance yet (T+1 settlement in
+        # India), so the ledger figure doesn't include them. Estimate what
+        # each such trade returns to cash: capital originally locked
+        # (full value for CASH, margin-only for MTF) plus its realized P&L.
+        pending_settlement = 0.0
+        try:
+            ledger_dt = datetime.strptime(str(ledger_date)[:10], "%Y-%m-%d").date()
+        except Exception:
+            ledger_dt = None
+        if ledger_dt is not None:
+            for t in closed:
+                exit_d = str(t.get("exit_date", ""))[:10]
+                try:
+                    exit_dt = datetime.strptime(exit_d, "%Y-%m-%d").date()
+                except Exception:
+                    continue
+                if exit_dt <= ledger_dt:
+                    continue  # already reflected in the ledger snapshot
+                qty = sf(t.get("qty")); entry_price = sf(t.get("entry_price"))
+                pnl = sf(t.get("pnl"))
+                if str(t.get("funding_type", "CASH") or "CASH").upper() == "MTF":
+                    margin_pct = sf(t.get("mtf_margin_pct")) or 50.0
+                    locked_capital = qty * entry_price * margin_pct / 100
+                else:
+                    locked_capital = qty * entry_price
+                pending_settlement += locked_capital + pnl
+
         available_cash = ledger_balance
         total_capital = ledger_balance + deployed_capital
         return {
@@ -140,6 +168,8 @@ def get_cash_balance():
             "available_cash": available_cash,
             "source": "ledger",
             "as_of": ledger_date,
+            "pending_settlement": pending_settlement,
+            "available_cash_projected": available_cash + pending_settlement,
         }
 
     today = date.today()
@@ -218,4 +248,6 @@ def get_cash_balance():
         "available_cash": available_cash,
         "source": "estimate",
         "as_of": None,
+        "pending_settlement": 0.0,
+        "available_cash_projected": available_cash,
     }

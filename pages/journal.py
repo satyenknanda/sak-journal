@@ -140,8 +140,13 @@ def render():
     try:
         _cb = get_cash_balance()
         _avail = _cb["available_cash"]
+        _pending = _cb.get("pending_settlement", 0.0)
     except Exception:
-        _avail = 0.0
+        _avail = _pending = 0.0
+
+    _cash_sub = "Available to deploy"
+    if abs(_pending) > 0.01:
+        _cash_sub = f"Available · +₹{_pending:,.0f} pending T+1"
 
     cockpit_rows = [
         metric_row("Open Positions", str(n_positions), f"{len(open_all)} trade rows" if len(open_all)!=n_positions else "", icon="📂", icon_color="blue"),
@@ -149,7 +154,7 @@ def render():
                    icon="💰", icon_color="green" if unrealized_pnl>=0 else "red"),
         metric_row("At Risk", str(at_risk), icon="⚠️", icon_color="red" if at_risk else "blue"),
         metric_row("In Profit", str(in_profit), icon="📈", icon_color="green"),
-        metric_row("Cash Balance", f"₹{_avail:,.0f}", "Available to deploy",
+        metric_row("Cash Balance", f"₹{_avail:,.0f}", _cash_sub,
                    icon="🏦", icon_color="green" if _avail>=0 else "red"),
     ]
     st.markdown(metric_card_group(cockpit_rows), unsafe_allow_html=True)

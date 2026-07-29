@@ -511,10 +511,13 @@ def render():
     try:
         cb = get_cash_balance()
         avail = cb["available_cash"]; deployed = cb["deployed_capital"]
+        pending = cb.get("pending_settlement", 0.0)
     except Exception:
-        avail = deployed = 0.0
+        avail = deployed = pending = 0.0
     avail_col = TEAL if avail >= 0 else RED
     if W.get("cash_balance", True):
+        _pending_line = (f'<div style="font-size:9px;color:{AMBER};margin-top:2px">'
+                          f'⏳ +{fmt_val(pending, acct)} pending (T+1)</div>') if abs(pending) > 0.01 else ""
         w6.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
             padding:14px 16px;box-shadow:{SHADOW_SM};height:{KH};box-sizing:border-box;overflow:hidden">
             <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;
@@ -524,6 +527,7 @@ def render():
             <div style="font-size:10px;color:{TEXT_MUTED}">Available to deploy</div>
             <div style="font-size:9px;color:{TEXT_SUBTLE};margin-top:4px">Deployed:
                 <span style="color:{TEXT_H}">{fmt_val(deployed, acct)}</span></div>
+            {_pending_line}
         </div>""", unsafe_allow_html=True)
 
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)

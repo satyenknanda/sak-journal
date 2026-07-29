@@ -35,8 +35,10 @@ def render():
     try:
         _cb = get_cash_balance()
     except Exception:
-        _cb = {"total_capital": 0.0, "deployed_capital": 0.0, "available_cash": 0.0, "source": "estimate", "as_of": None}
+        _cb = {"total_capital": 0.0, "deployed_capital": 0.0, "available_cash": 0.0, "source": "estimate",
+               "as_of": None, "pending_settlement": 0.0, "available_cash_projected": 0.0}
     _avail_col = TEAL if _cb["available_cash"] >= 0 else RED
+    _pending = _cb.get("pending_settlement", 0.0)
     cb1, cb2, cb3 = st.columns(3)
     cb1.markdown(kpi_card("TOTAL TRADING CAPITAL", fmt_inr(_cb["total_capital"])), unsafe_allow_html=True)
     cb2.markdown(kpi_card("DEPLOYED IN OPEN POSITIONS", fmt_inr(_cb["deployed_capital"])), unsafe_allow_html=True)
@@ -44,6 +46,19 @@ def render():
                            sub="Free to deploy into new trades"), unsafe_allow_html=True)
     if _cb.get("source") == "ledger":
         st.caption(f"✅ Cash Balance is your actual broker ledger balance as of {_cb.get('as_of','')}.")
+        if abs(_pending) > 0.01:
+            _pend_col = TEAL if _pending >= 0 else RED
+            st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
+                padding:10px 14px;margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:12px;color:{MUTED}">⏳ Pending settlement (trades exited after {_cb.get('as_of','')}, credits T+1)</span>
+                <span style="font-size:14px;font-weight:700;color:{_pend_col}">{fmt_pnl(_pending)}</span>
+            </div>
+            <div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
+                padding:10px 14px;margin-top:6px;display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:12px;color:{MUTED}">📅 Projected Cash Balance (tomorrow, once settled)</span>
+                <span style="font-size:16px;font-weight:800;color:{TEAL if _cb['available_cash_projected']>=0 else RED}">
+                    {fmt_inr(_cb['available_cash_projected'])}</span>
+            </div>""", unsafe_allow_html=True)
     else:
         st.caption("⚠️ Cash Balance is an estimate (no broker ledger imported yet) — upload one below for the real figure.")
 
