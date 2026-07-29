@@ -25,6 +25,7 @@ from components.trade_modals import render_add_trade_modal, render_exit_trade_mo
 from collections import defaultdict
 import numpy as np
 from portfolio_holdings import render_portfolio_holdings
+from position_utils import get_cash_balance
 
 # ── Light theme colours ────────────────────────────────────────────────────
 G = "#10B981"; R = "#EF4444"; B = "#3B82F6"; AM = "#F59E0B"
@@ -136,12 +137,20 @@ def render():
 
     n_positions = len(combined_by_ticker)  # unique tickers, not individual trade rows
 
+    try:
+        _cb = get_cash_balance()
+        _avail = _cb["available_cash"]
+    except Exception:
+        _avail = 0.0
+
     cockpit_rows = [
         metric_row("Open Positions", str(n_positions), f"{len(open_all)} trade rows" if len(open_all)!=n_positions else "", icon="📂", icon_color="blue"),
         metric_row("Unrealized P&L", f"{'+' if unrealized_pnl>=0 else ''}₹{unrealized_pnl:,.0f}",
                    icon="💰", icon_color="green" if unrealized_pnl>=0 else "red"),
         metric_row("At Risk", str(at_risk), icon="⚠️", icon_color="red" if at_risk else "blue"),
         metric_row("In Profit", str(in_profit), icon="📈", icon_color="green"),
+        metric_row("Cash Balance", f"₹{_avail:,.0f}", "Available to deploy",
+                   icon="🏦", icon_color="green" if _avail>=0 else "red"),
     ]
     st.markdown(metric_card_group(cockpit_rows), unsafe_allow_html=True)
 

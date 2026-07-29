@@ -25,10 +25,24 @@ def render():
     st.caption("Track month-over-month capital flows, growth attribution, and own-funds vs MTF (leverage) exposure.")
 
     from data.db import get_capital_flows, save_capital_flow
+    from position_utils import get_cash_balance
 
     trades = get_journal_trades()
     closed = [t for t in trades if t.get("status") == "CLOSED"]
     open_trades = [t for t in trades if t.get("status") == "OPEN"]
+
+    # ── Cash Balance (available to deploy right now) ─────────────────────
+    try:
+        _cb = get_cash_balance()
+    except Exception:
+        _cb = {"total_capital": 0.0, "deployed_capital": 0.0, "available_cash": 0.0}
+    _avail_col = TEAL if _cb["available_cash"] >= 0 else RED
+    cb1, cb2, cb3 = st.columns(3)
+    cb1.markdown(kpi_card("TOTAL TRADING CAPITAL", fmt_inr(_cb["total_capital"])), unsafe_allow_html=True)
+    cb2.markdown(kpi_card("DEPLOYED IN OPEN POSITIONS", fmt_inr(_cb["deployed_capital"])), unsafe_allow_html=True)
+    cb3.markdown(kpi_card("💰 CASH BALANCE (AVAILABLE)", fmt_inr(_cb["available_cash"]), color=_avail_col,
+                           sub="Free to deploy into new trades"), unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
     years = sorted({int(str(t.get("exit_date",""))[:4]) for t in closed if str(t.get("exit_date",""))[:4].isdigit()}, reverse=True)
     if not years:

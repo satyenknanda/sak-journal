@@ -88,3 +88,114 @@ def open_positions_summary(open_trades):
     at_risk = sum(1 for a in combined.values() if a["at_risk"])
     in_profit = sum(1 for a in combined.values() if a["in_profit"] and not a["at_risk"])
     return n_positions, unrealized_pnl, at_risk, in_profit, combined
+
+
+# ── Cash Balance ──────────────────────────────────────────────────────────
+# Shared by Dashboard, Fund Management, and Daily Plan so the number is
+# always identical across the app. Mirrors the "Current Capital" roll-forward
+# and "Your Capital Deployed" math already used in Fund Management.
+def get_cash_balance():
+    """
+    Returns dict:
+        total_capital     -- current trading equity (starting capital + deposits
+                              - withdrawals + realized P&L - MTF interest, this year)
+        deployed_capital   -- your own money currently tied up in OPEN positions
+                              (full value for CASH trades, margin-only for MTF trades)
+        available_cash     -- total_capital - deployed_capital (free to deploy)
+    """
+    from datetime import datetime, date, timedelta
+    from data.db import get_trades, get_capital_flows
+
+    def sf(v):
+        try: return float(v or 0)
+        except Exception: return 0.0
+
+    trades = get_trades()
+    open_trades = [t for t in trades if t.get("status") == "OPEN"]
+    closed = [t for t in trades if t.get("status") == "CLOSED"]
+
+    today = date.today()
+    year = today.year
+    year_start, year_end = date(year, 1, 1), date(year, 12, 31)
+
+    ZERODHA_MTF_DAILY_RATE = 0.0004  # 0.04%/day, matches Fund Management
+
+    def mtf_interest_this_year(t):
+        if str(t.get("funding_type", "CASH") or "CASH").upper() != "MTF":
+            return 0.0
+        qty = sf(t.get("qty")); price = sf(t.get("entry_price"))
+        margin_pct = sf(t.get("mtf_margin_pct")) or 50.0
+        position_value = qty * price
+        borrowed = position_value * (1 - margin_pct / 100)
+        if borrowed <= 0:
+            return 0.0
+        try:
+            entry_dt = datetime.strptime(str(t.get("entry_date", ""))[:10], "%Y-%m-%d").date()
+        except Exception:
+            return 0.0
+        if t.get("status") == "CLOSED" and t.get("exit_date"):
+            try:
+                exit_dt = datetime.strptime(str(t.get("exit_date", ""))[:10], "%Y-%m-%d").date()
+            except Exception:
+                exit_dt = today
+        else:
+            exit_dt = today
+        start = max(entry_dt + timedelta(days=1), year_start)
+        end = min(exit_dt, year_end)
+        if start > end:
+            return 0.0
+        days = (end - start).days + 1
+        return borrowed * ZERODHA_MTF_DAILY_RATE * days
+
+    total_mtf_interest = sum(mtf_interest_this_year(t) for t in trades)
+
+    realized_pnl_this_year = 0.0
+    for t in closed:
+        d = str(t.get("exit_date", ""))[:10]
+        try:
+            dt = datetime.strptime(d, "%Y-%m-%d")
+        except Exception:
+            continue
+        if dt.year == year:
+            realized_pnl_this_year += sf(t.get("pnl"))
+
+    flows = get_capital_flows(year)
+    saved_base = sf(flows.get(0, {}).get("base_capital", 0.0))
+    if saved_base > 0:
+        starting_capital = saved_base
+    else:
+        # same auto-calc fallback used in Fund Management / Dashboard
+        cash_deployed_all = 0.0
+        for t in open_trades:
+            qty = sf(t.get("qty")); ep = sf(t.get("entry_price"))
+            pos = qty * ep
+            if str(t.get("funding_type", "") or "").upper() == "MTF":
+                margin = sf(t.get("mtf_margin_pct") or 50) / 100
+                cash_deployed_all += pos * margin
+            else:
+                cash_deployed_all += pos
+        starting_capital = max(cash_deployed_all - sum(sf(t.get("pnl")) for t in closed), 0.0)
+
+    total_added = sum(sf(flows.get(m, {}).get("added", 0.0)) for m in range(1, 13))
+    total_withdrawn = sum(sf(flows.get(m, {}).get("withdrawn", 0.0)) for m in range(1, 13))
+
+    total_capital = (starting_capital + total_added - total_withdrawn
+                      + realized_pnl_this_year - total_mtf_interest)
+
+    deployed_capital = 0.0
+    for t in open_trades:
+        qty = sf(t.get("qty")); price = sf(t.get("entry_price")) or sf(t.get("live_price"))
+        value = qty * price
+        if str(t.get("funding_type", "CASH") or "CASH").upper() == "MTF":
+            margin_pct = sf(t.get("mtf_margin_pct")) or 50.0
+            deployed_capital += value * margin_pct / 100
+        else:
+            deployed_capital += value
+
+    available_cash = total_capital - deployed_capital
+
+    return {
+        "total_capital": total_capital,
+        "deployed_capital": deployed_capital,
+        "available_cash": available_cash,
+    }
