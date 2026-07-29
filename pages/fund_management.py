@@ -36,7 +36,7 @@ def render():
         _cb = get_cash_balance()
     except Exception:
         _cb = {"total_capital": 0.0, "deployed_capital": 0.0, "available_cash": 0.0, "source": "estimate",
-               "as_of": None, "pending_settlement": 0.0, "available_cash_projected": 0.0}
+               "as_of": None, "same_day_settled": 0.0, "pending_settlement": 0.0, "available_cash_projected": 0.0}
     _avail_col = TEAL if _cb["available_cash"] >= 0 else RED
     _pending = _cb.get("pending_settlement", 0.0)
     cb1, cb2, cb3 = st.columns(3)
@@ -45,12 +45,21 @@ def render():
     cb3.markdown(kpi_card("💰 CASH BALANCE (AVAILABLE)", fmt_inr(_cb["available_cash"]), color=_avail_col,
                            sub="Free to deploy into new trades"), unsafe_allow_html=True)
     if _cb.get("source") == "ledger":
-        st.caption(f"✅ Cash Balance is your actual broker ledger balance as of {_cb.get('as_of','')}.")
+        _same_day = _cb.get("same_day_settled", 0.0)
+        st.caption(f"✅ Cash Balance is your actual broker ledger balance as of {_cb.get('as_of','')}"
+                   f"{', plus same-day intraday square-offs' if abs(_same_day) > 0.01 else ''}.")
+        if abs(_same_day) > 0.01:
+            _sd_col = TEAL if _same_day >= 0 else RED
+            st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
+                padding:10px 14px;margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:12px;color:{TEXT_MUTED}">⚡ Same-day settled (intraday square-offs today, credited same day)</span>
+                <span style="font-size:14px;font-weight:700;color:{_sd_col}">{fmt_pnl(_same_day)}</span>
+            </div>""", unsafe_allow_html=True)
         if abs(_pending) > 0.01:
             _pend_col = TEAL if _pending >= 0 else RED
             st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
-                padding:10px 14px;margin-top:8px;display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:12px;color:{TEXT_MUTED}">⏳ Pending settlement (trades exited after {_cb.get('as_of','')}, credits T+1)</span>
+                padding:10px 14px;margin-top:6px;display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:12px;color:{TEXT_MUTED}">⏳ Pending settlement (multi-day exits after {_cb.get('as_of','')}, credits T+1)</span>
                 <span style="font-size:14px;font-weight:700;color:{_pend_col}">{fmt_pnl(_pending)}</span>
             </div>
             <div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
@@ -59,6 +68,55 @@ def render():
                 <span style="font-size:16px;font-weight:800;color:{TEAL if _cb['available_cash_projected']>=0 else RED}">
                     {fmt_inr(_cb['available_cash_projected'])}</span>
             </div>""", unsafe_allow_html=True)
+        if abs(_same_day) > 0.01 or abs(_pending) > 0.01:
+            with st.expander("🔎 See which trades feed these numbers"):
+                try:
+                    _ldt = datetime.strptime(str(_cb.get('as_of',''))[:10], "%Y-%m-%d").date()
+                    _bd_rows = ""
+                    for _t in closed:
+                        _exd = str(_t.get("exit_date",""))[:10]
+                        try:
+                            _exdt = datetime.strptime(_exd, "%Y-%m-%d").date()
+                        except Exception:
+                            continue
+                        if _exdt <= _ldt:
+                            continue
+                        _entd = str(_t.get("entry_date",""))[:10]
+                        try:
+                            _entdt = datetime.strptime(_entd, "%Y-%m-%d").date()
+                        except Exception:
+                            _entdt = None
+                        _q = float(_t.get("qty") or 0); _ep = float(_t.get("entry_price") or 0)
+                        _pn = float(_t.get("pnl") or 0)
+                        if str(_t.get("funding_type","CASH") or "CASH").upper() == "MTF":
+                            _mp = float(_t.get("mtf_margin_pct") or 50.0)
+                            _lc = _q*_ep*_mp/100
+                        else:
+                            _lc = _q*_ep
+                        _amt = _lc + _pn
+                        _bucket = "Same-day" if (_entdt is not None and _entdt == _exdt) else "Pending T+1"
+                        _bd_rows += (f'<tr><td style="padding:5px 8px">{_t.get("ticker","")}</td>'
+                                     f'<td style="padding:5px 8px">{_entd}</td>'
+                                     f'<td style="padding:5px 8px">{_exd}</td>'
+                                     f'<td style="padding:5px 8px">{_bucket}</td>'
+                                     f'<td style="padding:5px 8px;text-align:right">{fmt_inr(_lc)}</td>'
+                                     f'<td style="padding:5px 8px;text-align:right;color:{TEAL if _pn>=0 else RED}">{fmt_pnl(_pn)}</td>'
+                                     f'<td style="padding:5px 8px;text-align:right;font-weight:700">{fmt_inr(_amt)}</td></tr>')
+                    if _bd_rows:
+                        st.markdown(f"""<table style="width:100%;border-collapse:collapse;font-size:12px">
+                            <thead><tr style="color:{TEXT_SUBTLE}">
+                                <th style="padding:5px 8px;text-align:left">SYMBOL</th>
+                                <th style="padding:5px 8px;text-align:left">ENTRY</th>
+                                <th style="padding:5px 8px;text-align:left">EXIT</th>
+                                <th style="padding:5px 8px;text-align:left">BUCKET</th>
+                                <th style="padding:5px 8px;text-align:right">CAPITAL BACK</th>
+                                <th style="padding:5px 8px;text-align:right">P&L</th>
+                                <th style="padding:5px 8px;text-align:right">TOTAL</th>
+                            </tr></thead><tbody>{_bd_rows}</tbody></table>""", unsafe_allow_html=True)
+                    else:
+                        st.caption("No trades to show.")
+                except Exception as _e:
+                    st.caption(f"Couldn't build breakdown: {_e}")
     else:
         st.caption("⚠️ Cash Balance is an estimate (no broker ledger imported yet) — upload one below for the real figure.")
 
@@ -172,6 +230,113 @@ def render():
                     st.caption(f"📋 Ledger shows {_settlements_ledger} settlement entries · App shows {len(_closed_in_range)} "
                                f"closed trades exiting in this window. Settlements often bundle multiple trades and lag "
                                f"T+1, so these two counts won't match exactly — a big gap is what's worth investigating.")
+
+                    # ── Match individual MTF buy/sell to ledger pledge/unpledge ──
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    st.markdown(section_label("🔗 Match Buy/Sell (MTF) to Ledger"), unsafe_allow_html=True)
+                    st.caption("MTF pledge/unpledge lines in the ledger name the ticker directly — this matches each "
+                               "MTF trade's entry date to its pledge, and exit date to its unpledge, one ticker at a time.")
+
+                    import re as _re_rc
+                    def _extract_ticker_rc(text, prefix):
+                        m = _re_rc.search(prefix + r"\s+(\S+)", str(text))
+                        return m.group(1).upper() if m else None
+
+                    _pledge_df = _dated_all[_dated_all["particulars"].astype(str).str.contains("MTF pledge charges for", na=False)].copy()
+                    _unpledge_df = _dated_all[_dated_all["particulars"].astype(str).str.contains("MTF unpledge charges for", na=False)].copy()
+                    _pledge_df["ticker"] = _pledge_df["particulars"].apply(lambda x: _extract_ticker_rc(x, "MTF pledge charges for"))
+                    _unpledge_df["ticker"] = _unpledge_df["particulars"].apply(lambda x: _extract_ticker_rc(x, "MTF unpledge charges for"))
+
+                    _pledge_by_ticker = {}
+                    for _tk, _grp in _pledge_df.groupby("ticker"):
+                        _pledge_by_ticker[_tk] = sorted(_grp["posting_date"].dt.date.tolist())
+                    _unpledge_by_ticker = {}
+                    for _tk, _grp in _unpledge_df.groupby("ticker"):
+                        _unpledge_by_ticker[_tk] = sorted(_grp["posting_date"].dt.date.tolist())
+
+                    _mtf_trades = [t for t in trades if str(t.get("funding_type","CASH") or "CASH").upper() == "MTF"]
+                    _mtf_by_ticker = {}
+                    for _t in _mtf_trades:
+                        _tk = str(_t.get("ticker","")).upper().strip()
+                        if not _tk:
+                            continue
+                        _mtf_by_ticker.setdefault(_tk, []).append(_t)
+                    for _tk in _mtf_by_ticker:
+                        _mtf_by_ticker[_tk].sort(key=lambda t: str(t.get("entry_date","")))
+
+                    _all_tickers = sorted(set(_mtf_by_ticker.keys()) | set(_pledge_by_ticker.keys()) | set(_unpledge_by_ticker.keys()))
+                    _match_rows = ""
+                    _mismatch_count = 0
+                    for _tk in _all_tickers:
+                        _jt = _mtf_by_ticker.get(_tk, [])
+                        _pl = _pledge_by_ticker.get(_tk, [])
+                        _up = _unpledge_by_ticker.get(_tk, [])
+                        if not _jt and (_pl or _up):
+                            _match_rows += (f'<tr><td style="padding:5px 8px">{_tk}</td>'
+                                f'<td style="padding:5px 8px" colspan="5">⚠️ Ledger shows MTF pledge/unpledge activity '
+                                f'but no matching MTF trade found in the journal — possible missing trade</td></tr>')
+                            _mismatch_count += 1
+                            continue
+                        if _jt and not _pl:
+                            _match_rows += (f'<tr><td style="padding:5px 8px">{_tk}</td>'
+                                f'<td style="padding:5px 8px" colspan="5">⚠️ {len(_jt)} MTF trade(s) in journal but no '
+                                f'pledge charge found in ledger — check funding type or ticker spelling</td></tr>')
+                            _mismatch_count += 1
+                            continue
+                        _n = max(len(_jt), len(_pl))
+                        for _i in range(_n):
+                            _trade = _jt[_i] if _i < len(_jt) else None
+                            _pledge_d = _pl[_i] if _i < len(_pl) else None
+                            _unpledge_d = _up[_i] if _i < len(_up) else None
+                            _j_entry = str(_trade.get("entry_date",""))[:10] if _trade else "—"
+                            _is_closed = bool(_trade and _trade.get("status")=="CLOSED")
+                            _j_exit = str(_trade.get("exit_date",""))[:10] if _is_closed else ("open" if _trade else "—")
+                            try:
+                                _j_entry_dt = datetime.strptime(_j_entry, "%Y-%m-%d").date() if _trade else None
+                            except Exception:
+                                _j_entry_dt = None
+                            try:
+                                _j_exit_dt = datetime.strptime(_j_exit, "%Y-%m-%d").date() if _is_closed else None
+                            except Exception:
+                                _j_exit_dt = None
+
+                            _entry_ok = (_trade is not None) and (_pledge_d is not None) and (_j_entry_dt == _pledge_d)
+                            if _trade is not None and not _is_closed:
+                                _exit_ok = (_unpledge_d is None)  # still open — correctly no unpledge yet
+                            elif _trade is not None:
+                                _exit_ok = (_unpledge_d is not None) and (_j_exit_dt == _unpledge_d)
+                            else:
+                                _exit_ok = False  # ledger event with no journal counterpart at all
+                            if not _entry_ok or not _exit_ok:
+                                _mismatch_count += 1
+                            _icon_e = "✅" if _entry_ok else "⚠️"
+                            _icon_x = "✅" if _exit_ok else "⚠️"
+                            _match_rows += (f'<tr><td style="padding:5px 8px">{_tk}</td>'
+                                f'<td style="padding:5px 8px">{_j_entry}</td>'
+                                f'<td style="padding:5px 8px">{_pledge_d if _pledge_d else "—"}</td>'
+                                f'<td style="padding:5px 8px;color:{TEAL if _entry_ok else RED}">{_icon_e}</td>'
+                                f'<td style="padding:5px 8px">{_j_exit}</td>'
+                                f'<td style="padding:5px 8px">{_unpledge_d if _unpledge_d else "—"}</td>'
+                                f'<td style="padding:5px 8px;color:{TEAL if _exit_ok else RED}">{_icon_x}</td></tr>')
+
+                    if _match_rows:
+                        st.markdown(f"""<table style="width:100%;border-collapse:collapse;font-size:12px">
+                            <thead><tr style="color:{TEXT_SUBTLE}">
+                                <th style="padding:5px 8px;text-align:left">TICKER</th>
+                                <th style="padding:5px 8px;text-align:left">JOURNAL ENTRY</th>
+                                <th style="padding:5px 8px;text-align:left">LEDGER PLEDGE</th>
+                                <th style="padding:5px 8px;text-align:left"></th>
+                                <th style="padding:5px 8px;text-align:left">JOURNAL EXIT</th>
+                                <th style="padding:5px 8px;text-align:left">LEDGER UNPLEDGE</th>
+                                <th style="padding:5px 8px;text-align:left"></th>
+                            </tr></thead><tbody>{_match_rows}</tbody></table>""", unsafe_allow_html=True)
+                        if _mismatch_count:
+                            st.warning(f"⚠️ {_mismatch_count} ticker(s) show a date mismatch or missing counterpart — "
+                                       f"worth checking these trades' entry/exit dates in Trade Detail.")
+                        else:
+                            st.success("✅ All MTF trades match their ledger pledge/unpledge dates.")
+                    else:
+                        st.caption("No MTF trades or ledger MTF activity to match in this window.")
                 except Exception as _e:
                     st.warning(f"Couldn't run reconciliation: {_e}")
                     st.rerun()

@@ -132,11 +132,18 @@ def get_cash_balance():
 
     ledger_balance, ledger_date = get_ledger_balance()
     if ledger_balance is not None:
-        # ── Pending settlement: trades exited AFTER the ledger's as-of date
-        # haven't hit the broker's actual cash balance yet (T+1 settlement in
-        # India), so the ledger figure doesn't include them. Estimate what
-        # each such trade returns to cash: capital originally locked
-        # (full value for CASH, margin-only for MTF) plus its realized P&L.
+        # ── Trades exited AFTER the ledger's as-of date aren't in that
+        # snapshot yet. Two cases:
+        #   • Same-day trades (entry_date == exit_date, intraday square-off,
+        #     even if MTF-funded) never go to delivery/settlement — the
+        #     broker credits/debits these the SAME day. These count as
+        #     already-available cash right now.
+        #   • Multi-day trades (bought earlier, sold after the ledger date)
+        #     go through real settlement — credited only T+1. These are
+        #     genuinely "pending".
+        # Each bucket returns: capital originally locked (full value for
+        # CASH, margin-only for MTF) plus that trade's realized P&L.
+        same_day_settled = 0.0
         pending_settlement = 0.0
         try:
             ledger_dt = datetime.strptime(str(ledger_date)[:10], "%Y-%m-%d").date()
@@ -158,16 +165,27 @@ def get_cash_balance():
                     locked_capital = qty * entry_price * margin_pct / 100
                 else:
                     locked_capital = qty * entry_price
-                pending_settlement += locked_capital + pnl
+                trade_amount = locked_capital + pnl
 
-        available_cash = ledger_balance
-        total_capital = ledger_balance + deployed_capital
+                entry_d = str(t.get("entry_date", ""))[:10]
+                try:
+                    entry_dt = datetime.strptime(entry_d, "%Y-%m-%d").date()
+                except Exception:
+                    entry_dt = None
+                if entry_dt is not None and entry_dt == exit_dt:
+                    same_day_settled += trade_amount  # intraday square-off, credited same day
+                else:
+                    pending_settlement += trade_amount  # multi-day hold, T+1 settlement
+
+        available_cash = ledger_balance + same_day_settled
+        total_capital = ledger_balance + same_day_settled + deployed_capital
         return {
             "total_capital": total_capital,
             "deployed_capital": deployed_capital,
             "available_cash": available_cash,
             "source": "ledger",
             "as_of": ledger_date,
+            "same_day_settled": same_day_settled,
             "pending_settlement": pending_settlement,
             "available_cash_projected": available_cash + pending_settlement,
         }
@@ -248,6 +266,7 @@ def get_cash_balance():
         "available_cash": available_cash,
         "source": "estimate",
         "as_of": None,
+        "same_day_settled": 0.0,
         "pending_settlement": 0.0,
         "available_cash_projected": available_cash,
     }
