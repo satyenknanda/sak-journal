@@ -66,6 +66,100 @@ def render():
                     save_ledger_balance(_closing_balance, _as_of)
                     st.success(f"✅ Cash Balance updated to {fmt_inr(_closing_balance)} as of {_as_of}")
                     st.rerun()
+
+                # ── Reconcile ledger totals against app's trades/capital_flows ──
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown(section_label("🔍 Reconcile with Trades"), unsafe_allow_html=True)
+                try:
+                    _dated_all = _ldf[_ldf["posting_date"].notna() & (_ldf["posting_date"].astype(str).str.strip() != "")].copy()
+                    _dated_all["posting_date"] = pd.to_datetime(_dated_all["posting_date"])
+                    _ledger_start = _dated_all["posting_date"].min().date()
+                    _ledger_end = _dated_all["posting_date"].max().date()
+
+                    _deposits_ledger = float(_dated_all[_dated_all["voucher_type"] == "Bank Receipts"]["credit"].sum())
+                    _withdrawals_ledger = float(_dated_all[_dated_all["voucher_type"] == "Bank Payments"]["debit"].sum())
+                    _mtf_interest_ledger = float(
+                        _dated_all[_dated_all["particulars"].astype(str).str.contains("Interest for MTF", na=False)]["debit"].sum())
+                    _settlements_ledger = int(
+                        _dated_all["particulars"].astype(str).str.contains("Net settlement for Equity", na=False).sum())
+
+                    st.caption(f"Ledger spans {_ledger_start} to {_ledger_end}. Comparing against your trades and "
+                               f"capital flows in that same window.")
+
+                    # App-side totals scoped to the ledger's own date range
+                    import calendar as _cal_rc
+                    _years_span = sorted({_ledger_start.year, _ledger_end.year})
+                    _deposits_app = _withdrawn_app = 0.0
+                    for _y in _years_span:
+                        _flows_y = get_capital_flows(_y)
+                        for _m in range(1, 13):
+                            _f = _flows_y.get(_m, {})
+                            _month_start = datetime(_y, _m, 1).date()
+                            _month_end = datetime(_y, _m, _cal_rc.monthrange(_y, _m)[1]).date()
+                            if _month_start <= _ledger_end and _month_end >= _ledger_start:
+                                _deposits_app += float(_f.get("added", 0) or 0)
+                                _withdrawn_app += float(_f.get("withdrawn", 0) or 0)
+
+                    _mtf_interest_app = 0.0
+                    ZERODHA_MTF_DAILY_RATE_RC = 0.0004
+                    for _t in trades:
+                        if str(_t.get("funding_type", "CASH") or "CASH").upper() != "MTF":
+                            continue
+                        _qty = float(_t.get("qty") or 0); _price = float(_t.get("entry_price") or 0)
+                        _margin_pct = float(_t.get("mtf_margin_pct") or 50.0)
+                        _borrowed = _qty * _price * (1 - _margin_pct / 100)
+                        if _borrowed <= 0:
+                            continue
+                        try:
+                            _entry_dt = datetime.strptime(str(_t.get("entry_date", ""))[:10], "%Y-%m-%d").date()
+                        except Exception:
+                            continue
+                        if _t.get("status") == "CLOSED" and _t.get("exit_date"):
+                            try:
+                                _exit_dt = datetime.strptime(str(_t.get("exit_date", ""))[:10], "%Y-%m-%d").date()
+                            except Exception:
+                                _exit_dt = _ledger_end
+                        else:
+                            _exit_dt = _ledger_end
+                        from datetime import timedelta as _td_rc
+                        _start = max(_entry_dt + _td_rc(days=1), _ledger_start)
+                        _end = min(_exit_dt, _ledger_end)
+                        if _start > _end:
+                            continue
+                        _days = (_end - _start).days + 1
+                        _mtf_interest_app += _borrowed * ZERODHA_MTF_DAILY_RATE_RC * _days
+
+                    _closed_in_range = [t for t in closed if t.get("exit_date") and
+                                         _ledger_start <= datetime.strptime(str(t.get("exit_date"))[:10], "%Y-%m-%d").date() <= _ledger_end]
+
+                    def _diff_row(label, ledger_val, app_val, tol=100.0):
+                        diff = ledger_val - app_val
+                        ok = abs(diff) <= tol
+                        icon = "✅" if ok else "⚠️"
+                        return f'<tr><td style="padding:6px 10px">{label}</td>' \
+                               f'<td style="padding:6px 10px;text-align:right">{fmt_inr(ledger_val)}</td>' \
+                               f'<td style="padding:6px 10px;text-align:right">{fmt_inr(app_val)}</td>' \
+                               f'<td style="padding:6px 10px;text-align:right;color:{TEAL if ok else RED}">{icon} {fmt_inr(diff)}</td></tr>'
+
+                    _rows_html = ""
+                    _rows_html += _diff_row("Deposits", _deposits_ledger, _deposits_app)
+                    _rows_html += _diff_row("Withdrawals", _withdrawals_ledger, _withdrawn_app)
+                    _rows_html += _diff_row("MTF Interest", _mtf_interest_ledger, _mtf_interest_app)
+
+                    st.markdown(f"""<table style="width:100%;border-collapse:collapse">
+                        <thead><tr>
+                            <th style="padding:6px 10px;text-align:left;font-size:11px;color:{TEXT_SUBTLE}">METRIC</th>
+                            <th style="padding:6px 10px;text-align:right;font-size:11px">LEDGER</th>
+                            <th style="padding:6px 10px;text-align:right;font-size:11px">APP</th>
+                            <th style="padding:6px 10px;text-align:right;font-size:11px">DIFFERENCE</th>
+                        </tr></thead><tbody>{_rows_html}</tbody></table>""", unsafe_allow_html=True)
+
+                    st.caption(f"📋 Ledger shows {_settlements_ledger} settlement entries · App shows {len(_closed_in_range)} "
+                               f"closed trades exiting in this window. Settlements often bundle multiple trades and lag "
+                               f"T+1, so these two counts won't match exactly — a big gap is what's worth investigating.")
+                except Exception as _e:
+                    st.warning(f"Couldn't run reconciliation: {_e}")
+                    st.rerun()
             except Exception as e:
                 st.error(f"Couldn't parse this file as a ledger export: {e}")
 
