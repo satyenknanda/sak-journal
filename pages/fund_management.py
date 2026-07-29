@@ -73,7 +73,11 @@ def render():
                 try:
                     from datetime import timedelta as _td_bd
                     _ldt = datetime.strptime(str(_cb.get('as_of',''))[:10], "%Y-%m-%d").date()
-                    _today_bd = datetime.now().date()
+                    try:
+                        from zoneinfo import ZoneInfo
+                        _today_bd = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+                    except Exception:
+                        _today_bd = datetime.now().date()
                     _bd_rows = ""
                     for _t in closed:
                         _exd = str(_t.get("exit_date",""))[:10]

@@ -147,7 +147,11 @@ def get_cash_balance():
         # CASH, margin-only for MTF) plus that trade's realized P&L.
         settled_since_ledger = 0.0
         pending_settlement = 0.0
-        today = date.today()
+        try:
+            from zoneinfo import ZoneInfo
+            today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+        except Exception:
+            today = date.today()  # fallback if zoneinfo/tzdata unavailable
         try:
             ledger_dt = datetime.strptime(str(ledger_date)[:10], "%Y-%m-%d").date()
         except Exception:
