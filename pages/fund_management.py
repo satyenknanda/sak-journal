@@ -50,12 +50,12 @@ def render():
             _pend_col = TEAL if _pending >= 0 else RED
             st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
                 padding:10px 14px;margin-top:8px;display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:12px;color:{MUTED}">⏳ Pending settlement (trades exited after {_cb.get('as_of','')}, credits T+1)</span>
+                <span style="font-size:12px;color:{TEXT_MUTED}">⏳ Pending settlement (trades exited after {_cb.get('as_of','')}, credits T+1)</span>
                 <span style="font-size:14px;font-weight:700;color:{_pend_col}">{fmt_pnl(_pending)}</span>
             </div>
             <div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
                 padding:10px 14px;margin-top:6px;display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:12px;color:{MUTED}">📅 Projected Cash Balance (tomorrow, once settled)</span>
+                <span style="font-size:12px;color:{TEXT_MUTED}">📅 Projected Cash Balance (tomorrow, once settled)</span>
                 <span style="font-size:16px;font-weight:800;color:{TEAL if _cb['available_cash_projected']>=0 else RED}">
                     {fmt_inr(_cb['available_cash_projected'])}</span>
             </div>""", unsafe_allow_html=True)
