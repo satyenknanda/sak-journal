@@ -357,6 +357,25 @@ def set_setting(key, value):
     except Exception as e: print(f"set_setting local error: {e}")
 
 
+# ── Broker Ledger (ground-truth cash balance) ─────────────────────────────
+# Stores the latest imported broker ledger closing balance + as-of date,
+# using the existing settings key/value store. This is the real cash
+# balance from the broker statement, used in preference to the estimated
+# calc in position_utils.get_cash_balance() whenever it's available.
+def get_ledger_balance():
+    """Returns (balance: float|None, as_of_date: str|None)."""
+    bal = get_setting("broker_ledger_balance")
+    dt = get_setting("broker_ledger_date")
+    try:
+        return (float(bal) if bal is not None else None, dt)
+    except Exception:
+        return (None, dt)
+
+def save_ledger_balance(balance, as_of_date):
+    set_setting("broker_ledger_balance", balance)
+    set_setting("broker_ledger_date", str(as_of_date))
+
+
 # ── Playbook Rules ────────────────────────────────────────────────────────────
 def get_playbook_rules(pid):
     try:

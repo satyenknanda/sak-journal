@@ -92,19 +92,25 @@ def open_positions_summary(open_trades):
 
 # ── Cash Balance ──────────────────────────────────────────────────────────
 # Shared by Dashboard, Fund Management, and Daily Plan so the number is
-# always identical across the app. Mirrors the "Current Capital" roll-forward
-# and "Your Capital Deployed" math already used in Fund Management.
+# always identical across the app. When a broker ledger has been imported
+# (Fund Management → Upload Broker Ledger), available_cash uses that real
+# figure directly. Otherwise it falls back to the estimated roll-forward
+# (starting capital + deposits - withdrawals + realized P&L - MTF interest,
+# minus capital currently deployed in open positions).
 def get_cash_balance():
     """
     Returns dict:
-        total_capital     -- current trading equity (starting capital + deposits
-                              - withdrawals + realized P&L - MTF interest, this year)
-        deployed_capital   -- your own money currently tied up in OPEN positions
-                              (full value for CASH trades, margin-only for MTF trades)
-        available_cash     -- total_capital - deployed_capital (free to deploy)
+        total_capital      -- current trading equity (ledger cash + deployed
+                               capital, when ledger imported; else estimated)
+        deployed_capital    -- your own money currently tied up in OPEN positions
+                               (full value for CASH trades, margin-only for MTF trades)
+        available_cash      -- free cash to deploy (real ledger balance if
+                               imported, else the estimated roll-forward)
+        source               -- "ledger" or "estimate"
+        as_of                -- ledger as-of date string, or None
     """
     from datetime import datetime, date, timedelta
-    from data.db import get_trades, get_capital_flows
+    from data.db import get_trades, get_capital_flows, get_ledger_balance
 
     def sf(v):
         try: return float(v or 0)
@@ -113,6 +119,28 @@ def get_cash_balance():
     trades = get_trades()
     open_trades = [t for t in trades if t.get("status") == "OPEN"]
     closed = [t for t in trades if t.get("status") == "CLOSED"]
+
+    deployed_capital = 0.0
+    for t in open_trades:
+        qty = sf(t.get("qty")); price = sf(t.get("entry_price")) or sf(t.get("live_price"))
+        value = qty * price
+        if str(t.get("funding_type", "CASH") or "CASH").upper() == "MTF":
+            margin_pct = sf(t.get("mtf_margin_pct")) or 50.0
+            deployed_capital += value * margin_pct / 100
+        else:
+            deployed_capital += value
+
+    ledger_balance, ledger_date = get_ledger_balance()
+    if ledger_balance is not None:
+        available_cash = ledger_balance
+        total_capital = ledger_balance + deployed_capital
+        return {
+            "total_capital": total_capital,
+            "deployed_capital": deployed_capital,
+            "available_cash": available_cash,
+            "source": "ledger",
+            "as_of": ledger_date,
+        }
 
     today = date.today()
     year = today.year
@@ -182,20 +210,12 @@ def get_cash_balance():
     total_capital = (starting_capital + total_added - total_withdrawn
                       + realized_pnl_this_year - total_mtf_interest)
 
-    deployed_capital = 0.0
-    for t in open_trades:
-        qty = sf(t.get("qty")); price = sf(t.get("entry_price")) or sf(t.get("live_price"))
-        value = qty * price
-        if str(t.get("funding_type", "CASH") or "CASH").upper() == "MTF":
-            margin_pct = sf(t.get("mtf_margin_pct")) or 50.0
-            deployed_capital += value * margin_pct / 100
-        else:
-            deployed_capital += value
-
     available_cash = total_capital - deployed_capital
 
     return {
         "total_capital": total_capital,
         "deployed_capital": deployed_capital,
         "available_cash": available_cash,
+        "source": "estimate",
+        "as_of": None,
     }

@@ -24,7 +24,7 @@ def render():
     st.markdown("## Fund Management")
     st.caption("Track month-over-month capital flows, growth attribution, and own-funds vs MTF (leverage) exposure.")
 
-    from data.db import get_capital_flows, save_capital_flow
+    from data.db import get_capital_flows, save_capital_flow, save_ledger_balance
     from position_utils import get_cash_balance
 
     trades = get_journal_trades()
@@ -35,13 +35,40 @@ def render():
     try:
         _cb = get_cash_balance()
     except Exception:
-        _cb = {"total_capital": 0.0, "deployed_capital": 0.0, "available_cash": 0.0}
+        _cb = {"total_capital": 0.0, "deployed_capital": 0.0, "available_cash": 0.0, "source": "estimate", "as_of": None}
     _avail_col = TEAL if _cb["available_cash"] >= 0 else RED
     cb1, cb2, cb3 = st.columns(3)
     cb1.markdown(kpi_card("TOTAL TRADING CAPITAL", fmt_inr(_cb["total_capital"])), unsafe_allow_html=True)
     cb2.markdown(kpi_card("DEPLOYED IN OPEN POSITIONS", fmt_inr(_cb["deployed_capital"])), unsafe_allow_html=True)
     cb3.markdown(kpi_card("💰 CASH BALANCE (AVAILABLE)", fmt_inr(_cb["available_cash"]), color=_avail_col,
                            sub="Free to deploy into new trades"), unsafe_allow_html=True)
+    if _cb.get("source") == "ledger":
+        st.caption(f"✅ Cash Balance is your actual broker ledger balance as of {_cb.get('as_of','')}.")
+    else:
+        st.caption("⚠️ Cash Balance is an estimate (no broker ledger imported yet) — upload one below for the real figure.")
+
+    with st.expander("📄 Upload Broker Ledger CSV — get your real Cash Balance"):
+        st.caption("Upload your broker's ledger/statement export (columns: particulars, posting_date, cost_center, "
+                   "voucher_type, debit, credit, net_balance). The Closing Balance row becomes your Cash Balance "
+                   "everywhere in the app, replacing the estimate.")
+        ledger_file = st.file_uploader("Choose ledger CSV", type=["csv"], key="ledger_upload")
+        if ledger_file is not None:
+            try:
+                _ldf = pd.read_csv(ledger_file)
+                _last_row = _ldf.iloc[-1]
+                _closing_balance = float(_last_row["net_balance"])
+                _dated = _ldf[_ldf["posting_date"].notna() & (_ldf["posting_date"].astype(str).str.strip() != "")]
+                _as_of = str(_dated.iloc[-1]["posting_date"]) if not _dated.empty else ""
+                lp1, lp2 = st.columns(2)
+                lp1.metric("Closing Balance", fmt_inr(_closing_balance))
+                lp2.metric("As of", _as_of or "—")
+                if st.button("💾 Save as Cash Balance", key="save_ledger_btn", type="primary"):
+                    save_ledger_balance(_closing_balance, _as_of)
+                    st.success(f"✅ Cash Balance updated to {fmt_inr(_closing_balance)} as of {_as_of}")
+                    st.rerun()
+            except Exception as e:
+                st.error(f"Couldn't parse this file as a ledger export: {e}")
+
     st.markdown("<br>", unsafe_allow_html=True)
 
     years = sorted({int(str(t.get("exit_date",""))[:4]) for t in closed if str(t.get("exit_date",""))[:4].isdigit()}, reverse=True)
