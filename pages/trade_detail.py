@@ -342,8 +342,15 @@ def render():
                 new_entry_price=ep1.number_input("Entry Price ₹",value=float(trade.get("entry_price") or 0),step=0.05,format="%.2f",key="td_entry_price")
                 new_exit_price=ep2.number_input("Exit Price ₹",value=float(trade.get("exit_price") or 0),step=0.05,format="%.2f",key="td_exit_price")
                 new_qty=ep3.number_input("Qty",value=int(trade.get("qty") or 0),step=1,key="td_qty")
+                _side_for_calc=str(st.session_state.get("td_side_edit") or trade.get("side","") or trade.get("direction","") or "LONG").upper()
+                _calc_pnl=(new_exit_price-new_entry_price)*new_qty if _side_for_calc in ("LONG","BUY") else (new_entry_price-new_exit_price)*new_qty
                 ep4,ep5=st.columns(2)
-                new_pnl=ep4.number_input("Net P&L ₹",value=float(trade.get("pnl") or 0),step=1.0,format="%.2f",key="td_pnl")
+                auto_pnl=ep4.checkbox("Auto-calc P&L from Entry/Exit/Qty",value=st.session_state.get("td_auto_pnl",True),key="td_auto_pnl")
+                if auto_pnl:
+                    new_pnl=_calc_pnl
+                    ep4.markdown(f'<div style="font-size:20px;font-weight:800;color:{G if _calc_pnl>=0 else R};padding:6px 0">{"+"if _calc_pnl>=0 else ""}₹{abs(_calc_pnl):,.2f}</div>',unsafe_allow_html=True)
+                else:
+                    new_pnl=ep4.number_input("Net P&L ₹",value=float(trade.get("pnl") or 0),step=1.0,format="%.2f",key="td_pnl")
                 new_sl=ep5.number_input("Stop Loss ₹",value=float(trade.get("stop_loss") or 0),step=0.05,format="%.2f",key="td_sl_edit")
 
                 # ── Trade Meta ────────────────────────────────────────
