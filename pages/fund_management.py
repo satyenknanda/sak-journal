@@ -58,6 +58,15 @@ def render():
                 <span style="font-size:12px;color:{TEXT_MUTED}">🛒 New positions opened since ledger date (cash already spent)</span>
                 <span style="font-size:14px;font-weight:700;color:{RED}">-{fmt_inr(_new_positions)}</span>
             </div>""", unsafe_allow_html=True)
+        if _cb["available_cash"] < 0:
+            st.warning(
+                "⚠️ Cash Balance is showing negative. This usually does NOT mean you're overdrawn — "
+                "it's a modeling limit: this figure assumes every rupee of MTF margin comes from pure "
+                "ledger cash, but brokers often let you fund MTF margin by pledging your existing "
+                "holdings as collateral too, which this app can't see. If today's new positions were "
+                "funded partly through pledged collateral rather than cash, that's the likely reason. "
+                "Re-upload a ledger dated after these trades settle for the real figure."
+            )
         with st.expander("🔎 See every open position and why it is/isn't deducted"):
             try:
                 _ldt_op = datetime.strptime(str(_cb.get('as_of',''))[:10], "%Y-%m-%d").date()
