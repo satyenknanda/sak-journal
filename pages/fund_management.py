@@ -36,9 +36,11 @@ def render():
         _cb = get_cash_balance()
     except Exception:
         _cb = {"total_capital": 0.0, "deployed_capital": 0.0, "available_cash": 0.0, "source": "estimate",
-               "as_of": None, "same_day_settled": 0.0, "pending_settlement": 0.0, "available_cash_projected": 0.0}
+               "as_of": None, "same_day_settled": 0.0, "pending_settlement": 0.0,
+               "new_positions_since_ledger": 0.0, "available_cash_projected": 0.0}
     _avail_col = TEAL if _cb["available_cash"] >= 0 else RED
     _pending = _cb.get("pending_settlement", 0.0)
+    _new_positions = _cb.get("new_positions_since_ledger", 0.0)
     cb1, cb2, cb3 = st.columns(3)
     cb1.markdown(kpi_card("TOTAL TRADING CAPITAL", fmt_inr(_cb["total_capital"])), unsafe_allow_html=True)
     cb2.markdown(kpi_card("DEPLOYED IN OPEN POSITIONS", fmt_inr(_cb["deployed_capital"])), unsafe_allow_html=True)
@@ -47,8 +49,15 @@ def render():
     if _cb.get("source") == "ledger":
         _same_day = _cb.get("same_day_settled", 0.0)
         st.caption(f"✅ Cash Balance is your actual broker ledger balance as of {_cb.get('as_of','')}"
-                   f"{', plus MTF same-day square-offs' if abs(_same_day) > 0.01 else ''}. "
+                   f"{', plus MTF same-day square-offs' if abs(_same_day) > 0.01 else ''}"
+                   f"{', minus new positions opened since then' if abs(_new_positions) > 0.01 else ''}. "
                    f"Re-upload a fresh ledger for the exact up-to-date figure.")
+        if abs(_new_positions) > 0.01:
+            st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
+                padding:10px 14px;margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:12px;color:{TEXT_MUTED}">🛒 New positions opened since ledger date (cash already spent)</span>
+                <span style="font-size:14px;font-weight:700;color:{RED}">-{fmt_inr(_new_positions)}</span>
+            </div>""", unsafe_allow_html=True)
         if abs(_same_day) > 0.01:
             _sd_col = TEAL if _same_day >= 0 else RED
             st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;

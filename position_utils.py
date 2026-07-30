@@ -148,6 +148,7 @@ def get_cash_balance():
         # CASH, margin-only for MTF) plus that trade's realized P&L.
         same_day_settled = 0.0
         pending_settlement = 0.0
+        new_positions_since_ledger = 0.0
         try:
             ledger_dt = datetime.strptime(str(ledger_date)[:10], "%Y-%m-%d").date()
         except Exception:
@@ -182,8 +183,29 @@ def get_cash_balance():
                 else:
                     pending_settlement += trade_amount  # everything else — shown as pending only
 
-        available_cash = ledger_balance + same_day_settled
-        total_capital = ledger_balance + same_day_settled + deployed_capital
+            # ── Positions opened AFTER the ledger's as-of date: cash for
+            # these has already left the account (or been blocked as MTF
+            # margin), but the stale ledger snapshot doesn't reflect that
+            # outflow yet. Subtract it from available cash so new trades
+            # actually reduce what's shown as free to deploy.
+            for t in open_trades:
+                entry_d = str(t.get("entry_date", ""))[:10]
+                try:
+                    entry_dt = datetime.strptime(entry_d, "%Y-%m-%d").date()
+                except Exception:
+                    continue
+                if entry_dt <= ledger_dt:
+                    continue  # already reflected in the ledger's closing balance
+                qty = sf(t.get("qty")); entry_price = sf(t.get("entry_price"))
+                is_mtf = str(t.get("funding_type", "CASH") or "CASH").upper() == "MTF"
+                if is_mtf:
+                    margin_pct = sf(t.get("mtf_margin_pct")) or 50.0
+                    new_positions_since_ledger += qty * entry_price * margin_pct / 100
+                else:
+                    new_positions_since_ledger += qty * entry_price
+
+        available_cash = ledger_balance + same_day_settled - new_positions_since_ledger
+        total_capital = available_cash + deployed_capital
         return {
             "total_capital": total_capital,
             "deployed_capital": deployed_capital,
@@ -192,6 +214,7 @@ def get_cash_balance():
             "as_of": ledger_date,
             "same_day_settled": same_day_settled,
             "pending_settlement": pending_settlement,
+            "new_positions_since_ledger": new_positions_since_ledger,
             "available_cash_projected": available_cash + pending_settlement,
         }
 
@@ -273,5 +296,6 @@ def get_cash_balance():
         "as_of": None,
         "same_day_settled": 0.0,
         "pending_settlement": 0.0,
+        "new_positions_since_ledger": 0.0,
         "available_cash_projected": available_cash,
     }
