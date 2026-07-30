@@ -24,176 +24,16 @@ def render():
     st.markdown("## Fund Management")
     st.caption("Track month-over-month capital flows, growth attribution, and own-funds vs MTF (leverage) exposure.")
 
-    from data.db import get_capital_flows, save_capital_flow, save_ledger_balance, get_ledger_balance as _get_ledger_balance_raw
-    from position_utils import get_cash_balance
+    from data.db import get_capital_flows, save_capital_flow
 
     trades = get_journal_trades()
     closed = [t for t in trades if t.get("status") == "CLOSED"]
     open_trades = [t for t in trades if t.get("status") == "OPEN"]
 
-    # ── Cash Balance (available to deploy right now) ─────────────────────
-    try:
-        _cb = get_cash_balance()
-    except Exception:
-        _cb = {"total_capital": 0.0, "deployed_capital": 0.0, "available_cash": 0.0, "source": "estimate",
-               "as_of": None, "same_day_settled": 0.0, "pending_settlement": 0.0,
-               "new_positions_since_ledger": 0.0, "available_cash_projected": 0.0}
-    _avail_col = TEAL if _cb["available_cash"] >= 0 else RED
-    _pending = _cb.get("pending_settlement", 0.0)
-    _new_positions = _cb.get("new_positions_since_ledger", 0.0)
-    cb1, cb2, cb3 = st.columns(3)
-    cb1.markdown(kpi_card("TOTAL TRADING CAPITAL", fmt_inr(_cb["total_capital"])), unsafe_allow_html=True)
-    cb2.markdown(kpi_card("DEPLOYED IN OPEN POSITIONS", fmt_inr(_cb["deployed_capital"])), unsafe_allow_html=True)
-    cb3.markdown(kpi_card("💰 CASH BALANCE (AVAILABLE)", fmt_inr(_cb["available_cash"]), color=_avail_col,
-                           sub="Free to deploy into new trades"), unsafe_allow_html=True)
-    if _cb.get("source") == "ledger":
-        _same_day = _cb.get("same_day_settled", 0.0)
-        st.caption(f"✅ Cash Balance is your actual broker ledger balance as of {_cb.get('as_of','')}"
-                   f"{', plus MTF same-day square-offs' if abs(_same_day) > 0.01 else ''}"
-                   f"{', minus new positions opened since then' if abs(_new_positions) > 0.01 else ''}. "
-                   f"Re-upload a fresh ledger for the exact up-to-date figure.")
-        if abs(_new_positions) > 0.01:
-            st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
-                padding:10px 14px;margin-top:8px;display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:12px;color:{TEXT_MUTED}">🛒 New positions opened since ledger date (cash already spent)</span>
-                <span style="font-size:14px;font-weight:700;color:{RED}">-{fmt_inr(_new_positions)}</span>
-            </div>""", unsafe_allow_html=True)
-        if _cb["available_cash"] < 0:
-            st.warning(
-                "⚠️ Cash Balance is showing negative. This usually does NOT mean you're overdrawn — "
-                "it's a modeling limit: this figure assumes every rupee of MTF margin comes from pure "
-                "ledger cash, but brokers often let you fund MTF margin by pledging your existing "
-                "holdings as collateral too, which this app can't see. If today's new positions were "
-                "funded partly through pledged collateral rather than cash, that's the likely reason. "
-                "Re-upload a ledger dated after these trades settle for the real figure."
-            )
-        with st.expander("🔎 See every open position and why it is/isn't deducted"):
-            try:
-                _ldt_op = datetime.strptime(str(_cb.get('as_of',''))[:10], "%Y-%m-%d").date()
-                _op_rows = ""
-                for _t in open_trades:
-                    _tk_op = _t.get("ticker","")
-                    _entd_op = str(_t.get("entry_date","") or "")[:10]
-                    _ft_op = str(_t.get("funding_type","CASH") or "CASH").upper()
-                    _q_op = _t.get("qty"); _ep_op = _t.get("entry_price")
-                    try:
-                        _entdt_op = datetime.strptime(_entd_op, "%Y-%m-%d").date()
-                        _parse_ok = True
-                    except Exception:
-                        _entdt_op = None
-                        _parse_ok = False
-                    if not _parse_ok:
-                        _reason = f"⚠️ entry_date '{_entd_op or '(blank)'}' couldn't be parsed — not counted"
-                        _amt_op = 0.0
-                    elif _entdt_op <= _ldt_op:
-                        _reason = f"Entry on/before ledger date ({_cb.get('as_of','')}) — already reflected in ledger"
-                        _amt_op = 0.0
-                    else:
-                        _qf = float(_q_op or 0); _epf = float(_ep_op or 0)
-                        if _ft_op == "MTF":
-                            _mp_op = float(_t.get("mtf_margin_pct") or 50.0)
-                            _amt_op = _qf * _epf * _mp_op / 100
-                        else:
-                            _amt_op = _qf * _epf
-                        _reason = "✅ Deducted from Cash Balance" if _amt_op > 0 else "⚠️ qty or entry_price is 0/missing"
-                    _op_rows += (f'<tr><td style="padding:5px 8px">{_tk_op}</td>'
-                                 f'<td style="padding:5px 8px">{_entd_op or "(blank)"}</td>'
-                                 f'<td style="padding:5px 8px">{_ft_op}</td>'
-                                 f'<td style="padding:5px 8px">{_q_op}</td>'
-                                 f'<td style="padding:5px 8px">{_ep_op}</td>'
-                                 f'<td style="padding:5px 8px;text-align:right">{fmt_inr(_amt_op)}</td>'
-                                 f'<td style="padding:5px 8px">{_reason}</td></tr>')
-                if _op_rows:
-                    st.markdown(f"""<table style="width:100%;border-collapse:collapse;font-size:12px">
-                        <thead><tr style="color:{TEXT_SUBTLE}">
-                            <th style="padding:5px 8px;text-align:left">SYMBOL</th>
-                            <th style="padding:5px 8px;text-align:left">ENTRY DATE</th>
-                            <th style="padding:5px 8px;text-align:left">FUNDING</th>
-                            <th style="padding:5px 8px;text-align:left">QTY</th>
-                            <th style="padding:5px 8px;text-align:left">ENTRY PRICE</th>
-                            <th style="padding:5px 8px;text-align:right">AMOUNT</th>
-                            <th style="padding:5px 8px;text-align:left">STATUS</th>
-                        </tr></thead><tbody>{_op_rows}</tbody></table>""", unsafe_allow_html=True)
-                else:
-                    st.caption("No open positions found in the journal at all.")
-            except Exception as _e_op:
-                st.caption(f"Couldn't build breakdown: {_e_op}")
-        if abs(_same_day) > 0.01:
-            _sd_col = TEAL if _same_day >= 0 else RED
-            st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
-                padding:10px 14px;margin-top:8px;display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:12px;color:{TEXT_MUTED}">⚡ MTF same-day square-offs (credited instantly, no T+1 lag)</span>
-                <span style="font-size:14px;font-weight:700;color:{_sd_col}">{fmt_pnl(_same_day)}</span>
-            </div>""", unsafe_allow_html=True)
-        if abs(_pending) > 0.01:
-            _pend_col = TEAL if _pending >= 0 else RED
-            st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
-                padding:10px 14px;margin-top:6px;display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:12px;color:{TEXT_MUTED}">⏳ Pending (not yet reflected in ledger — awaiting settlement)</span>
-                <span style="font-size:14px;font-weight:700;color:{_pend_col}">{fmt_pnl(_pending)}</span>
-            </div>
-            <div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
-                padding:10px 14px;margin-top:6px;display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:12px;color:{TEXT_MUTED}">📅 If all pending trades were settled today</span>
-                <span style="font-size:16px;font-weight:800;color:{TEAL if _cb['available_cash_projected']>=0 else RED}">
-                    {fmt_inr(_cb['available_cash_projected'])}</span>
-            </div>""", unsafe_allow_html=True)
-        if abs(_same_day) > 0.01 or abs(_pending) > 0.01:
-            with st.expander("🔎 See which trades feed these numbers"):
-                try:
-                    _ldt = datetime.strptime(str(_cb.get('as_of',''))[:10], "%Y-%m-%d").date()
-                    _bd_rows = ""
-                    for _t in closed:
-                        _exd = str(_t.get("exit_date",""))[:10]
-                        try:
-                            _exdt = datetime.strptime(_exd, "%Y-%m-%d").date()
-                        except Exception:
-                            continue
-                        if _exdt <= _ldt:
-                            continue  # already reflected in the ledger's closing balance
-                        _entd = str(_t.get("entry_date",""))[:10]
-                        try:
-                            _entdt = datetime.strptime(_entd, "%Y-%m-%d").date()
-                        except Exception:
-                            _entdt = None
-                        _is_mtf_bd = str(_t.get("funding_type","CASH") or "CASH").upper() == "MTF"
-                        _q = float(_t.get("qty") or 0); _ep = float(_t.get("entry_price") or 0)
-                        _pn = float(_t.get("pnl") or 0)
-                        if _is_mtf_bd:
-                            _mp = float(_t.get("mtf_margin_pct") or 50.0)
-                            _lc = _q*_ep*_mp/100
-                        else:
-                            _lc = _q*_ep
-                        _amt = _lc + _pn
-                        _bucket = "Same-day (MTF)" if (_is_mtf_bd and _entdt is not None and _entdt == _exdt) else "Pending"
-                        _bd_rows += (f'<tr><td style="padding:5px 8px">{_t.get("ticker","")}</td>'
-                                     f'<td style="padding:5px 8px">{_entd}</td>'
-                                     f'<td style="padding:5px 8px">{_exd}</td>'
-                                     f'<td style="padding:5px 8px">{_bucket}</td>'
-                                     f'<td style="padding:5px 8px;text-align:right">{fmt_inr(_lc)}</td>'
-                                     f'<td style="padding:5px 8px;text-align:right;color:{TEAL if _pn>=0 else RED}">{fmt_pnl(_pn)}</td>'
-                                     f'<td style="padding:5px 8px;text-align:right;font-weight:700">{fmt_inr(_amt)}</td></tr>')
-                    if _bd_rows:
-                        st.markdown(f"""<table style="width:100%;border-collapse:collapse;font-size:12px">
-                            <thead><tr style="color:{TEXT_SUBTLE}">
-                                <th style="padding:5px 8px;text-align:left">SYMBOL</th>
-                                <th style="padding:5px 8px;text-align:left">ENTRY</th>
-                                <th style="padding:5px 8px;text-align:left">EXIT</th>
-                                <th style="padding:5px 8px;text-align:left">BUCKET</th>
-                                <th style="padding:5px 8px;text-align:right">CAPITAL BACK</th>
-                                <th style="padding:5px 8px;text-align:right">P&L</th>
-                                <th style="padding:5px 8px;text-align:right">TOTAL</th>
-                            </tr></thead><tbody>{_bd_rows}</tbody></table>""", unsafe_allow_html=True)
-                    else:
-                        st.caption("No trades to show.")
-                except Exception as _e:
-                    st.caption(f"Couldn't build breakdown: {_e}")
-    else:
-        st.caption("⚠️ Cash Balance is an estimate (no broker ledger imported yet) — upload one below for the real figure.")
-
-    with st.expander("📄 Upload Broker Ledger — get your real Cash Balance"):
+    with st.expander("📄 Upload Broker Ledger — Reconciliation"):
         st.caption("Upload your broker's ledger/statement export — plain CSV or the Excel (.xlsx) download both "
-                   "work. The Closing Balance row becomes your Cash Balance everywhere in the app, replacing the estimate.")
+                   "work — to reconcile deposits, withdrawals, MTF interest, and individual trade dates against "
+                   "your journal.")
         ledger_file = st.file_uploader("Choose ledger file", type=["csv", "xlsx", "xls"], key="ledger_upload")
         if ledger_file is not None:
             try:
@@ -230,18 +70,6 @@ def render():
                 lp1, lp2 = st.columns(2)
                 lp1.metric("Closing Balance", fmt_inr(_closing_balance))
                 lp2.metric("As of", _as_of or "—")
-                if st.button("💾 Save as Cash Balance", key="save_ledger_btn", type="primary"):
-                    save_ledger_balance(_closing_balance, _as_of)
-                    _verify_bal, _verify_dt = _get_ledger_balance_raw()
-                    if _verify_bal is not None and abs(_verify_bal - _closing_balance) < 0.01 and str(_verify_dt) == str(_as_of):
-                        st.success(f"✅ Cash Balance updated to {fmt_inr(_closing_balance)} as of {_as_of} — verified saved.")
-                        st.rerun()
-                    else:
-                        st.error(f"⚠️ Save may not have persisted correctly — wrote {fmt_inr(_closing_balance)} "
-                                 f"as of {_as_of}, but reading it back shows "
-                                 f"{fmt_inr(_verify_bal) if _verify_bal is not None else 'nothing'} as of {_verify_dt}. "
-                                 f"This usually means a database permissions issue — check the app logs (Manage app → Logs) "
-                                 f"for 'set_setting' or 'get_setting' error messages.")
 
                 # ── Reconcile ledger totals against app's trades/capital_flows ──
                 st.markdown("<br>", unsafe_allow_html=True)

@@ -8,7 +8,7 @@ import calendar as cal_mod
 import math, re
 from datetime import date, timedelta, datetime
 from data.db import get_journal_trades, get_kpi_summary_extended as get_kpi
-from position_utils import combine_open_positions, get_cash_balance
+from position_utils import combine_open_positions
 from theme import *
 
 # ── SVG helpers ──────────────────────────────────────────────────────────────
@@ -401,7 +401,7 @@ def render():
 
     # ── UPPER WIDGET STRIP ───────────────────────────────────────────────────
     KH = "150px"
-    w1, w2, w3, w4, w5, w6 = st.columns(6)
+    w1, w2, w3, w4, w5 = st.columns(5)
 
     # 1. Net P&L + sparkline
     cnt = f'<span style="background:{BLUE_BG};color:{BLUE};padding:1px 6px;border-radius:9px;font-size:9px;margin-left:4px">{len(closed)}</span>'
@@ -505,32 +505,6 @@ def render():
             <div style="font-size:9px;color:{TEXT_SUBTLE}">Avg drawdown:
                 <span style="color:{RED}">{fmt_val(avg_dd, acct)}</span>
             </div>
-        </div>""", unsafe_allow_html=True)
-
-    # 6. Cash Balance (available to deploy)
-    try:
-        cb = get_cash_balance()
-        avail = cb["available_cash"]; deployed = cb["deployed_capital"]
-        pending = cb.get("pending_settlement", 0.0)
-    except Exception:
-        avail = deployed = pending = 0.0
-    avail_col = TEAL if avail >= 0 else RED
-    if W.get("cash_balance", True):
-        _pending_line = (f'<div style="font-size:9px;color:{AMBER};margin-top:2px">'
-                          f'⏳ +{fmt_val(pending, acct)} pending (T+1)</div>') if abs(pending) > 0.01 else ""
-        _negative_note = (f'<div style="font-size:9px;color:{AMBER};margin-top:4px">'
-                           f'⚠️ May be pledged-collateral funded — see Fund Mgmt</div>') if avail < 0 else ""
-        w6.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
-            padding:14px 16px;box-shadow:{SHADOW_SM};height:{KH};box-sizing:border-box;overflow:hidden">
-            <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;
-                letter-spacing:0.07em;margin-bottom:4px">Cash Balance</div>
-            <div style="font-size:21px;font-weight:700;color:{avail_col};margin-bottom:6px">
-                {fmt_val(avail, acct)}</div>
-            <div style="font-size:10px;color:{TEXT_MUTED}">Available to deploy</div>
-            <div style="font-size:9px;color:{TEXT_SUBTLE};margin-top:4px">Deployed:
-                <span style="color:{TEXT_H}">{fmt_val(deployed, acct)}</span></div>
-            {_pending_line}
-            {_negative_note}
         </div>""", unsafe_allow_html=True)
 
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
