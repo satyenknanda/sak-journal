@@ -133,25 +133,21 @@ def get_cash_balance():
     ledger_balance, ledger_date = get_ledger_balance()
     if ledger_balance is not None:
         # ── Trades exited AFTER the ledger's as-of date aren't in that
-        # snapshot yet. For each one, work out its real settlement date:
-        #   • MTF trades bought and sold the SAME day (intraday square-off)
-        #     never go to delivery — the broker credits/debits them the
-        #     SAME day, no T+1 lag.
-        #   • Everything else (CASH trades — including same-day CASH
-        #     round-trips — and any multi-day hold of either type) goes
-        #     through real settlement: credited T+1.
-        # Then compare that settlement date against TODAY, not just against
-        # the ledger's date — a ledger that's even one day stale can miss
-        # trades whose T+1 credit has already landed by today.
+        # snapshot yet. Only one case adds to available cash without
+        # waiting for a fresh ledger: MTF trades bought and sold the SAME
+        # day (intraday square-off) never go to delivery — the broker
+        # credits/debits them the SAME day. Everything else (CASH trades —
+        # including same-day CASH round-trips — and any multi-day hold)
+        # goes through real settlement and is shown as "pending" only —
+        # it does NOT get added to the headline available figure, since
+        # guessing exact settlement timing (weekends, holidays, T+1 vs
+        # T+2) from a snapshot that may be stale isn't reliable enough for
+        # a number that drives position sizing. Re-upload a fresh ledger
+        # for the exact up-to-date figure.
         # Each bucket returns: capital originally locked (full value for
         # CASH, margin-only for MTF) plus that trade's realized P&L.
-        settled_since_ledger = 0.0
+        same_day_settled = 0.0
         pending_settlement = 0.0
-        try:
-            from zoneinfo import ZoneInfo
-            today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
-        except Exception:
-            today = date.today()  # fallback if zoneinfo/tzdata unavailable
         try:
             ledger_dt = datetime.strptime(str(ledger_date)[:10], "%Y-%m-%d").date()
         except Exception:
@@ -163,23 +159,17 @@ def get_cash_balance():
                     exit_dt = datetime.strptime(exit_d, "%Y-%m-%d").date()
                 except Exception:
                     continue
+                if exit_dt <= ledger_dt:
+                    continue  # already reflected in the ledger's closing balance
                 entry_d = str(t.get("entry_date", ""))[:10]
                 try:
                     entry_dt = datetime.strptime(entry_d, "%Y-%m-%d").date()
                 except Exception:
                     entry_dt = None
 
-                is_mtf = str(t.get("funding_type", "CASH") or "CASH").upper() == "MTF"
-                if is_mtf and entry_dt is not None and entry_dt == exit_dt:
-                    settlement_dt = exit_dt  # MTF intraday square-off, same-day credit
-                else:
-                    settlement_dt = exit_dt + timedelta(days=1)  # standard T+1
-
-                if settlement_dt <= ledger_dt:
-                    continue  # already reflected in the ledger's closing balance
-
                 qty = sf(t.get("qty")); entry_price = sf(t.get("entry_price"))
                 pnl = sf(t.get("pnl"))
+                is_mtf = str(t.get("funding_type", "CASH") or "CASH").upper() == "MTF"
                 if is_mtf:
                     margin_pct = sf(t.get("mtf_margin_pct")) or 50.0
                     locked_capital = qty * entry_price * margin_pct / 100
@@ -187,20 +177,20 @@ def get_cash_balance():
                     locked_capital = qty * entry_price
                 trade_amount = locked_capital + pnl
 
-                if settlement_dt <= today:
-                    settled_since_ledger += trade_amount  # already credited by today, ledger just hasn't caught up
+                if is_mtf and entry_dt is not None and entry_dt == exit_dt:
+                    same_day_settled += trade_amount  # MTF intraday square-off, credited same day
                 else:
-                    pending_settlement += trade_amount  # genuinely still pending
+                    pending_settlement += trade_amount  # everything else — shown as pending only
 
-        available_cash = ledger_balance + settled_since_ledger
-        total_capital = ledger_balance + settled_since_ledger + deployed_capital
+        available_cash = ledger_balance + same_day_settled
+        total_capital = ledger_balance + same_day_settled + deployed_capital
         return {
             "total_capital": total_capital,
             "deployed_capital": deployed_capital,
             "available_cash": available_cash,
             "source": "ledger",
             "as_of": ledger_date,
-            "same_day_settled": settled_since_ledger,
+            "same_day_settled": same_day_settled,
             "pending_settlement": pending_settlement,
             "available_cash_projected": available_cash + pending_settlement,
         }

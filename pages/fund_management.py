@@ -47,37 +47,32 @@ def render():
     if _cb.get("source") == "ledger":
         _same_day = _cb.get("same_day_settled", 0.0)
         st.caption(f"✅ Cash Balance is your actual broker ledger balance as of {_cb.get('as_of','')}"
-                   f"{', plus settlements that have landed since then' if abs(_same_day) > 0.01 else ''}.")
+                   f"{', plus MTF same-day square-offs' if abs(_same_day) > 0.01 else ''}. "
+                   f"Re-upload a fresh ledger for the exact up-to-date figure.")
         if abs(_same_day) > 0.01:
             _sd_col = TEAL if _same_day >= 0 else RED
             st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
                 padding:10px 14px;margin-top:8px;display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:12px;color:{TEXT_MUTED}">⚡ Settled since ledger (MTF same-day square-offs, or T+1 credits landed by today)</span>
+                <span style="font-size:12px;color:{TEXT_MUTED}">⚡ MTF same-day square-offs (credited instantly, no T+1 lag)</span>
                 <span style="font-size:14px;font-weight:700;color:{_sd_col}">{fmt_pnl(_same_day)}</span>
             </div>""", unsafe_allow_html=True)
         if abs(_pending) > 0.01:
             _pend_col = TEAL if _pending >= 0 else RED
             st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
                 padding:10px 14px;margin-top:6px;display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:12px;color:{TEXT_MUTED}">⏳ Pending settlement (T+1 credits not yet landed)</span>
+                <span style="font-size:12px;color:{TEXT_MUTED}">⏳ Pending (not yet reflected in ledger — awaiting settlement)</span>
                 <span style="font-size:14px;font-weight:700;color:{_pend_col}">{fmt_pnl(_pending)}</span>
             </div>
             <div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
                 padding:10px 14px;margin-top:6px;display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:12px;color:{TEXT_MUTED}">📅 Projected Cash Balance (tomorrow, once settled)</span>
+                <span style="font-size:12px;color:{TEXT_MUTED}">📅 If all pending trades were settled today</span>
                 <span style="font-size:16px;font-weight:800;color:{TEAL if _cb['available_cash_projected']>=0 else RED}">
                     {fmt_inr(_cb['available_cash_projected'])}</span>
             </div>""", unsafe_allow_html=True)
         if abs(_same_day) > 0.01 or abs(_pending) > 0.01:
             with st.expander("🔎 See which trades feed these numbers"):
                 try:
-                    from datetime import timedelta as _td_bd
                     _ldt = datetime.strptime(str(_cb.get('as_of',''))[:10], "%Y-%m-%d").date()
-                    try:
-                        from zoneinfo import ZoneInfo
-                        _today_bd = datetime.now(ZoneInfo("Asia/Kolkata")).date()
-                    except Exception:
-                        _today_bd = datetime.now().date()
                     _bd_rows = ""
                     for _t in closed:
                         _exd = str(_t.get("exit_date",""))[:10]
@@ -85,18 +80,14 @@ def render():
                             _exdt = datetime.strptime(_exd, "%Y-%m-%d").date()
                         except Exception:
                             continue
+                        if _exdt <= _ldt:
+                            continue  # already reflected in the ledger's closing balance
                         _entd = str(_t.get("entry_date",""))[:10]
                         try:
                             _entdt = datetime.strptime(_entd, "%Y-%m-%d").date()
                         except Exception:
                             _entdt = None
                         _is_mtf_bd = str(_t.get("funding_type","CASH") or "CASH").upper() == "MTF"
-                        if _is_mtf_bd and _entdt is not None and _entdt == _exdt:
-                            _settlement_dt = _exdt
-                        else:
-                            _settlement_dt = _exdt + _td_bd(days=1)
-                        if _settlement_dt <= _ldt:
-                            continue
                         _q = float(_t.get("qty") or 0); _ep = float(_t.get("entry_price") or 0)
                         _pn = float(_t.get("pnl") or 0)
                         if _is_mtf_bd:
@@ -105,7 +96,7 @@ def render():
                         else:
                             _lc = _q*_ep
                         _amt = _lc + _pn
-                        _bucket = "Settled" if _settlement_dt <= _today_bd else "Pending T+1"
+                        _bucket = "Same-day (MTF)" if (_is_mtf_bd and _entdt is not None and _entdt == _exdt) else "Pending"
                         _bd_rows += (f'<tr><td style="padding:5px 8px">{_t.get("ticker","")}</td>'
                                      f'<td style="padding:5px 8px">{_entd}</td>'
                                      f'<td style="padding:5px 8px">{_exd}</td>'
