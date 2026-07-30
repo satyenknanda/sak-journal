@@ -24,7 +24,7 @@ def render():
     st.markdown("## Fund Management")
     st.caption("Track month-over-month capital flows, growth attribution, and own-funds vs MTF (leverage) exposure.")
 
-    from data.db import get_capital_flows, save_capital_flow, save_ledger_balance
+    from data.db import get_capital_flows, save_capital_flow, save_ledger_balance, get_ledger_balance as _get_ledger_balance_raw
     from position_utils import get_cash_balance
 
     trades = get_journal_trades()
@@ -163,8 +163,16 @@ def render():
                 lp2.metric("As of", _as_of or "—")
                 if st.button("💾 Save as Cash Balance", key="save_ledger_btn", type="primary"):
                     save_ledger_balance(_closing_balance, _as_of)
-                    st.success(f"✅ Cash Balance updated to {fmt_inr(_closing_balance)} as of {_as_of}")
-                    st.rerun()
+                    _verify_bal, _verify_dt = _get_ledger_balance_raw()
+                    if _verify_bal is not None and abs(_verify_bal - _closing_balance) < 0.01 and str(_verify_dt) == str(_as_of):
+                        st.success(f"✅ Cash Balance updated to {fmt_inr(_closing_balance)} as of {_as_of} — verified saved.")
+                        st.rerun()
+                    else:
+                        st.error(f"⚠️ Save may not have persisted correctly — wrote {fmt_inr(_closing_balance)} "
+                                 f"as of {_as_of}, but reading it back shows "
+                                 f"{fmt_inr(_verify_bal) if _verify_bal is not None else 'nothing'} as of {_verify_dt}. "
+                                 f"This usually means a database permissions issue — check the app logs (Manage app → Logs) "
+                                 f"for 'set_setting' or 'get_setting' error messages.")
 
                 # ── Reconcile ledger totals against app's trades/capital_flows ──
                 st.markdown("<br>", unsafe_allow_html=True)

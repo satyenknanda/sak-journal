@@ -334,27 +334,43 @@ def get_trade_playbook(trade_id):
 
 # ── Settings ──────────────────────────────────────────────────────────────────
 def get_setting(key, default=None):
+    _sb_val = None
+    _sb_found = False
     try:
         if _use_supabase():
             res = _sb().table("settings").select("value").eq("key", key).execute()
-            return res.data[0]["value"] if res.data else default
-    except: pass
+            if res.data:
+                _sb_val = res.data[0]["value"]
+                _sb_found = True
+    except Exception as e:
+        print(f"get_setting supabase read error for key={key}: {e}")
+    if _sb_found:
+        return _sb_val
     try:
         c = _local_db()
         r = c.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
-        c.close(); return r[0] if r else default
-    except: return default
+        c.close()
+        return r[0] if r else default
+    except Exception as e:
+        print(f"get_setting local read error for key={key}: {e}")
+        return default
 
 def set_setting(key, value):
+    # Always write to BOTH backends (not just Supabase) so a Supabase read
+    # issue later (e.g. an RLS policy that blocks SELECT but allows UPSERT)
+    # can't cause get_setting() to silently fall back to a stale local copy
+    # that was never updated.
     try:
         if _use_supabase():
-            _sb().table("settings").upsert({"key":key,"value":str(value)}).execute(); return
-    except Exception as e: print(f"set_setting error: {e}")
+            _sb().table("settings").upsert({"key":key,"value":str(value)}).execute()
+    except Exception as e:
+        print(f"set_setting supabase error for key={key}: {e}")
     try:
         c = _local_db()
         c.execute("INSERT INTO settings(key,value)VALUES(?,?)ON CONFLICT(key)DO UPDATE SET value=excluded.value",(key,str(value)))
         c.commit(); c.close()
-    except Exception as e: print(f"set_setting local error: {e}")
+    except Exception as e:
+        print(f"set_setting local error for key={key}: {e}")
 
 
 # ── Broker Ledger (ground-truth cash balance) ─────────────────────────────
