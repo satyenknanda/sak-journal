@@ -58,6 +58,57 @@ def render():
                 <span style="font-size:12px;color:{TEXT_MUTED}">🛒 New positions opened since ledger date (cash already spent)</span>
                 <span style="font-size:14px;font-weight:700;color:{RED}">-{fmt_inr(_new_positions)}</span>
             </div>""", unsafe_allow_html=True)
+        with st.expander("🔎 See every open position and why it is/isn't deducted"):
+            try:
+                _ldt_op = datetime.strptime(str(_cb.get('as_of',''))[:10], "%Y-%m-%d").date()
+                _op_rows = ""
+                for _t in open_trades:
+                    _tk_op = _t.get("ticker","")
+                    _entd_op = str(_t.get("entry_date","") or "")[:10]
+                    _ft_op = str(_t.get("funding_type","CASH") or "CASH").upper()
+                    _q_op = _t.get("qty"); _ep_op = _t.get("entry_price")
+                    try:
+                        _entdt_op = datetime.strptime(_entd_op, "%Y-%m-%d").date()
+                        _parse_ok = True
+                    except Exception:
+                        _entdt_op = None
+                        _parse_ok = False
+                    if not _parse_ok:
+                        _reason = f"⚠️ entry_date '{_entd_op or '(blank)'}' couldn't be parsed — not counted"
+                        _amt_op = 0.0
+                    elif _entdt_op <= _ldt_op:
+                        _reason = f"Entry on/before ledger date ({_cb.get('as_of','')}) — already reflected in ledger"
+                        _amt_op = 0.0
+                    else:
+                        _qf = float(_q_op or 0); _epf = float(_ep_op or 0)
+                        if _ft_op == "MTF":
+                            _mp_op = float(_t.get("mtf_margin_pct") or 50.0)
+                            _amt_op = _qf * _epf * _mp_op / 100
+                        else:
+                            _amt_op = _qf * _epf
+                        _reason = "✅ Deducted from Cash Balance" if _amt_op > 0 else "⚠️ qty or entry_price is 0/missing"
+                    _op_rows += (f'<tr><td style="padding:5px 8px">{_tk_op}</td>'
+                                 f'<td style="padding:5px 8px">{_entd_op or "(blank)"}</td>'
+                                 f'<td style="padding:5px 8px">{_ft_op}</td>'
+                                 f'<td style="padding:5px 8px">{_q_op}</td>'
+                                 f'<td style="padding:5px 8px">{_ep_op}</td>'
+                                 f'<td style="padding:5px 8px;text-align:right">{fmt_inr(_amt_op)}</td>'
+                                 f'<td style="padding:5px 8px">{_reason}</td></tr>')
+                if _op_rows:
+                    st.markdown(f"""<table style="width:100%;border-collapse:collapse;font-size:12px">
+                        <thead><tr style="color:{TEXT_SUBTLE}">
+                            <th style="padding:5px 8px;text-align:left">SYMBOL</th>
+                            <th style="padding:5px 8px;text-align:left">ENTRY DATE</th>
+                            <th style="padding:5px 8px;text-align:left">FUNDING</th>
+                            <th style="padding:5px 8px;text-align:left">QTY</th>
+                            <th style="padding:5px 8px;text-align:left">ENTRY PRICE</th>
+                            <th style="padding:5px 8px;text-align:right">AMOUNT</th>
+                            <th style="padding:5px 8px;text-align:left">STATUS</th>
+                        </tr></thead><tbody>{_op_rows}</tbody></table>""", unsafe_allow_html=True)
+                else:
+                    st.caption("No open positions found in the journal at all.")
+            except Exception as _e_op:
+                st.caption(f"Couldn't build breakdown: {_e_op}")
         if abs(_same_day) > 0.01:
             _sd_col = TEAL if _same_day >= 0 else RED
             st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:8px;
