@@ -122,18 +122,42 @@ def render():
     else:
         st.caption("⚠️ Cash Balance is an estimate (no broker ledger imported yet) — upload one below for the real figure.")
 
-    with st.expander("📄 Upload Broker Ledger CSV — get your real Cash Balance"):
-        st.caption("Upload your broker's ledger/statement export (columns: particulars, posting_date, cost_center, "
-                   "voucher_type, debit, credit, net_balance). The Closing Balance row becomes your Cash Balance "
-                   "everywhere in the app, replacing the estimate.")
-        ledger_file = st.file_uploader("Choose ledger CSV", type=["csv"], key="ledger_upload")
+    with st.expander("📄 Upload Broker Ledger — get your real Cash Balance"):
+        st.caption("Upload your broker's ledger/statement export — plain CSV or the Excel (.xlsx) download both "
+                   "work. The Closing Balance row becomes your Cash Balance everywhere in the app, replacing the estimate.")
+        ledger_file = st.file_uploader("Choose ledger file", type=["csv", "xlsx", "xls"], key="ledger_upload")
         if ledger_file is not None:
             try:
-                _ldf = pd.read_csv(ledger_file)
+                _fname = (ledger_file.name or "").lower()
+                if _fname.endswith((".xlsx", ".xls")):
+                    _raw = pd.read_excel(ledger_file, header=None)
+                else:
+                    _raw = pd.read_csv(ledger_file, header=None)
+
+                # Find the real header row — the one containing "Particulars"
+                # (broker Excel exports have metadata rows like Client ID and
+                # a date-range title above the actual table).
+                _header_row_idx = None
+                for _i in range(min(len(_raw), 30)):
+                    _row_vals = [str(v).strip().lower() for v in _raw.iloc[_i].tolist()]
+                    if "particulars" in _row_vals:
+                        _header_row_idx = _i
+                        break
+                if _header_row_idx is None:
+                    _header_row_idx = 0  # assume already a clean header (e.g. the plain CSV format)
+
+                _ldf = _raw.iloc[_header_row_idx + 1:].copy()
+                _ldf.columns = [str(c).strip().lower().replace(" ", "_") for c in _raw.iloc[_header_row_idx]]
+                _ldf = _ldf.dropna(how="all")
+                _ldf = _ldf.loc[:, ~_ldf.columns.duplicated()]
+                _ldf = _ldf[[c for c in _ldf.columns if c and c != "nan"]]
+
                 _last_row = _ldf.iloc[-1]
                 _closing_balance = float(_last_row["net_balance"])
-                _dated = _ldf[_ldf["posting_date"].notna() & (_ldf["posting_date"].astype(str).str.strip() != "")]
-                _as_of = str(_dated.iloc[-1]["posting_date"]) if not _dated.empty else ""
+                _dated = _ldf[_ldf["posting_date"].notna() & (_ldf["posting_date"].astype(str).str.strip() != "")
+                              & (_ldf["posting_date"].astype(str).str.strip().str.lower() != "nan")]
+                _as_of_raw = str(_dated.iloc[-1]["posting_date"]) if not _dated.empty else ""
+                _as_of = _as_of_raw[:10] if _as_of_raw else ""
                 lp1, lp2 = st.columns(2)
                 lp1.metric("Closing Balance", fmt_inr(_closing_balance))
                 lp2.metric("As of", _as_of or "—")
@@ -146,7 +170,8 @@ def render():
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown(section_label("🔍 Reconcile with Trades"), unsafe_allow_html=True)
                 try:
-                    _dated_all = _ldf[_ldf["posting_date"].notna() & (_ldf["posting_date"].astype(str).str.strip() != "")].copy()
+                    _dated_all = _ldf[_ldf["posting_date"].notna() & (_ldf["posting_date"].astype(str).str.strip() != "")
+                                       & (_ldf["posting_date"].astype(str).str.strip().str.lower() != "nan")].copy()
                     _dated_all["posting_date"] = pd.to_datetime(_dated_all["posting_date"])
                     _ledger_start = _dated_all["posting_date"].min().date()
                     _ledger_end = _dated_all["posting_date"].max().date()
