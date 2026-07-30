@@ -340,7 +340,9 @@ def get_setting(key, default=None):
         if _use_supabase():
             res = _sb().table("settings").select("value").eq("key", key).execute()
             if res.data:
-                _sb_val = res.data[0]["value"]
+                # If duplicate rows exist for this key (from before the
+                # on_conflict fix), prefer the most recently inserted one.
+                _sb_val = res.data[-1]["value"]
                 _sb_found = True
     except Exception as e:
         print(f"get_setting supabase read error for key={key}: {e}")
@@ -362,7 +364,7 @@ def set_setting(key, value):
     # that was never updated.
     try:
         if _use_supabase():
-            _sb().table("settings").upsert({"key":key,"value":str(value)}).execute()
+            _sb().table("settings").upsert({"key":key,"value":str(value)}, on_conflict="key").execute()
     except Exception as e:
         print(f"set_setting supabase error for key={key}: {e}")
     try:
