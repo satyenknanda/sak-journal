@@ -39,11 +39,13 @@ def safe_float(v):
 
 def render_trade_wise_impact(open_all, acct_bal):
     """Renders a per-TRADE (not merged by ticker) table showing each open
-    trade's actual RISK impact on the portfolio — not just position size.
-    Risk % = (Entry Price - Stop-Loss Price) x Shares / Total Portfolio Equity,
-    matching the 1R convention already used across the app (trade entry form,
-    R-multiple reports). Complements the ticker-merged card view above, which
-    hides individual trade-level detail when a ticker has multiple tranches."""
+    trade's actual RISK impact AND P&L impact on the portfolio — not just
+    position size. Risk % = (Entry - Stop-Loss) x Shares / Total Capital
+    (same 1R convention used across the app). P&L Impact % = Unrealized P&L
+    / Total Capital — e.g. a ₹1,00,000 profit on a ₹84,00,000 total capital
+    is a +1.19% portfolio impact. Complements the ticker-merged card view
+    above, which hides individual trade-level detail when a ticker has
+    multiple tranches."""
     import streamlit as st
     from theme import TEAL, RED, AMBER, TEXT_H, TEXT_MUTED, TEXT_SUBTLE, BORDER, BORDER_LIGHT
 
@@ -64,17 +66,18 @@ def render_trade_wise_impact(open_all, acct_bal):
         risk_amount = risk_per_share * qty  # this trade's own 1R in ₹, same convention as trade entry form
         risk_pct = (risk_amount / acct_bal * 100) if acct_bal else 0.0
         unrealized = (live - ep) * qty
+        pnl_impact_pct = (unrealized / acct_bal * 100) if acct_bal else 0.0
         rows.append({
             "ticker": tk, "entry_date": entry_date, "qty": qty, "entry_price": ep,
             "stop_loss": sl, "funding": funding, "position_size": position_size,
             "risk_amount": risk_amount, "risk_pct": risk_pct, "unrealized": unrealized,
-            "has_sl": sl > 0,
+            "pnl_impact_pct": pnl_impact_pct, "has_sl": sl > 0,
         })
 
-    rows.sort(key=lambda r: r["risk_pct"], reverse=True)
+    rows.sort(key=lambda r: abs(r["pnl_impact_pct"]), reverse=True)
 
     st.markdown(f"""<div style="font-size:13px;color:{TEXT_MUTED};margin-top:18px;margin-bottom:8px">
-        Trade-wise Portfolio Impact <span style="font-size:11px;color:{TEXT_SUBTLE}">— Risk % = (Entry − Stop-Loss) × Shares ÷ Total Portfolio Equity, per trade, not merged by ticker</span>
+        Trade-wise Portfolio Impact <span style="font-size:11px;color:{TEXT_SUBTLE}">— P&L Impact % = Unrealized P&L ÷ Total Capital (₹{acct_bal:,.0f}); Risk % = (Entry − Stop-Loss) × Shares ÷ Total Capital, per trade, not merged by ticker</span>
     </div>""", unsafe_allow_html=True)
 
     body_rows = ""
@@ -94,7 +97,8 @@ def render_trade_wise_impact(open_all, acct_bal):
             f'<td style="padding:6px 10px;text-align:right;color:{TEXT_H}">₹{r["risk_amount"]:,.0f}</td>'
             f'<td style="padding:6px 10px;text-align:right;font-weight:700;color:{risk_col}">{risk_display}</td>'
             f'<td style="padding:6px 10px;text-align:right;font-weight:700;color:{pnl_col}">'
-            f'{"+" if r["unrealized"]>=0 else ""}₹{r["unrealized"]:,.0f}</td></tr>')
+            f'{"+" if r["unrealized"]>=0 else ""}₹{r["unrealized"]:,.0f}</td>'
+            f'<td style="padding:6px 10px;text-align:right;font-weight:700;color:{pnl_col}">{r["pnl_impact_pct"]:+.2f}%</td></tr>')
 
     st.markdown(f"""<table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="border-bottom:1px solid {BORDER}">
@@ -106,15 +110,89 @@ def render_trade_wise_impact(open_all, acct_bal):
             <th style="padding:6px 10px;text-align:right;color:{TEXT_SUBTLE};font-size:10px">STOP-LOSS</th>
             <th style="padding:6px 10px;text-align:right;color:{TEXT_SUBTLE};font-size:10px">POSITION SIZE</th>
             <th style="padding:6px 10px;text-align:right;color:{TEXT_SUBTLE};font-size:10px">RISK ₹ (1R)</th>
-            <th style="padding:6px 10px;text-align:right;color:{TEXT_SUBTLE};font-size:10px">RISK % OF PORTFOLIO</th>
+            <th style="padding:6px 10px;text-align:right;color:{TEXT_SUBTLE};font-size:10px">RISK %</th>
             <th style="padding:6px 10px;text-align:right;color:{TEXT_SUBTLE};font-size:10px">UNREALIZED P&L</th>
+            <th style="padding:6px 10px;text-align:right;color:{TEXT_SUBTLE};font-size:10px">P&L IMPACT %</th>
         </tr></thead><tbody>{body_rows}</tbody></table>""", unsafe_allow_html=True)
 
     total_risk_pct = sum(r["risk_pct"] for r in rows)
+    total_pnl_impact_pct = sum(r["pnl_impact_pct"] for r in rows)
     total_risk_col = RED if total_risk_pct >= 10 else AMBER if total_risk_pct >= 6 else TEAL
-    st.markdown(f"""<div style="margin-top:8px;font-size:12px;color:{TEXT_MUTED}">
-        Total open risk across all positions: <b style="color:{total_risk_col}">{total_risk_pct:.2f}%</b> of portfolio equity
+    total_pnl_col = TEAL if total_pnl_impact_pct >= 0 else RED
+    st.markdown(f"""<div style="margin-top:8px;font-size:12px;color:{TEXT_MUTED};display:flex;gap:24px">
+        <span>Total open risk: <b style="color:{total_risk_col}">{total_risk_pct:.2f}%</b> of capital</span>
+        <span>Total unrealized impact: <b style="color:{total_pnl_col}">{total_pnl_impact_pct:+.2f}%</b> of capital</span>
     </div>""", unsafe_allow_html=True)
+
+
+def render_closed_trade_impact(all_trades_raw, acct_bal):
+    """Renders a per-TRADE table for CLOSED trades showing each one's P&L
+    Impact % on the portfolio = Realized P&L / Total Capital — e.g. a
+    ₹1,00,000 profit on ₹84,00,000 total capital is a +1.19% impact.
+    Complements the open-trade Trade-wise Portfolio Impact table above with
+    the realized/historical side."""
+    import streamlit as st
+    from theme import TEAL, RED, TEXT_H, TEXT_MUTED, TEXT_SUBTLE, BORDER, BORDER_LIGHT
+
+    closed = [t for t in all_trades_raw if t.get("status") == "CLOSED"]
+    if not closed:
+        return
+
+    total_realized = sum(safe_float(t.get("pnl")) for t in closed)
+
+    rows = []
+    for t in closed:
+        tk = t.get("ticker", "")
+        qty = safe_float(t.get("qty"))
+        ep = safe_float(t.get("entry_price"))
+        xp = safe_float(t.get("exit_price"))
+        entry_date = str(t.get("entry_date", "") or "")[:10]
+        exit_date = str(t.get("exit_date", "") or "")[:10]
+        funding = str(t.get("funding_type", "CASH") or "CASH").upper()
+        pnl = safe_float(t.get("pnl"))
+        impact_pct = (pnl / acct_bal * 100) if acct_bal else 0.0
+        rows.append({
+            "ticker": tk, "entry_date": entry_date, "exit_date": exit_date, "qty": qty,
+            "entry_price": ep, "exit_price": xp, "funding": funding, "pnl": pnl,
+            "impact_pct": impact_pct,
+        })
+
+    rows.sort(key=lambda r: abs(r["impact_pct"]), reverse=True)
+
+    total_col = TEAL if total_realized >= 0 else RED
+    total_impact_pct = (total_realized / acct_bal * 100) if acct_bal else 0.0
+    st.markdown(f"""<div style="font-size:13px;color:{TEXT_MUTED};margin-top:22px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+        <span>Closed Trades — P&L Impact on Portfolio <span style="font-size:11px;color:{TEXT_SUBTLE}">— {len(closed)} trades, Impact % = Realized P&L ÷ Total Capital (₹{acct_bal:,.0f})</span></span>
+        <span style="font-size:13px">Total Realized: <b style="color:{total_col}">{'+' if total_realized>=0 else ''}₹{total_realized:,.0f} ({total_impact_pct:+.2f}%)</b></span>
+    </div>""", unsafe_allow_html=True)
+
+    body_rows = ""
+    for r in rows:
+        pnl_col = TEAL if r["pnl"] >= 0 else RED
+        body_rows += (f'<tr>'
+            f'<td style="padding:6px 10px;font-weight:700;color:{TEXT_H}">{r["ticker"]}</td>'
+            f'<td style="padding:6px 10px;color:{TEXT_MUTED}">{r["entry_date"]}</td>'
+            f'<td style="padding:6px 10px;color:{TEXT_MUTED}">{r["exit_date"]}</td>'
+            f'<td style="padding:6px 10px;color:{TEXT_MUTED}">{r["funding"]}</td>'
+            f'<td style="padding:6px 10px;text-align:right;color:{TEXT_H}">{r["qty"]:,.0f}</td>'
+            f'<td style="padding:6px 10px;text-align:right;color:{TEXT_H}">₹{r["entry_price"]:,.2f}</td>'
+            f'<td style="padding:6px 10px;text-align:right;color:{TEXT_H}">₹{r["exit_price"]:,.2f}</td>'
+            f'<td style="padding:6px 10px;text-align:right;font-weight:700;color:{pnl_col}">'
+            f'{"+" if r["pnl"]>=0 else ""}₹{r["pnl"]:,.0f}</td>'
+            f'<td style="padding:6px 10px;text-align:right;font-weight:700;color:{pnl_col}">{r["impact_pct"]:+.2f}%</td></tr>')
+
+    st.markdown(f"""<table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="border-bottom:1px solid {BORDER}">
+            <th style="padding:6px 10px;text-align:left;color:{TEXT_SUBTLE};font-size:10px">SYMBOL</th>
+            <th style="padding:6px 10px;text-align:left;color:{TEXT_SUBTLE};font-size:10px">ENTRY DATE</th>
+            <th style="padding:6px 10px;text-align:left;color:{TEXT_SUBTLE};font-size:10px">EXIT DATE</th>
+            <th style="padding:6px 10px;text-align:left;color:{TEXT_SUBTLE};font-size:10px">FUNDING</th>
+            <th style="padding:6px 10px;text-align:right;color:{TEXT_SUBTLE};font-size:10px">QTY</th>
+            <th style="padding:6px 10px;text-align:right;color:{TEXT_SUBTLE};font-size:10px">ENTRY</th>
+            <th style="padding:6px 10px;text-align:right;color:{TEXT_SUBTLE};font-size:10px">EXIT</th>
+            <th style="padding:6px 10px;text-align:right;color:{TEXT_SUBTLE};font-size:10px">REALIZED P&L</th>
+            <th style="padding:6px 10px;text-align:right;color:{TEXT_SUBTLE};font-size:10px">P&L IMPACT %</th>
+        </tr></thead><tbody>{body_rows}</tbody></table>""", unsafe_allow_html=True)
 
 
 def render_portfolio_holdings(open_all, all_trades_raw, price_data):
