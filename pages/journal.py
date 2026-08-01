@@ -24,7 +24,7 @@ from data.prices import fetch_prices_bulk
 from components.trade_modals import render_add_trade_modal, render_exit_trade_modal, render_edit_trade_modal
 from collections import defaultdict
 import numpy as np
-from portfolio_holdings import render_portfolio_holdings
+from portfolio_holdings import render_portfolio_holdings, render_trade_wise_impact
 
 # ── Light theme colours ────────────────────────────────────────────────────
 G = "#10B981"; R = "#EF4444"; B = "#3B82F6"; AM = "#F59E0B"
@@ -157,6 +157,9 @@ def render():
 
     if view_mode == "Portfolio Holdings (Cards)":
         render_portfolio_holdings(open_all, all_trades_raw, price_data)
+        _kpi_pf = get_kpi()
+        _acct_bal_pf = float(_kpi_pf.get("account_balance", 10_000_000) or 10_000_000)
+        render_trade_wise_impact(open_all, _acct_bal_pf)
         return
 
     # ── Filter bar ─────────────────────────────────────────────────────────
