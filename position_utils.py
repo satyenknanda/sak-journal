@@ -299,3 +299,104 @@ def get_cash_balance():
         "new_positions_since_ledger": 0.0,
         "available_cash_projected": available_cash,
     }
+
+
+# ── Current Capital ─────────────────────────────────────────────────────────
+# Mirrors Fund Management's "CURRENT CAPITAL" KPI exactly (starting capital +
+# deposits - withdrawals + realized P&L - MTF interest, rolled forward month
+# by month for the given year), so other pages (e.g. Trade Log's per-trade
+# portfolio impact) can use the same figure without duplicating Fund
+# Management's own UI-bound computation.
+def get_current_capital(year=None):
+    from datetime import datetime, date, timedelta
+    from data.db import get_trades, get_capital_flows
+
+    def sf(v):
+        try: return float(v or 0)
+        except Exception: return 0.0
+
+    trades = get_trades()
+    open_trades = [t for t in trades if t.get("status") == "OPEN"]
+    closed = [t for t in trades if t.get("status") == "CLOSED"]
+
+    if year is None:
+        years = sorted({int(str(t.get("exit_date", ""))[:4]) for t in closed
+                         if str(t.get("exit_date", ""))[:4].isdigit()}, reverse=True)
+        year = years[0] if years else date.today().year
+
+    flows = get_capital_flows(year)
+
+    ZERODHA_MTF_DAILY_RATE = 0.0004  # matches Fund Management's own rate
+
+    def mtf_interest_by_month(t):
+        if str(t.get("funding_type", "CASH") or "CASH").upper() != "MTF":
+            return {}
+        qty = sf(t.get("qty")); price = sf(t.get("entry_price"))
+        margin_pct = sf(t.get("mtf_margin_pct")) or 50.0
+        position_value = qty * price
+        borrowed = position_value * (1 - margin_pct / 100)
+        if borrowed <= 0:
+            return {}
+        try:
+            entry_dt = datetime.strptime(str(t.get("entry_date", ""))[:10], "%Y-%m-%d").date()
+        except Exception:
+            return {}
+        if t.get("status") == "CLOSED" and t.get("exit_date"):
+            try:
+                exit_dt = datetime.strptime(str(t.get("exit_date", ""))[:10], "%Y-%m-%d").date()
+            except Exception:
+                exit_dt = date.today()
+        else:
+            exit_dt = date.today()
+        start = entry_dt + timedelta(days=1)
+        if start > exit_dt:
+            return {}
+        daily_interest = borrowed * ZERODHA_MTF_DAILY_RATE
+        by_month = {}
+        cur = start
+        while cur <= exit_dt:
+            if cur.year == year:
+                by_month[cur.month] = by_month.get(cur.month, 0.0) + daily_interest
+            cur += timedelta(days=1)
+        return by_month
+
+    auto_interest_by_month = {m: 0.0 for m in range(1, 13)}
+    for t in trades:
+        for m, amt in mtf_interest_by_month(t).items():
+            auto_interest_by_month[m] += amt
+
+    monthly_pnl = {m: 0.0 for m in range(1, 13)}
+    for t in closed:
+        d = str(t.get("exit_date", ""))[:10]
+        try:
+            dt = datetime.strptime(d, "%Y-%m-%d")
+        except Exception:
+            continue
+        if dt.year == year:
+            monthly_pnl[dt.month] += sf(t.get("pnl"))
+
+    saved_capital = sf(flows.get(0, {}).get("base_capital", 0.0))
+    if saved_capital > 0:
+        starting_capital = saved_capital
+    else:
+        cash_deployed_all = 0.0
+        for t in open_trades:
+            qty = sf(t.get("qty")); ep = sf(t.get("entry_price"))
+            pos = qty * ep
+            if str(t.get("funding_type", "") or "").upper() == "MTF":
+                margin = sf(t.get("mtf_margin_pct") or 50) / 100
+                cash_deployed_all += pos * margin
+            else:
+                cash_deployed_all += pos
+        starting_capital = max(cash_deployed_all - sum(sf(t.get("pnl")) for t in closed), 0.0)
+
+    running_capital = starting_capital
+    for m in range(1, 13):
+        f = flows.get(m, {"added": 0.0, "withdrawn": 0.0})
+        added = sf(f.get("added", 0.0)); withdrawn = sf(f.get("withdrawn", 0.0))
+        mtf_interest = auto_interest_by_month.get(m, 0.0)
+        pnl = monthly_pnl.get(m, 0.0)
+        net_pnl = pnl - mtf_interest
+        running_capital = running_capital + added - withdrawn + net_pnl
+
+    return running_capital

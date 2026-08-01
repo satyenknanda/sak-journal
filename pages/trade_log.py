@@ -6,6 +6,7 @@ from datetime import date, timedelta
 
 from theme import *
 from data.db import get_trades, get_strategies, delete_trade
+from position_utils import get_current_capital
 
 G="#10B981"; R="#EF4444"; B="#3B82F6"; AM="#F59E0B"; PU="#7C3AED"
 TEXT="#111827"; MUTED="#6B7280"; BORDER="#E5E7EB"; BG="#FFFFFF"; HBG="#F9FAFB"
@@ -71,6 +72,11 @@ def render():
                 "tl_show_filters":False}
     for k,v in defaults.items():
         if k not in st.session_state: st.session_state[k]=v
+
+    try:
+        _current_capital = get_current_capital()
+    except Exception:
+        _current_capital = 0.0
 
     # ── Header ────────────────────────────────────────────────────────────────
     hc1,hc2,hc3,hc4 = st.columns([3,1,1,1])
@@ -277,7 +283,11 @@ def render():
         if col=="Exit Price":  return f'₹{float(t.get("exit_price") or 0):,.2f}' if t.get("exit_price") else "—"
         if col=="Net P&L":
             bg="#F0FDF4" if p>0 else "#FEF2F2" if p<0 else BG
-            return f'<span style="color:{rc};font-weight:700;background:{bg};padding:2px 7px;border-radius:8px;border:1px solid {rc}22">{"+"if p>0 else ""}₹{abs(p):,.0f}</span>'
+            badge = f'<span style="color:{rc};font-weight:700;background:{bg};padding:2px 7px;border-radius:8px;border:1px solid {rc}22">{"+"if p>0 else ""}₹{abs(p):,.0f}</span>'
+            if pnl is not None and _current_capital:
+                impact_pct = p / _current_capital * 100
+                badge += f'<div style="font-size:9px;color:{rc};margin-top:2px">{impact_pct:+.2f}% of portfolio</div>'
+            return badge
         if col=="R-Multiple":
             if r:
                 try: rv=float(r); return f'<span style="color:{G if rv>0 else R};font-weight:600">{rv:+.2f}R</span>'

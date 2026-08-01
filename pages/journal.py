@@ -24,7 +24,7 @@ from data.prices import fetch_prices_bulk
 from components.trade_modals import render_add_trade_modal, render_exit_trade_modal, render_edit_trade_modal
 from collections import defaultdict
 import numpy as np
-from portfolio_holdings import render_portfolio_holdings, render_trade_wise_impact, render_closed_trade_impact
+from portfolio_holdings import render_portfolio_holdings
 
 # ── Light theme colours ────────────────────────────────────────────────────
 G = "#10B981"; R = "#EF4444"; B = "#3B82F6"; AM = "#F59E0B"
@@ -157,27 +157,6 @@ def render():
 
     if view_mode == "Portfolio Holdings (Cards)":
         render_portfolio_holdings(open_all, all_trades_raw, price_data)
-
-        # Total Capital — same setting used by the Position Sizing Calculator,
-        # so it's consistent everywhere, not a separate/disconnected number.
-        _saved_capital = get_setting("account_balance", "10000000")
-        try:
-            _saved_capital_f = float(_saved_capital)
-        except Exception:
-            _saved_capital_f = 10_000_000.0
-        _cap_col1, _cap_col2 = st.columns([3, 1])
-        _total_capital_input = _cap_col1.number_input(
-            "Total Capital ₹ (used for Risk % and P&L Impact % below)",
-            min_value=0.0, value=_saved_capital_f, step=100000.0, format="%.0f", key="jp_total_capital"
-        )
-        if _cap_col2.button("💾 Save", key="jp_save_total_capital"):
-            from data.db import set_setting
-            set_setting("account_balance", str(_total_capital_input))
-            st.success(f"Saved — Total Capital set to ₹{_total_capital_input:,.0f}")
-            st.rerun()
-
-        render_trade_wise_impact(open_all, _total_capital_input)
-        render_closed_trade_impact(all_trades_raw, _total_capital_input)
         return
 
     # ── Filter bar ─────────────────────────────────────────────────────────
