@@ -5,7 +5,7 @@ import csv, io, os
 from datetime import date, timedelta
 
 from theme import *
-from data.db import get_trades, get_strategies, delete_trade
+from data.db import get_trades, get_strategies, delete_trade, calc_mtf_interest_total
 from position_utils import get_current_capital
 
 G="#10B981"; R="#EF4444"; B="#3B82F6"; AM="#F59E0B"; PU="#7C3AED"
@@ -155,6 +155,9 @@ def render():
     al=sum(loss_p)/len(loss_p) if loss_p else 0
     pc=G if total>=0 else R
 
+    total_mtf_interest = sum(calc_mtf_interest_total(t) for t in trades)
+    total_after_mtf = total - total_mtf_interest
+
     cum=0; sy=[]
     for t in sorted(trades,key=lambda x:str(x.get("exit_date","") or "")):
         cum+=float(t.get("pnl") or 0); sy.append(cum)
@@ -162,10 +165,16 @@ def render():
     k1,k2,k3,k4 = st.columns(4)
 
     with k1:
+        _pc_after = G if total_after_mtf>=0 else R
+        _mtf_line = (f'<div style="font-size:10px;color:{AM};margin-top:4px">after '
+                     f'₹{total_mtf_interest:,.0f} MTF interest: '
+                     f'<b style="color:{_pc_after}">{"+"if total_after_mtf>=0 else ""}₹{abs(total_after_mtf):,.0f}</b></div>'
+                     ) if total_mtf_interest > 0.01 else ""
         st.markdown(f"""<div style="border:1px solid {BORDER};border-radius:8px;padding:14px 16px;background:{BG}">
         <div style="font-size:9px;color:{MUTED};font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">
             NET CUMULATIVE P&L <span style="background:#EFF6FF;color:{B};padding:1px 5px;border-radius:8px;font-size:8px">{len(trades)}</span></div>
         <div style="font-size:22px;font-weight:700;color:{pc}">{"+"if total>=0 else ""}₹{abs(total):,.0f}</div>
+        {_mtf_line}
         </div>""", unsafe_allow_html=True)
         if sy:
             fig=go.Figure(go.Scatter(y=sy,mode="lines",line=dict(color=pc,width=1.5),fill="tozeroy",
