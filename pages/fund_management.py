@@ -269,6 +269,64 @@ def render():
                             st.success("✅ All MTF trades match their ledger pledge/unpledge dates.")
                     else:
                         st.caption("No MTF trades or ledger MTF activity to match in this window.")
+
+                    # ── Import MTF Interest into Fund Management ──
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    st.markdown(section_label("💰 Import MTF Interest to Fund Management"), unsafe_allow_html=True)
+                    _interest_rows = _dated_all[_dated_all["particulars"].astype(str).str.contains("Interest for MTF funded value", na=False)].copy()
+                    if _interest_rows.empty:
+                        st.caption("No 'Interest for MTF funded value' entries found in this ledger.")
+                    else:
+                        _interest_rows["_year"] = _interest_rows["posting_date"].dt.year
+                        _interest_rows["_month"] = _interest_rows["posting_date"].dt.month
+                        _by_month = _interest_rows.groupby(["_year", "_month"])["debit"].sum().reset_index()
+
+                        _import_preview = []
+                        for _, _row in _by_month.iterrows():
+                            _yr = int(_row["_year"]); _mo = int(_row["_month"])
+                            _ledger_amt = float(_row["debit"])
+                            _existing_flows = get_capital_flows(_yr)
+                            _existing = _existing_flows.get(_mo, {"added": 0.0, "withdrawn": 0.0, "mtf_interest": 0.0})
+                            _import_preview.append({
+                                "year": _yr, "month": _mo,
+                                "label": f"{MONTHS[_mo-1]} {_yr}",
+                                "ledger_amt": _ledger_amt,
+                                "existing_manual": float(_existing.get("mtf_interest", 0.0)),
+                                "existing_added": float(_existing.get("added", 0.0)),
+                                "existing_withdrawn": float(_existing.get("withdrawn", 0.0)),
+                            })
+
+                        st.caption(f"Found MTF interest for {len(_import_preview)} month(s) in this ledger. "
+                                   f"This only updates the MTF Interest field — your Added/Withdrawn entries stay untouched.")
+                        _mi_rows_html = ""
+                        for _p in _import_preview:
+                            _changed = abs(_p["ledger_amt"] - _p["existing_manual"]) > 1.0
+                            _icon = "🔄" if _changed else "✓"
+                            _mi_rows_html += (f'<tr><td style="padding:6px 10px">{_p["label"]}</td>'
+                                f'<td style="padding:6px 10px;text-align:right">{fmt_inr(_p["existing_manual"])}</td>'
+                                f'<td style="padding:6px 10px;text-align:right;font-weight:700">{fmt_inr(_p["ledger_amt"])}</td>'
+                                f'<td style="padding:6px 10px;text-align:center">{_icon}</td></tr>')
+                        st.markdown(f"""<table style="width:100%;border-collapse:collapse">
+                            <thead><tr>
+                                <th style="padding:6px 10px;text-align:left;font-size:11px;color:{TEXT_SUBTLE}">MONTH</th>
+                                <th style="padding:6px 10px;text-align:right;font-size:11px">CURRENT (MANUAL)</th>
+                                <th style="padding:6px 10px;text-align:right;font-size:11px">FROM LEDGER</th>
+                                <th style="padding:6px 10px;text-align:center;font-size:11px"></th>
+                            </tr></thead><tbody>{_mi_rows_html}</tbody></table>""", unsafe_allow_html=True)
+
+                        if st.button("💾 Import MTF Interest for these months", key="import_mtf_interest_btn", type="primary"):
+                            _imported = 0
+                            for _p in _import_preview:
+                                try:
+                                    save_capital_flow(_p["year"], _p["month"], _p["existing_added"],
+                                                       _p["existing_withdrawn"], mtf_interest=_p["ledger_amt"])
+                                    _imported += 1
+                                except Exception as _e_imp:
+                                    st.warning(f"Couldn't save {_p['label']}: {_e_imp}")
+                            st.success(f"✅ Imported MTF interest for {_imported} month(s). "
+                                       f"Check Monthly Flows below to confirm.")
+                            st.rerun()
+
                 except Exception as _e:
                     st.warning(f"Couldn't run reconciliation: {_e}")
                     st.rerun()
