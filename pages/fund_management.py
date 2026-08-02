@@ -275,6 +275,91 @@ def render():
             except Exception as e:
                 st.error(f"Couldn't parse this file as a ledger export: {e}")
 
+    with st.expander("📊 Upload P&L Statement — reconcile real charges"):
+        st.caption("Upload Zerodha's P&L Statement export (Console → Reports → P&L, the .xlsx with "
+                   "'Equity' and 'Other Debits and Credits' sheets). This has your REAL total charges "
+                   "(brokerage, STT, stamp duty, GST, SEBI fees, MTF interest, DP charges) — used to check "
+                   "whether your journal's manually-entered commissions are capturing the full cost.")
+        pnl_file = st.file_uploader("Choose P&L Statement (.xlsx)", type=["xlsx", "xls"], key="pnl_stmt_upload")
+        if pnl_file is not None:
+            try:
+                _pdf = pd.read_excel(pnl_file, sheet_name="Equity", header=None)
+
+                def _find_summary_value(raw_df, label):
+                    for _i in range(len(raw_df)):
+                        _row = raw_df.iloc[_i]
+                        for _j, _v in enumerate(_row):
+                            if str(_v).strip() == label:
+                                for _k in range(_j + 1, len(_row)):
+                                    try:
+                                        return float(_row.iloc[_k])
+                                    except (ValueError, TypeError):
+                                        continue
+                    return None
+
+                import re as _re_pnl
+                _p_charges = _find_summary_value(_pdf, "Charges") or 0.0
+                _p_other = _find_summary_value(_pdf, "Other Credit & Debit") or 0.0
+                _p_realized = _find_summary_value(_pdf, "Realized P&L") or 0.0
+                _p_unrealized = _find_summary_value(_pdf, "Unrealized P&L") or 0.0
+                _p_net_realized = _p_realized - _p_charges - abs(_p_other)
+
+                _p_date_start = _p_date_end = None
+                for _i in range(len(_pdf)):
+                    for _v in _pdf.iloc[_i]:
+                        _m = _re_pnl.search(r"P&L Statement for Equity from (\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})", str(_v))
+                        if _m:
+                            _p_date_start, _p_date_end = _m.group(1), _m.group(2)
+
+                _real_total_charges = _p_charges + abs(_p_other)
+
+                pc1, pc2, pc3 = st.columns(3)
+                pc1.metric("Realized P&L (broker)", fmt_inr(_p_realized))
+                pc2.metric("Real Total Charges", fmt_inr(_real_total_charges),
+                           help="Charges (brokerage/STT/stamp/GST/SEBI/exchange) + Other Debits (MTF interest, DP charges, pledge fees)")
+                pc3.metric("Net Realized P&L (broker)", fmt_inr(_p_net_realized))
+                if _p_date_start:
+                    st.caption(f"Statement period: {_p_date_start} to {_p_date_end}")
+
+                if _p_date_start and _p_date_end:
+                    _range_closed = [t for t in closed if t.get("exit_date") and
+                                      _p_date_start <= str(t.get("exit_date"))[:10] <= _p_date_end]
+                    _app_gross = sum(safe_float(t.get("pnl")) + safe_float(t.get("commission_entry")) +
+                                      safe_float(t.get("commission_exit")) for t in _range_closed)
+                    _app_net_using_manual_commission = sum(safe_float(t.get("pnl")) for t in _range_closed)
+                    _app_net_using_real_charges = _app_gross - _real_total_charges
+
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    st.markdown(section_label("Reconciliation vs Your Journal"), unsafe_allow_html=True)
+                    _diff1 = _app_gross - _p_realized
+                    _diff2 = _app_net_using_manual_commission - _p_net_realized
+                    _diff3 = _app_net_using_real_charges - _p_net_realized
+
+                    def _recon_row(label, app_val, broker_val, diff, tol=1000.0):
+                        ok = abs(diff) <= tol
+                        icon = "✅" if ok else "⚠️"
+                        return (f'<tr><td style="padding:6px 10px">{label}</td>'
+                                f'<td style="padding:6px 10px;text-align:right">{fmt_inr(app_val)}</td>'
+                                f'<td style="padding:6px 10px;text-align:right">{fmt_inr(broker_val)}</td>'
+                                f'<td style="padding:6px 10px;text-align:right;color:{TEAL if ok else RED}">{icon} {fmt_inr(diff)}</td></tr>')
+
+                    _rows_html = ""
+                    _rows_html += _recon_row("Gross P&L (journal, before any commission)", _app_gross, _p_realized, _diff1)
+                    _rows_html += _recon_row("Net P&L (journal's own manually-entered commission)", _app_net_using_manual_commission, _p_net_realized, _diff2)
+                    _rows_html += _recon_row("Net P&L (using REAL broker charges instead)", _app_net_using_real_charges, _p_net_realized, _diff3)
+
+                    st.markdown(f"""<table style="width:100%;border-collapse:collapse">
+                        <thead><tr>
+                            <th style="padding:6px 10px;text-align:left;font-size:11px;color:{TEXT_SUBTLE}">METRIC</th>
+                            <th style="padding:6px 10px;text-align:right;font-size:11px">JOURNAL</th>
+                            <th style="padding:6px 10px;text-align:right;font-size:11px">BROKER</th>
+                            <th style="padding:6px 10px;text-align:right;font-size:11px">DIFFERENCE</th>
+                        </tr></thead><tbody>{_rows_html}</tbody></table>""", unsafe_allow_html=True)
+                    st.caption(f"Comparing {len(_range_closed)} journal trades exiting in the statement's date range "
+                               f"against the broker's totals for that same period.")
+            except Exception as e:
+                st.error(f"Couldn't parse this file as a P&L Statement export: {e}")
+
     st.markdown("<br>", unsafe_allow_html=True)
 
     years = sorted({int(str(t.get("exit_date",""))[:4]) for t in closed if str(t.get("exit_date",""))[:4].isdigit()}, reverse=True)
