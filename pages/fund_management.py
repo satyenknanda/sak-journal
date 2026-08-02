@@ -592,7 +592,7 @@ def render():
         f = flows.get(m, {"added": 0.0, "withdrawn": 0.0, "mtf_interest": 0.0})
         added = f.get("added", 0.0)
         withdrawn = f.get("withdrawn", 0.0)
-        mtf_interest = auto_interest_by_month.get(m, 0.0)  # auto-calculated, not manual
+        mtf_interest = f.get("mtf_interest", 0.0)  # manually entered, fed from your ledger uploads
         pnl = monthly_pnl.get(m, 0.0)
         net_pnl = pnl - mtf_interest
         start_cap = running_capital
@@ -636,12 +636,12 @@ def render():
     edited = st.data_editor(
         edit_df,
         use_container_width=True, hide_index=True, key=f"fund_editor_{year_sel}",
-        disabled=["Month", "MTF Interest (₹)", "Starting Capital (₹)", "Gross P/L (₹)", "Net P/L (₹)", "Ending Capital (₹)"],
+        disabled=["Month", "Starting Capital (₹)", "Gross P/L (₹)", "Net P/L (₹)", "Ending Capital (₹)"],
         column_config={
             "Added (₹)": st.column_config.NumberColumn(format="₹%.0f", min_value=0.0),
             "Withdrawn (₹)": st.column_config.NumberColumn(format="₹%.0f", min_value=0.0),
-            "MTF Interest (₹)": st.column_config.NumberColumn(format="₹%.0f",
-                                                                help="Auto-calculated from MTF trades (Zerodha's 0.04%/day formula) — not editable here"),
+            "MTF Interest (₹)": st.column_config.NumberColumn(format="₹%.0f", min_value=0.0,
+                                                                help="Manually entered — fed from your weekly broker ledger upload's actual 'Interest for MTF funded value' entries"),
             "Starting Capital (₹)": st.column_config.NumberColumn(format="₹%.0f"),
             "Gross P/L (₹)": st.column_config.NumberColumn(format="₹%.0f"),
             "Net P/L (₹)": st.column_config.NumberColumn(format="₹%.0f"),
@@ -653,7 +653,8 @@ def render():
         for i, m in enumerate(range(1, 13)):
             added = safe_float(edited.iloc[i]["Added (₹)"])
             withdrawn = safe_float(edited.iloc[i]["Withdrawn (₹)"])
-            save_capital_flow(year_sel, m, added, withdrawn)  # MTF interest is auto-calculated, not saved manually
+            mtf_interest_edit = safe_float(edited.iloc[i]["MTF Interest (₹)"])
+            save_capital_flow(year_sel, m, added, withdrawn, mtf_interest=mtf_interest_edit)
         save_capital_flow(year_sel, 0, 0, 0, base_capital=starting_capital)  # month=0 stores the anchor
         st.success("Saved. Reload the page to see updated roll-forward.")
         st.rerun()
