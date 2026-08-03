@@ -333,6 +333,71 @@ def render():
             except Exception as e:
                 st.error(f"Couldn't parse this file as a ledger export: {e}")
 
+    with st.expander("📈 Upload Interest Statement — import MTF interest"):
+        st.caption("Upload Zerodha's dedicated Interest Statement (Console → Reports → Interest, or "
+                   "wherever your broker's daily MTF interest export lives). Columns: Posting date, "
+                   "Funded amount, Interest amount. This is the cleanest, most precise source for MTF "
+                   "interest — use this instead of digging it out of the general ledger.")
+        interest_file = st.file_uploader("Choose Interest Statement (.csv)", type=["csv"], key="interest_stmt_upload")
+        if interest_file is not None:
+            try:
+                _idf = pd.read_csv(interest_file)
+                _idf.columns = [str(c).strip().lower().replace(" ", "_") for c in _idf.columns]
+                if "posting_date" not in _idf.columns or "interest_amount" not in _idf.columns:
+                    st.error(f"Expected 'Posting date' and 'Interest amount' columns — found: {list(_idf.columns)}")
+                else:
+                    _idf["posting_date"] = pd.to_datetime(_idf["posting_date"])
+                    _idf["_year"] = _idf["posting_date"].dt.year
+                    _idf["_month"] = _idf["posting_date"].dt.month
+                    _stmt_by_month = _idf.groupby(["_year", "_month"])["interest_amount"].sum().reset_index()
+
+                    _total_interest = _idf["interest_amount"].sum()
+                    st.metric("Total Interest in Statement", fmt_inr(_total_interest))
+
+                    _stmt_preview = []
+                    for _, _row in _stmt_by_month.iterrows():
+                        _yr = int(_row["_year"]); _mo = int(_row["_month"])
+                        _stmt_amt = float(_row["interest_amount"])
+                        _existing_flows2 = get_capital_flows(_yr)
+                        _existing2 = _existing_flows2.get(_mo, {"added": 0.0, "withdrawn": 0.0, "mtf_interest": 0.0})
+                        _stmt_preview.append({
+                            "year": _yr, "month": _mo, "label": f"{MONTHS[_mo-1]} {_yr}",
+                            "stmt_amt": _stmt_amt,
+                            "existing_manual": float(_existing2.get("mtf_interest", 0.0)),
+                            "existing_added": float(_existing2.get("added", 0.0)),
+                            "existing_withdrawn": float(_existing2.get("withdrawn", 0.0)),
+                        })
+
+                    _si_rows_html = ""
+                    for _p in _stmt_preview:
+                        _changed = abs(_p["stmt_amt"] - _p["existing_manual"]) > 1.0
+                        _icon = "🔄" if _changed else "✓"
+                        _si_rows_html += (f'<tr><td style="padding:6px 10px">{_p["label"]}</td>'
+                            f'<td style="padding:6px 10px;text-align:right">{fmt_inr(_p["existing_manual"])}</td>'
+                            f'<td style="padding:6px 10px;text-align:right;font-weight:700">{fmt_inr(_p["stmt_amt"])}</td>'
+                            f'<td style="padding:6px 10px;text-align:center">{_icon}</td></tr>')
+                    st.markdown(f"""<table style="width:100%;border-collapse:collapse">
+                        <thead><tr>
+                            <th style="padding:6px 10px;text-align:left;font-size:11px;color:{TEXT_SUBTLE}">MONTH</th>
+                            <th style="padding:6px 10px;text-align:right;font-size:11px">CURRENT (MANUAL)</th>
+                            <th style="padding:6px 10px;text-align:right;font-size:11px">FROM STATEMENT</th>
+                            <th style="padding:6px 10px;text-align:center;font-size:11px"></th>
+                        </tr></thead><tbody>{_si_rows_html}</tbody></table>""", unsafe_allow_html=True)
+
+                    if st.button("💾 Import MTF Interest for these months", key="import_interest_stmt_btn", type="primary"):
+                        _imported2 = 0
+                        for _p in _stmt_preview:
+                            try:
+                                save_capital_flow(_p["year"], _p["month"], _p["existing_added"],
+                                                   _p["existing_withdrawn"], mtf_interest=_p["stmt_amt"])
+                                _imported2 += 1
+                            except Exception as _e_imp2:
+                                st.warning(f"Couldn't save {_p['label']}: {_e_imp2}")
+                        st.success(f"✅ Imported MTF interest for {_imported2} month(s) from the Interest Statement.")
+                        st.rerun()
+            except Exception as e:
+                st.error(f"Couldn't parse this file as an Interest Statement: {e}")
+
     with st.expander("📊 Upload P&L Statement — reconcile real charges"):
         st.caption("Upload Zerodha's P&L Statement export (Console → Reports → P&L, the .xlsx with "
                    "'Equity' and 'Other Debits and Credits' sheets). This has your REAL total charges "
