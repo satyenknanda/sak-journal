@@ -148,16 +148,52 @@ def render_exit_trade_modal(trade: dict):
             color = "🟢" if pnl_preview >= 0 else "🔴"
             st.info(f"{color}  P&L preview: ₹{pnl_preview:,.0f}  |  R-Multiple: {r_mult:.2f}R")
 
-        submitted = st.form_submit_button("Confirm Exit", type="primary", use_container_width=True)
+        total_qty = int(trade.get("qty") or 0)
+        is_partial = exit_qty < total_qty
+        btn_label = f"⚡ Partial Exit ({exit_qty} of {total_qty})" if is_partial else "Confirm Full Exit"
+        submitted = st.form_submit_button(btn_label, type="primary", use_container_width=True)
         if submitted:
-            exit_trade(
-                trade_id=trade["id"],
-                exit_date=str(exit_date),
-                exit_price=exit_price,
-                exit_qty=exit_qty,
-                commission_exit=commission_exit,
-                risk_status=risk_status,
-            )
+            if is_partial:
+                # Create new CLOSED trade for exited portion
+                import copy
+                partial = copy.deepcopy(trade)
+                partial.pop("id", None)
+                partial["qty"] = exit_qty
+                partial["exit_date"] = str(exit_date)
+                partial["exit_price"] = exit_price
+                partial["exit_qty"] = exit_qty
+                partial["commission_exit"] = commission_exit
+                partial["risk_status"] = risk_status
+                partial["status"] = "CLOSED"
+                ep = float(trade["entry_price"])
+                comm_e = float(trade.get("commission_entry") or 0)
+                if trade.get("side") == "Sell":
+                    partial["pnl"] = (ep - exit_price) * exit_qty - comm_e - commission_exit
+                else:
+                    partial["pnl"] = (exit_price - ep) * exit_qty - comm_e - commission_exit
+                r_per = abs(ep - float(trade.get("stop_loss") or ep))
+                partial["r_multiple"] = round((exit_price - ep) / r_per, 2) if r_per else 0
+                # Remove fields that should not be copied
+                for f in ["live_price","change_pct","risk_status","tsl","best_exit_price",
+                          "best_exit_time","open_time","close_time","mae_price","mfe_price",
+                          "tags","session_grade","auto_tag_notes","entry_quality","entry_grade"]:
+                    partial.pop(f, None)
+                add_trade(partial)
+                # Reduce original trade qty
+                remaining = total_qty - exit_qty
+                from data.db import update_trade
+                update_trade(trade["id"], {"qty": remaining})
+                st.success(f"✅ Partial exit: {exit_qty} shares closed, {remaining} shares remain open")
+                st.rerun()
+            else:
+                exit_trade(
+                    trade_id=trade["id"],
+                    exit_date=str(exit_date),
+                    exit_price=exit_price,
+                    exit_qty=exit_qty,
+                    commission_exit=commission_exit,
+                    risk_status=risk_status,
+                )
             st.success(f"✅ {trade['ticker']} closed.")
             st.rerun()
 
