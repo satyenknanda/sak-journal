@@ -222,7 +222,7 @@ def render():
         st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
         # Top 3 open positions
-        top3 = sorted(open_all, key=lambda x: float(x.get("entry_price",0))*float(x.get("qty",0)), reverse=True)[:3]
+        top3 = sorted(open_all, key=lambda x: float(x.get("entry_price") or 0)*float(x.get("qty") or 0), reverse=True)[:3]
         if top3:
             st.markdown("#### 🏆 Top 3 Open Positions")
             t3c = st.columns(3)
