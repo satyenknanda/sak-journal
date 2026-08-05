@@ -142,9 +142,15 @@ def parse_daily_plan_excel(file):
         status_raw = _safe_str(row.get("Status","")).upper()
         exit_price = _safe_float(row.get("Exit Price"))
         exit_date  = _safe_date(row.get("Exit Date"))
-        status = "CLOSED" if (exit_price and exit_date) else ("OPEN" if status_raw in ("","OPEN") else status_raw)
-        if status not in ("OPEN","CLOSED"):
-            status = "CLOSED" if exit_price else "OPEN"
+        # Trust Status column first, fall back to exit data detection
+        if status_raw in ("OPEN",):
+            status = "OPEN"
+        elif status_raw in ("CLOSED",):
+            status = "CLOSED"
+        elif exit_price and exit_date:
+            status = "CLOSED"
+        else:
+            status = "OPEN"
 
         entry_price = _safe_float(row.get("Entry Price"))
         pnl = None
