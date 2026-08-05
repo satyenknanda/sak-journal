@@ -208,7 +208,7 @@ def render():
         sl_br = sum(1 for t in open_all if "SL Breached" in (t.get("risk_status") or ""))
         in_pr = sum(1 for t in open_all if "In Profits" in (t.get("risk_status") or ""))
         tot_ps= sum(float(t.get("entry_price") or 0)*float(t.get("qty") or 0) for t in open_all)
-        open_risk=sum(abs(float(t.get("entry_price",0))-float(t.get("stop_loss",0)))*float(t.get("qty",0))
+        open_risk=sum(abs(float(t.get("entry_price") or 0)-float(t.get("stop_loss") or 0))*float(t.get("qty") or 0)
                       for t in open_all if t.get("stop_loss"))
 
         st.markdown("#### 📈 Position Health")
