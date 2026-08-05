@@ -44,11 +44,21 @@ def _safe_float(v):
     except: return None
 
 def _safe_date(v):
-    if pd.isna(v) or v == "" or v is None: return None
+    if v is None or v == "": return None
+    try:
+        if pd.isna(v): return None
+    except: pass
     try:
         if isinstance(v, (datetime, date)):
             return v.strftime("%Y-%m-%d")
-        return pd.to_datetime(v).strftime("%Y-%m-%d")
+        s = str(v).strip()
+        # Try DD/MM/YY or DD/MM/YYYY first
+        for fmt in ("%d/%m/%y", "%d/%m/%Y", "%d-%m-%y", "%d-%m-%Y"):
+            try:
+                from datetime import datetime as _dt
+                return _dt.strptime(s[:len(fmt)], fmt).strftime("%Y-%m-%d")
+            except: pass
+        return pd.to_datetime(v, dayfirst=True).strftime("%Y-%m-%d")
     except:
         return None
 
