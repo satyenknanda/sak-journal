@@ -301,14 +301,15 @@ def render():
                             add_list.append(t)
                     st.info(f"Found {len(trades_parsed)} trades — {len(add_list)} new, {len(upd_list)} updates")
                     if st.button(f"⬆️ Import All ({len(trades_parsed)})", key="imp_xl_all", type="primary"):
-                        success = 0
+                        success = 0; errors = []
                         for t in add_list:
                             try: add_trade(t); success += 1
-                            except: pass
+                            except Exception as _e: errors.append(f"Add #{t.get('trade_no')}: {_e}")
                         for tid, t in upd_list:
                             try: update_trade(tid, t); success += 1
-                            except: pass
-                        st.success(f"✅ {success} trades imported!")
+                            except Exception as _e: errors.append(f"Update #{t.get('trade_no')}: {_e}")
+                        if success: st.success(f"✅ {success} trades imported!")
+                        for err in errors[:5]: st.error(err)
                 else:
                     st.warning("No trades found")
             except Exception as e:
