@@ -107,6 +107,7 @@ def parse_daily_plan_excel(file):
     else:
         file.seek(0)
         df = pd.read_excel(file, sheet_name=0, header=None)
+        print(f"DEBUG: sheet=0, shape={df.shape}, first row={df.iloc[0].tolist()[:8] if len(df)>0 else 'empty'}")
         # Map first 19 columns to EXPECTED_COLS regardless of total columns
         ncols = df.shape[1]
         if ncols < 8:
