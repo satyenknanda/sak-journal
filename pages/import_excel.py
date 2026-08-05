@@ -107,19 +107,15 @@ def parse_daily_plan_excel(file):
     else:
         file.seek(0)
         df = pd.read_excel(file, sheet_name=0, header=None)
-        # Handle side-by-side format — detect if cols 0-3 are a separate section
+        # Handle side-by-side format
         if df.shape[1] > 19:
             first_vals = [str(v).strip().upper() for v in df.iloc[0].tolist()]
-            # If col 4 looks like a status (OPEN/CLOSED) and col 0 also does,
-            # and col 4's data is different from col 0, skip first N cols
-            if (first_vals[0] in ("OPEN","CLOSED") and 
-                len(first_vals) > 4 and 
-                first_vals[4] in ("OPEN","CLOSED")):
-                # Find where second trade block starts
-                for start_col in range(1, 6):
-                    if first_vals[start_col] in ("OPEN","CLOSED"):
-                        df = df.iloc[:, start_col:]
-                        break
+            # Find all columns that have OPEN/CLOSED status
+            status_cols = [i for i, v in enumerate(first_vals) if v in ("OPEN","CLOSED","NAN","NAT") or v.startswith("OPEN") or v.startswith("CLOSED")]
+            # If there are two OPEN/CLOSED markers, take from the second one
+            real_status_cols = [i for i, v in enumerate(first_vals) if v in ("OPEN","CLOSED")]
+            if len(real_status_cols) >= 2:
+                df = df.iloc[:, real_status_cols[1]:]
         # Map first 19 columns to EXPECTED_COLS regardless of total columns
         ncols = df.shape[1]
         if ncols < 8:
