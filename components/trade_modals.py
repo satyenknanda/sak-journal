@@ -148,9 +148,12 @@ def render_exit_trade_modal(trade: dict):
             color = "🟢" if pnl_preview >= 0 else "🔴"
             st.info(f"{color}  P&L preview: ₹{pnl_preview:,.0f}  |  R-Multiple: {r_mult:.2f}R")
 
-        total_qty = int(float(trade.get("qty") or 0))
-        exit_qty_int = int(exit_qty)
-        is_partial = exit_qty_int < total_qty
+        try:
+            total_qty = int(float(trade.get("qty") or 0))
+            exit_qty_int = int(float(exit_qty or 0))
+            is_partial = total_qty > 0 and exit_qty_int < total_qty
+        except:
+            total_qty = 0; exit_qty_int = 0; is_partial = False
         btn_label = f"⚡ Partial Exit ({exit_qty_int} of {total_qty})" if is_partial else "Confirm Full Exit"
         submitted = st.form_submit_button(btn_label, type="primary", use_container_width=True)
         if submitted:
