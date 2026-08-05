@@ -107,12 +107,22 @@ def parse_daily_plan_excel(file):
     else:
         file.seek(0)
         df = pd.read_excel(file, sheet_name=0, header=None)
-        # Flexible — use however many columns are present
-        available_cols = EXPECTED_COLS[:df.shape[1]]
-        if df.shape[1] < 8:
-            raise ValueError(f"File has only {df.shape[1]} columns — need at least 8 (Status through Entry Price).")
-        df = df.iloc[:, :len(available_cols)]
-        df.columns = available_cols
+        # Map columns — handle both 14-col and 19-col formats
+        ncols = df.shape[1]
+        if ncols < 8:
+            raise ValueError(f"File has only {ncols} columns — need at least 8.")
+        if ncols >= 19:
+            # Full format with exit columns
+            df = df.iloc[:, :19]
+            df.columns = EXPECTED_COLS
+        elif ncols >= 14:
+            # 14-col format — Exit Date/Qty/Price/Comm/RiskStatus appended after
+            base_cols = EXPECTED_COLS[:ncols]
+            df = df.iloc[:, :ncols]
+            df.columns = base_cols
+        else:
+            df = df.iloc[:, :ncols]
+            df.columns = EXPECTED_COLS[:ncols]
 
     trades = []
     cols = list(df.columns)
