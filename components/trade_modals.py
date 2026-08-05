@@ -148,9 +148,10 @@ def render_exit_trade_modal(trade: dict):
             color = "🟢" if pnl_preview >= 0 else "🔴"
             st.info(f"{color}  P&L preview: ₹{pnl_preview:,.0f}  |  R-Multiple: {r_mult:.2f}R")
 
-        total_qty = int(trade.get("qty") or 0)
-        is_partial = exit_qty < total_qty
-        btn_label = f"⚡ Partial Exit ({exit_qty} of {total_qty})" if is_partial else "Confirm Full Exit"
+        total_qty = int(float(trade.get("qty") or 0))
+        exit_qty_int = int(exit_qty)
+        is_partial = exit_qty_int < total_qty
+        btn_label = f"⚡ Partial Exit ({exit_qty_int} of {total_qty})" if is_partial else "Confirm Full Exit"
         submitted = st.form_submit_button(btn_label, type="primary", use_container_width=True)
         if submitted:
             if is_partial:
@@ -158,19 +159,19 @@ def render_exit_trade_modal(trade: dict):
                 import copy
                 partial = copy.deepcopy(trade)
                 partial.pop("id", None)
-                partial["qty"] = exit_qty
+                partial["qty"] = exit_qty_int
                 partial["exit_date"] = str(exit_date)
                 partial["exit_price"] = exit_price
-                partial["exit_qty"] = exit_qty
+                partial["exit_qty"] = exit_qty_int
                 partial["commission_exit"] = commission_exit
                 partial["risk_status"] = risk_status
                 partial["status"] = "CLOSED"
                 ep = float(trade["entry_price"])
                 comm_e = float(trade.get("commission_entry") or 0)
                 if trade.get("side") == "Sell":
-                    partial["pnl"] = (ep - exit_price) * exit_qty - comm_e - commission_exit
+                    partial["pnl"] = (ep - exit_price) * exit_qty_int - comm_e - commission_exit
                 else:
-                    partial["pnl"] = (exit_price - ep) * exit_qty - comm_e - commission_exit
+                    partial["pnl"] = (exit_price - ep) * exit_qty_int - comm_e - commission_exit
                 r_per = abs(ep - float(trade.get("stop_loss") or ep))
                 partial["r_multiple"] = round((exit_price - ep) / r_per, 2) if r_per else 0
                 # Remove fields that should not be copied
@@ -180,10 +181,10 @@ def render_exit_trade_modal(trade: dict):
                     partial.pop(f, None)
                 add_trade(partial)
                 # Reduce original trade qty
-                remaining = total_qty - exit_qty
+                remaining = total_qty - exit_qty_int
                 from data.db import update_trade
                 update_trade(trade["id"], {"qty": remaining})
-                st.success(f"✅ Partial exit: {exit_qty} shares closed, {remaining} shares remain open")
+                st.success(f"✅ Partial exit: {exit_qty_int} shares closed, {remaining} shares remain open")
                 st.rerun()
             else:
                 exit_trade(
