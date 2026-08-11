@@ -282,7 +282,7 @@ def render():
         st.markdown("#### 📋 Strategy Breakdown")
         sm = defaultdict(lambda:{"trades":0,"closed":0,"wins":0,"pnl":0.0,"r":[]})
         for t in all_trades_raw:
-            s=t.get("strategy",""); sm[s]["trades"]+=1
+            s=t.get("strategy","") or ""; sm[s]["trades"]+=1
             if t["status"]=="CLOSED":
                 sm[s]["closed"]+=1; p=float(t.get("pnl") or 0); sm[s]["pnl"]+=p
                 if p>0: sm[s]["wins"]+=1
