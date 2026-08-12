@@ -88,24 +88,30 @@ def render_add_trade_modal():
             elif not entry_price or not stop_loss:
                 st.error("Entry price and stop loss are required.")
             else:
-                add_trade({
-                    "status": "OPEN",
-                    "entry_date": str(entry_date),
-                    "side": side,
-                    "qty": qty,
-                    "ticker": ticker,
-                    "strategy": strategy,
-                    "entry_price": entry_price,
-                    "stop_loss": stop_loss,
-                    "take_profit": take_profit,
-                    "commission_entry": commission,
-                    "tsl": tsl if tsl > 0 else None,
-                    "notes": notes,
-                    "funding_type": funding_type.upper(),
-                    "mtf_margin_pct": mtf_margin_pct if funding_type == "MTF" else None,
-                })
-                st.success(f"✅ Trade added: {ticker}")
-                st.rerun()
+                try:
+                    result = add_trade({
+                        "status": "OPEN",
+                        "entry_date": str(entry_date),
+                        "side": side,
+                        "qty": qty,
+                        "ticker": ticker,
+                        "strategy": strategy,
+                        "entry_price": entry_price,
+                        "stop_loss": stop_loss,
+                        "take_profit": take_profit,
+                        "commission_entry": commission,
+                        "tsl": tsl if tsl > 0 else None,
+                        "notes": notes,
+                        "funding_type": funding_type.upper(),
+                        "mtf_margin_pct": mtf_margin_pct if funding_type == "MTF" else None,
+                    })
+                    if result:
+                        st.success(f"✅ Trade added: {ticker}")
+                        st.rerun()
+                    else:
+                        st.error(f"⚠️ Couldn't save {ticker} — no error was raised, but nothing was returned. Please try again.")
+                except Exception as e:
+                    st.error(f"⚠️ Couldn't save {ticker}: {e}")
 
 
 def render_exit_trade_modal(trade: dict):
@@ -182,13 +188,19 @@ def render_exit_trade_modal(trade: dict):
                           "best_exit_time","open_time","close_time","mae_price","mfe_price",
                           "tags","session_grade","auto_tag_notes","entry_quality","entry_grade"]:
                     partial.pop(f, None)
-                add_trade(partial)
-                # Reduce original trade qty
-                remaining = total_qty - exit_qty_int
-                from data.db import update_trade
-                update_trade(trade["id"], {"qty": remaining})
-                st.success(f"✅ Partial exit: {exit_qty_int} shares closed, {remaining} shares remain open")
-                st.rerun()
+                try:
+                    result = add_trade(partial)
+                    if not result:
+                        st.error("⚠️ Couldn't save the closed portion — no error was raised, but nothing was returned. Please try again.")
+                        st.stop()
+                    # Reduce original trade qty
+                    remaining = total_qty - exit_qty_int
+                    from data.db import update_trade
+                    update_trade(trade["id"], {"qty": remaining})
+                    st.success(f"✅ Partial exit: {exit_qty_int} shares closed, {remaining} shares remain open")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"⚠️ Couldn't complete the partial exit: {e}")
             else:
                 exit_trade(
                     trade_id=trade["id"],

@@ -112,57 +112,57 @@ def get_journal_trades():
     return get_trades()
 
 def add_trade(data):
-    try:
-        if _use_supabase():
-            res = _sb().table("trades").insert(data).execute()
-            trade = res.data[0] if res.data else None
-            if not trade:
-                # Insert call didn't raise, but returned no row data — this can
-                # happen when an RLS policy on the 'trades' table blocks reading
-                # the row back even though the insert itself went through.
-                # Verify by querying for the row we just tried to insert before
-                # deciding whether it actually failed.
-                try:
-                    vq = _sb().table("trades").select("*").eq("ticker", data.get("ticker", ""))
-                    if data.get("entry_date"):
-                        vq = vq.eq("entry_date", data.get("entry_date"))
-                    if data.get("trade_no"):
-                        vq = vq.eq("trade_no", data.get("trade_no"))
-                    vres = vq.order("id", desc=True).limit(1).execute()
-                    if vres.data:
-                        trade = vres.data[0]
-                except Exception as e:
-                    print(f"add_trade verify error: {e}")
-            if trade:
-                # Auto entry quality check
-                try:
-                    import threading
-                    def _run_eq():
-                        import time; time.sleep(2)  # wait for data to settle
-                        from agents.entry_quality import get_intraday_data, check_entry_quality
-                        ticker = trade.get("ticker","")
-                        entry_date = str(trade.get("entry_date",""))[:10]
-                        df = get_intraday_data(ticker, entry_date)
-                        result = check_entry_quality(trade, df)
-                        if result.get("grade"):
-                            update_trade(trade["id"], {
-                                "entry_quality": result,
-                                "entry_grade": result.get("grade","")
-                            })
-                            print(f"✅ Entry quality: {ticker} Grade {result.get('grade')}")
-                    threading.Thread(target=_run_eq, daemon=True).start()
-                except Exception as e:
-                    print(f"entry quality error: {e}")
-                return trade
+    if _use_supabase():
+        # This app is Supabase-backed — if Supabase is configured, any failure
+        # here must raise so the caller sees a real error, instead of silently
+        # falling back to a local SQLite file that Trade Log never reads from.
+        res = _sb().table("trades").insert(data).execute()
+        trade = res.data[0] if res.data else None
+        if not trade:
+            # Insert call didn't raise, but returned no row data — this can
+            # happen when an RLS policy on the 'trades' table blocks reading
+            # the row back even though the insert itself went through.
+            # Verify by querying for the row we just tried to insert before
+            # deciding whether it actually failed.
+            try:
+                vq = _sb().table("trades").select("*").eq("ticker", data.get("ticker", ""))
+                if data.get("entry_date"):
+                    vq = vq.eq("entry_date", data.get("entry_date"))
+                if data.get("trade_no"):
+                    vq = vq.eq("trade_no", data.get("trade_no"))
+                vres = vq.order("id", desc=True).limit(1).execute()
+                if vres.data:
+                    trade = vres.data[0]
+            except Exception as e:
+                print(f"add_trade verify error: {e}")
+        if not trade:
             raise RuntimeError(
                 f"Insert for {data.get('ticker','?')} on {data.get('entry_date','?')} returned no "
                 f"data and couldn't be verified afterward — likely blocked by a Supabase RLS policy "
                 f"on the 'trades' table. Check Supabase → Authentication → Policies for SELECT/INSERT "
                 f"permissions."
             )
-    except RuntimeError:
-        raise  # verified-failure — propagate to caller instead of silently falling back to local SQLite
-    except Exception as e: print(f"add_trade error: {e}")
+        # Auto entry quality check
+        try:
+            import threading
+            def _run_eq():
+                import time; time.sleep(2)  # wait for data to settle
+                from agents.entry_quality import get_intraday_data, check_entry_quality
+                ticker = trade.get("ticker","")
+                entry_date = str(trade.get("entry_date",""))[:10]
+                df = get_intraday_data(ticker, entry_date)
+                result = check_entry_quality(trade, df)
+                if result.get("grade"):
+                    update_trade(trade["id"], {
+                        "entry_quality": result,
+                        "entry_grade": result.get("grade","")
+                    })
+                    print(f"✅ Entry quality: {ticker} Grade {result.get('grade')}")
+            threading.Thread(target=_run_eq, daemon=True).start()
+        except Exception as e:
+            print(f"entry quality error: {e}")
+        return trade
+    # Supabase isn't configured at all — use local SQLite as primary storage.
     try:
         c = _local_db()
         cols = ",".join(data.keys()); vals = ",".join(["?"]*len(data))
