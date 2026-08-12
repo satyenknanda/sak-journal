@@ -116,6 +116,23 @@ def add_trade(data):
         if _use_supabase():
             res = _sb().table("trades").insert(data).execute()
             trade = res.data[0] if res.data else None
+            if not trade:
+                # Insert call didn't raise, but returned no row data — this can
+                # happen when an RLS policy on the 'trades' table blocks reading
+                # the row back even though the insert itself went through.
+                # Verify by querying for the row we just tried to insert before
+                # deciding whether it actually failed.
+                try:
+                    vq = _sb().table("trades").select("*").eq("ticker", data.get("ticker", ""))
+                    if data.get("entry_date"):
+                        vq = vq.eq("entry_date", data.get("entry_date"))
+                    if data.get("trade_no"):
+                        vq = vq.eq("trade_no", data.get("trade_no"))
+                    vres = vq.order("id", desc=True).limit(1).execute()
+                    if vres.data:
+                        trade = vres.data[0]
+                except Exception as e:
+                    print(f"add_trade verify error: {e}")
             if trade:
                 # Auto entry quality check
                 try:
@@ -136,7 +153,15 @@ def add_trade(data):
                     threading.Thread(target=_run_eq, daemon=True).start()
                 except Exception as e:
                     print(f"entry quality error: {e}")
-            return trade
+                return trade
+            raise RuntimeError(
+                f"Insert for {data.get('ticker','?')} on {data.get('entry_date','?')} returned no "
+                f"data and couldn't be verified afterward — likely blocked by a Supabase RLS policy "
+                f"on the 'trades' table. Check Supabase → Authentication → Policies for SELECT/INSERT "
+                f"permissions."
+            )
+    except RuntimeError:
+        raise  # verified-failure — propagate to caller instead of silently falling back to local SQLite
     except Exception as e: print(f"add_trade error: {e}")
     try:
         c = _local_db()
