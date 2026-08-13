@@ -27,7 +27,7 @@ def select_columns_dialog():
     st.caption("Choose the columns you want to display in the table")
     ALL_COLS = ["Open Date","Symbol","Strategy","Status","Side","Close Date",
                 "Entry Price","Exit Price","Net P&L","Net ROI","R-Multiple",
-                "Stop Loss","Qty","Gross P&L","Commissions","MTF Interest","SAK Scale"]
+                "Stop Loss","Qty","Gross P&L","Commissions","MTF Interest","Funding","SAK Scale"]
     DEFAULT = ["Open Date","Symbol","Strategy","Status","Side","Close Date",
                "Entry Price","Exit Price","Net P&L","R-Multiple"]
     if "tl_cols" not in st.session_state:
@@ -311,6 +311,13 @@ def render():
                 mi=calc_mtf_interest_total(t)
                 return f'<span style="color:{AM if mi>0 else MUTED}">₹{mi:,.2f}</span>' if mi>0 else "—"
             return "—"
+        if col=="Funding":
+            ft=str(t.get("funding_type","CASH") or "CASH").upper()
+            if ft=="MTF":
+                mp=t.get("mtf_margin_pct")
+                sub=f' <span style="font-size:9px;color:{MUTED}">({float(mp):.0f}%)</span>' if mp else ""
+                return f'<span style="color:{AM};font-weight:600;background:#FFFBEB;padding:2px 7px;border-radius:8px;border:1px solid {AM}33">MTF</span>{sub}'
+            return f'<span style="color:{MUTED};font-weight:600;background:{BG};padding:2px 7px;border-radius:8px;border:1px solid {BORDER}">CASH</span>'
         return "—"
 
     for t in page_t:
