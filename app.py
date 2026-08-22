@@ -436,6 +436,58 @@ button[kind="header"],
     color:#fff!important;
 }}
 
+/* Pill-shaped tabs (main content area, not sidebar) — softer, rounder look */
+.main [data-testid="stTabs"] [data-baseweb="tab-list"] {{
+    gap:4px!important;
+    background:{PAGE_BG}!important;
+    padding:4px!important;
+    border-radius:999px!important;
+    border:1px solid {BORDER}!important;
+    width:fit-content!important;
+}}
+.main [data-testid="stTabs"] [data-baseweb="tab"] {{
+    border-radius:999px!important;
+    font-family:'Inter',sans-serif!important;
+    font-weight:500!important;
+    padding:6px 16px!important;
+}}
+.main [data-testid="stTabs"] [aria-selected="true"] {{
+    background:{CARD_BG}!important;
+    box-shadow:{SHADOW_SM}!important;
+}}
+.main [data-testid="stTabs"] [data-baseweb="tab-highlight"] {{
+    display:none!important;
+}}
+
+/* Pill-shaped horizontal radio toggles (view switchers, Net/Gross, etc.) */
+.main [data-testid="stRadio"] > div[role="radiogroup"] {{
+    background:{PAGE_BG}!important;
+    padding:4px!important;
+    border-radius:999px!important;
+    border:1px solid {BORDER}!important;
+    width:fit-content!important;
+    gap:2px!important;
+}}
+.main [data-testid="stRadio"] label {{
+    border-radius:999px!important;
+    padding:5px 14px!important;
+    font-family:'Inter',sans-serif!important;
+}}
+
+/* Softer, rounder buttons in the main content area */
+.main [data-testid="stButton"] > button {{
+    border-radius:10px!important;
+    font-family:'Inter',sans-serif!important;
+    font-weight:500!important;
+}}
+
+/* Softer expander corners, matching the card radius elsewhere */
+.main [data-testid="stExpander"] {{
+    border-radius:14px!important;
+    border:1px solid {BORDER}!important;
+    overflow:hidden!important;
+}}
+
 /* Scrollbar */
 ::-webkit-scrollbar{{width:4px;height:4px}}
 ::-webkit-scrollbar-track{{background:transparent}}

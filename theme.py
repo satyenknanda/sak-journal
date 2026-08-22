@@ -47,6 +47,12 @@ CHART_AXIS  = "#CBD5E1"   # axis tick text
 # Shadow
 SHADOW_SM   = "0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06)"
 SHADOW_MD   = "0 2px 4px rgba(0,0,0,0.06), 0 4px 8px rgba(0,0,0,0.04)"
+SHADOW_LG   = "0 4px 12px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.05)"
+
+# Card shape — softer, more spacious than the original tight tokens
+CARD_RADIUS      = "14px"
+CARD_RADIUS_LG   = "18px"
+CARD_PADDING     = "18px 20px"
 
 # Strategy colours
 STRAT_COLORS = ["#10B981","#3B82F6","#8B5CF6","#F59E0B","#EC4899","#14B8A6","#F97316","#06B6D4"]
@@ -111,14 +117,14 @@ def chart_layout(height=240, title="", margin=None):
 
 
 def kpi_card(label, value, sub=None, color=None):
-    """Exact Tradezella KPI card — white, subtle shadow, no border accent."""
+    """Softer, more spacious KPI card — white, subtle shadow, rounded corners."""
     c = color or TEXT_H
-    sub_html = f'<div style="font-size:11px;color:{TEXT_SUBTLE};margin-top:3px;font-family:Inter,sans-serif">{sub}</div>' if sub else ""
-    return (f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;'
-            f'padding:14px 16px;box-shadow:{SHADOW_SM};min-height:78px">'
+    sub_html = f'<div style="font-size:11px;color:{TEXT_SUBTLE};margin-top:4px;font-family:Inter,sans-serif">{sub}</div>' if sub else ""
+    return (f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:{CARD_RADIUS};'
+            f'padding:{CARD_PADDING};box-shadow:{SHADOW_SM};min-height:86px">'
             f'<div style="font-size:10.5px;color:{TEXT_SUBTLE};text-transform:uppercase;'
-            f'letter-spacing:0.07em;font-weight:500;margin-bottom:6px;font-family:Inter,sans-serif">{label}</div>'
-            f'<div style="font-size:1.35rem;font-weight:700;color:{c};letter-spacing:-0.02em;'
+            f'letter-spacing:0.07em;font-weight:500;margin-bottom:7px;font-family:Inter,sans-serif">{label}</div>'
+            f'<div style="font-size:1.4rem;font-weight:700;color:{c};letter-spacing:-0.02em;'
             f'font-family:Inter,sans-serif;font-variant-numeric:tabular-nums;line-height:1.2">{value}</div>'
             f'{sub_html}'
             f'</div>')
@@ -159,8 +165,32 @@ TABLE_STYLES = [
 
 def kpi_card_accent(label, value, color, sub=None):
     """KPI card with colored top-border accent."""
-    sub_html = f'<div style="font-size:11px;color:{TEXT_SUBTLE};margin-top:3px;font-family:Inter,sans-serif">{sub}</div>' if sub else ""
-    return f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {color};border-radius:10px;padding:14px 16px;box-shadow:{SHADOW_SM};min-height:78px"><div style="font-size:10.5px;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;font-weight:500;margin-bottom:6px;font-family:Inter,sans-serif">{label}</div><div style="font-size:1.35rem;font-weight:700;color:{TEXT_H};letter-spacing:-0.02em;font-family:Inter,sans-serif;font-variant-numeric:tabular-nums;line-height:1.2">{value}</div>{sub_html}</div>'''
+    sub_html = f'<div style="font-size:11px;color:{TEXT_SUBTLE};margin-top:4px;font-family:Inter,sans-serif">{sub}</div>' if sub else ""
+    return f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {color};border-radius:{CARD_RADIUS};padding:{CARD_PADDING};box-shadow:{SHADOW_SM};min-height:86px"><div style="font-size:10.5px;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;font-weight:500;margin-bottom:7px;font-family:Inter,sans-serif">{label}</div><div style="font-size:1.4rem;font-weight:700;color:{TEXT_H};letter-spacing:-0.02em;font-family:Inter,sans-serif;font-variant-numeric:tabular-nums;line-height:1.2">{value}</div>{sub_html}</div>'''
+
+
+def hero_card(label, value, badge_text=None, sub=None, sub_color=None):
+    """Large headline metric card — big bold value, optional pill badge in the
+    top-right corner, optional small delta/sub-line underneath. For a page's
+    single most important number (e.g. Portfolio Value, Net P&L)."""
+    badge_html = (f'<span style="display:inline-flex;align-items:center;padding:4px 12px;'
+                  f'border-radius:999px;font-size:10.5px;font-weight:600;white-space:nowrap;'
+                  f'background:{PAGE_BG};color:{TEXT_MUTED};border:1px solid {BORDER};'
+                  f'font-family:Inter,sans-serif">{badge_text}</span>') if badge_text else ""
+    sc = sub_color or TEXT_MUTED
+    sub_html = (f'<div style="font-size:13px;color:{sc};margin-top:8px;font-family:Inter,sans-serif;'
+                f'font-weight:500">{sub}</div>') if sub else ""
+    return (f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:{CARD_RADIUS_LG};'
+            f'padding:24px 26px;box-shadow:{SHADOW_MD}">'
+            f'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'
+            f'<div style="font-size:11px;color:{TEXT_SUBTLE};text-transform:uppercase;'
+            f'letter-spacing:0.08em;font-weight:600;font-family:Inter,sans-serif">{label}</div>'
+            f'{badge_html}'
+            f'</div>'
+            f'<div style="font-size:2.4rem;font-weight:700;color:{TEXT_H};letter-spacing:-0.02em;'
+            f'font-family:Inter,sans-serif;font-variant-numeric:tabular-nums;line-height:1.1">{value}</div>'
+            f'{sub_html}'
+            f'</div>')
 
 
 def badge(label, style="open"):
@@ -174,8 +204,8 @@ def badge(label, style="open"):
         "negative": (RED_BG,    RED,    RED_BORDER),
     }
     bg, fg, br = styles.get(style, (PAGE_BG, TEXT_MUTED, BORDER))
-    return (f'<span style="display:inline-flex;align-items:center;padding:2px 9px;'
-            f'border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap;'
+    return (f'<span style="display:inline-flex;align-items:center;padding:3px 11px;'
+            f'border-radius:999px;font-size:10px;font-weight:600;white-space:nowrap;'
             f'background:{bg};color:{fg};border:1px solid {br};font-family:Inter,sans-serif">{label}</span>')
 
 DNA_COLORS = ["#7C3AED","#EC4899","#10B981","#F59E0B","#3B82F6","#14B8A6",

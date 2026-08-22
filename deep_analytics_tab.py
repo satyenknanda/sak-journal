@@ -69,12 +69,12 @@
 
                 def kpi_card_accent(label, value, color, sub=None):
                     """KPI card with a colored top-border accent (Nexus multi-color style)."""
-                    sub_html = f'<div style="font-size:11px;color:{TEXT_SUBTLE};margin-top:3px">{sub}</div>' if sub else ""
+                    sub_html = f'<div style="font-size:11px;color:{TEXT_SUBTLE};margin-top:4px">{sub}</div>' if sub else ""
                     return f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {color};
-                        border-radius:10px;padding:14px 16px;box-shadow:{SHADOW_SM};min-height:78px">
+                        border-radius:14px;padding:18px 20px;box-shadow:{SHADOW_SM};min-height:86px">
                         <div style="font-size:10.5px;color:{TEXT_SUBTLE};text-transform:uppercase;
-                            letter-spacing:0.07em;font-weight:500;margin-bottom:6px">{label}</div>
-                        <div style="font-size:1.35rem;font-weight:700;color:{TEXT_H};letter-spacing:-0.02em;
+                            letter-spacing:0.07em;font-weight:500;margin-bottom:7px">{label}</div>
+                        <div style="font-size:1.4rem;font-weight:700;color:{TEXT_H};letter-spacing:-0.02em;
                             font-variant-numeric:tabular-nums;line-height:1.2">{value}</div>
                         {sub_html}
                     </div>"""
@@ -273,19 +273,19 @@
 
                 cs_col = RED if cur_streak_type == "LOSING" else TEAL
                 sc1, sc2, sc3 = st.columns(3)
-                sc1.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
+                sc1.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;
                     padding:16px;text-align:center">
                     <div style="font-size:9.5px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.07em">Current</div>
                     <div style="font-size:24px;font-weight:800;color:{cs_col};margin:4px 0">{('L' if cur_streak_type=='LOSING' else 'W')}{cur_streak_n}</div>
                     <div style="font-size:10px;color:{TEXT_SUBTLE};text-transform:uppercase">{cur_streak_type or '—'}</div>
                 </div>""", unsafe_allow_html=True)
-                sc2.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
+                sc2.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;
                     padding:16px;text-align:center">
                     <div style="font-size:9.5px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.07em">Best Streak</div>
                     <div style="font-size:20px;font-weight:800;color:{TEAL};margin:4px 0">{fmt_pnl(best_streak_pnl)}</div>
                     <div style="font-size:9px;color:{TEXT_SUBTLE}">{best_streak_label}</div>
                 </div>""", unsafe_allow_html=True)
-                sc3.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
+                sc3.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;
                     padding:16px;text-align:center">
                     <div style="font-size:9.5px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.07em">Worst Streak</div>
                     <div style="font-size:20px;font-weight:800;color:{RED};margin:4px 0">{fmt_pnl(worst_streak_pnl)}</div>
@@ -524,7 +524,7 @@
                     header_html = f'<th style="{th_style}">Matrix Metrics</th>' + "".join(
                         f'<th style="{th_style};text-align:center">{fmt_month_label(m)}</th>' for m in all_months_sorted)
 
-                    st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER};box-shadow:{SHADOW_SM}">
+                    st.markdown(f"""<div style="overflow-x:auto;border-radius:14px;border:1px solid {BORDER};box-shadow:{SHADOW_SM}">
                         <table style="width:100%;border-collapse:collapse">
                         <thead><tr>{header_html}</tr></thead>
                         <tbody>{rows_html}</tbody>
@@ -632,7 +632,7 @@
                     st.dataframe(pareto_df, use_container_width=True, hide_index=True)
 
                     st.markdown(section_label("What this means"), unsafe_allow_html=True)
-                    st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6">
+                    st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6">
                         If a small number of trades drive most of your profit, your exit execution on the <i>rest</i> of your winners is likely
                         cutting them short — i.e. an MFE-capture problem, not a stop-loss problem. The fix is usually trailing/scale-out discipline
                         on trades that are already working, not finding more setups.
@@ -754,7 +754,7 @@
 
                     if dur_strat_sel in ("VCP", "REVERSAL", "All Strategies"):
                         st.markdown(section_label("Notes"), unsafe_allow_html=True)
-                        st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6">
+                        st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6">
                             Use this to sanity-check your strategy-specific stop levels: VCP at 2.5–3% and REVERSAL at technical stop with a 2.5% floor
                             should show their best Avg P/L in the 4-7 Day to 2-4 Week buckets if exits are working as designed. If the Intraday or 1-3 Day
                             buckets are dragging the average down, that's premature stop-outs rather than the setup failing.
