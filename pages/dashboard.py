@@ -380,7 +380,7 @@ def render():
 
     if st.session_state.dash_edit_mode:
         st.markdown(
-            f'<div style="background:{CARD_BG};border:1px solid {TEAL};border-radius:10px;padding:14px 18px;margin-bottom:12px">',
+            f'<div style="background:{CARD_BG};border:1px solid {TEAL};border-radius:14px;padding:14px 18px;margin-bottom:12px">',
             unsafe_allow_html=True)
         st.markdown(f'<p style="font-size:11px;font-weight:700;color:{TEXT_H};margin-bottom:8px">Upper Widgets</p>', unsafe_allow_html=True)
         _uw = st.columns(5)
@@ -406,7 +406,7 @@ def render():
     # 1. Net P&L + sparkline
     cnt = f'<span style="background:{BLUE_BG};color:{BLUE};padding:1px 6px;border-radius:9px;font-size:9px;margin-left:4px">{len(closed)}</span>'
     if W.get("net_pnl", True):
-        w1.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
+        w1.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;
             padding:14px 16px;box-shadow:{SHADOW_SM};height:{KH};box-sizing:border-box;overflow:hidden">
             <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;
                 letter-spacing:0.07em;margin-bottom:4px">Net P&L {cnt}</div>
@@ -421,7 +421,7 @@ def render():
     wr_col = TEAL if wr >= 0.4 else AMBER
     wins_n = len(win_pnls); losses_n = len(loss_pnls)
     if W.get("win_pct", True):
-        w2.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
+        w2.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;
             padding:14px 16px;box-shadow:{SHADOW_SM};height:{KH};box-sizing:border-box;overflow:hidden">
             <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;
                 letter-spacing:0.07em;margin-bottom:4px">Trade Win %</div>
@@ -438,7 +438,7 @@ def render():
 
     # 3. Avg Win/Loss Trade bar
     if W.get("avg_wl", True):
-        w3.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
+        w3.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;
             padding:14px 16px;box-shadow:{SHADOW_SM};height:{KH};box-sizing:border-box;overflow:hidden">
             <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;
                 letter-spacing:0.07em;margin-bottom:4px">Avg Win/Loss Trade</div>
@@ -460,7 +460,7 @@ def render():
     streak_col = TEAL if cur_day_streak >= 0 else RED
     trade_col  = TEAL if cur_trade_streak >= 0 else RED
     if W.get("streak", True):
-        w4.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
+        w4.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;
             padding:14px 16px;box-shadow:{SHADOW_SM};height:{KH};box-sizing:border-box;overflow:hidden">
             <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;
                 letter-spacing:0.07em;margin-bottom:8px">Current Streak</div>
@@ -491,7 +491,7 @@ def render():
     dd_col = RED if max_dd < 0 else TEAL
     avg_dd = float(np.mean([dd for _,dd in dd_series])) if dd_series else 0
     if W.get("max_dd", True):
-        w5.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
+        w5.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;
             padding:14px 16px;box-shadow:{SHADOW_SM};height:{KH};box-sizing:border-box;overflow:hidden">
             <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;
                 letter-spacing:0.07em;margin-bottom:4px">Max Drawdown</div>

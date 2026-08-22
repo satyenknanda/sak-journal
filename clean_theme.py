@@ -113,7 +113,7 @@ def tab_pill_row(tabs, active):
     """tabs: list of (icon, label) tuples. active: label string currently selected."""
     pills = "".join(
         (
-            f'<div style="padding:8px 16px;border-radius:10px;font-size:12.5px;font-weight:700;'
+            f'<div style="padding:8px 16px;border-radius:14px;font-size:12.5px;font-weight:700;'
             f'white-space:nowrap;'
             f'{"background:#F3F4F6;color:#111827" if label==active else "color:#6B7280"}">'
             f'{icon} {label}</div>'

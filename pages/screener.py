@@ -154,7 +154,7 @@ def render():
             ("Avg Vol",   f"{avg_vol:.1f}x",  TEAL if avg_vol>=1.5 else AMBER),
             ("Avg TI65",  f"{avg_ti:.1f}%",   TEAL if avg_ti>=55 else AMBER),
         ]):
-            col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px 14px;margin-bottom:10px">
+            col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:12px 14px;margin-bottom:10px">
                 <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:500;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">{label}</div>
                 <div style="font-size:20px;font-weight:700;color:{color}">{val}</div>
             </div>''', unsafe_allow_html=True)
@@ -178,7 +178,7 @@ def render():
                 <td style="{TD};text-align:right;color:{TEXT_SUBTLE}">{p52:+.1f}%</td>
             </tr>"""
 
-        st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER}">
+        st.markdown(f"""<div style="overflow-x:auto;border-radius:14px;border:1px solid {BORDER}">
         <table style="width:100%;border-collapse:collapse">
             <thead><tr>
                 <th style="{TH};text-align:left">Ticker</th>
@@ -330,7 +330,7 @@ def render():
                     (f"3M Top 35% (≥{min_3m:.1f}%)",  str(len(s3)), BLUE),
                     (f"6M Top 50% (≥{min_6m:.1f}%)",  str(len(s4)), BLUE),
                 ]):
-                    col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px 14px;margin-bottom:10px">
+                    col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:12px 14px;margin-bottom:10px">
                         <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:500;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">{label}</div>
                         <div style="font-size:20px;font-weight:700;color:{color}">{val}</div>
                     </div>''', unsafe_allow_html=True)
@@ -380,7 +380,7 @@ def render():
                             <td style="{TD};text-align:right;color:{'#10B981' if float(e.get('ret_6m') or 0)>=0 else RED}">{float(e.get('ret_6m') or 0):+.1f}%</td>
                             <td style="{TD};text-align:right;color:{'#10B981' if float(e.get('ret_ytd') or 0)>=0 else RED}">{float(e.get('ret_ytd') or 0):+.1f}%</td>
                         </tr>"""
-                    st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER}">
+                    st.markdown(f"""<div style="overflow-x:auto;border-radius:14px;border:1px solid {BORDER}">
                     <table style="width:100%;border-collapse:collapse">
                         <thead><tr>
                             <th style="{TH};text-align:left">Ticker</th>
@@ -538,7 +538,7 @@ def render():
                         <td style="{TD_i};text-align:right;color:{"#10B981" if r1d>=0 else RED}">{r1d:+.2f}%</td>
                         <td style="{TD_i};text-align:right;color:{"#10B981" if r5d>=0 else RED}">{r5d:+.2f}%</td>
                     </tr>'''
-                st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER}">
+                st.markdown(f"""<div style="overflow-x:auto;border-radius:14px;border:1px solid {BORDER}">
                 <table style="width:100%;border-collapse:collapse">
                     <thead><tr>
                         <th style="{TH_i}">Ticker</th><th style="{TH_i}">Listed</th>

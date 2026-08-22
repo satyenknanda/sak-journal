@@ -118,7 +118,7 @@ def _strat_color(name):
 STRAT_COLORS = {s: _strat_color(s) for s in _STRATEGY_NAMES}
 
 def card(title, accent=TEAL):
-    return f"""<div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,0.04)">
+    return f"""<div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,0.04)">
 <div style="display:flex;align-items:center;gap:7px;border-bottom:1px solid #F3F4F6;padding-bottom:7px;margin-bottom:10px">
 <span style="width:3px;height:14px;background:{accent};border-radius:2px;display:inline-block"></span>
 <span style="font-size:11px;font-weight:700;color:#374151">{title}</span></div>"""
@@ -583,7 +583,7 @@ def render():
         for i,o in enumerate(orders):
             tc = STRAT_COLORS.get(o.get("strategy",""),GRAY)
             bc = TEAL if o.get("type")=="BUY" else RED if o.get("type")=="SELL" else AMBER
-            st.markdown(f"""<div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:12px;margin-bottom:10px">
+            st.markdown(f"""<div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:12px;margin-bottom:10px">
                 <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
                 <span style="font-size:15px;font-weight:800">{sv(o.get('stock',''))}</span>
                 <span style="background:{bc}22;color:{bc};padding:2px 10px;border-radius:12px;font-size:10px;font-weight:700">{sv(o.get('type',''))}</span>
@@ -640,8 +640,8 @@ def render():
             mh=float(st.session_state.get("pos_max","6") or 6)
             dh=float(st.session_state.get("pos_dep","0") or 0)
             pct=min(100,dh/mh*100); bc2=RED if pct>90 else AMBER if pct>65 else TEAL
-            st.markdown(f"""<div style="background:#E5E7EB;border-radius:10px;height:10px;overflow:hidden;margin:6px 0">
-                <div style="width:{pct}%;height:100%;background:{bc2};border-radius:10px"></div></div>
+            st.markdown(f"""<div style="background:#E5E7EB;border-radius:14px;height:10px;overflow:hidden;margin:6px 0">
+                <div style="width:{pct}%;height:100%;background:{bc2};border-radius:14px"></div></div>
                 <div style="font-size:10px;color:#6B7280">{pct:.0f}% of max heat deployed</div>""", unsafe_allow_html=True)
         except: pass
         st.text_area("Notes", key="pos_notes", height=80)
@@ -692,7 +692,7 @@ def render():
     with tabs[10]:
         from datetime import date as _d
         _today = _d.today().strftime("%d-%m-%Y")
-        st.markdown(f"""<div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:14px;margin-bottom:10px">
+        st.markdown(f"""<div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:14px;margin-bottom:10px">
 <div style="display:flex;align-items:center;gap:7px;border-bottom:1px solid #F3F4F6;padding-bottom:7px;margin-bottom:10px">
 <span style="width:3px;height:14px;background:#7C3AED;border-radius:2px;display:inline-block"></span>
 <span style="font-size:11px;font-weight:700;color:#374151">Situational Awareness — #SA_Notes</span>

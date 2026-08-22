@@ -230,7 +230,7 @@ div[data-testid="stKeyboardShortcuts"],
 [data-testid="stExpander"]{{
     background:{CARD_BG}!important;
     border:1px solid {BORDER}!important;
-    border-radius:10px!important;
+    border-radius:14px!important;
     box-shadow:{SHADOW_SM}!important;
     overflow:hidden!important;
     margin-bottom:10px!important;
@@ -280,7 +280,7 @@ div[data-testid="stKeyboardShortcuts"],
 /* Dataframe */
 [data-testid="stDataFrame"]{{
     border:1px solid {BORDER}!important;
-    border-radius:10px!important;
+    border-radius:14px!important;
     overflow:hidden!important;
     box-shadow:{SHADOW_SM}!important;
 }}
@@ -476,7 +476,7 @@ button[kind="header"],
 
 /* Softer, rounder buttons in the main content area */
 .main [data-testid="stButton"] > button {{
-    border-radius:10px!important;
+    border-radius:14px!important;
     font-family:'Inter',sans-serif!important;
     font-weight:500!important;
 }}

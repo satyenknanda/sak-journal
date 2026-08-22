@@ -783,7 +783,7 @@ def render():
         st.rerun()
 
     # ── TOTAL (post-tax placeholder) row ─────────────────────────────────
-    st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
+    st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;
         padding:14px 18px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <span style="font-size:12px;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;font-weight:600">
             TOTAL <span style="color:{TEAL}">POST-TAX</span>
@@ -897,7 +897,7 @@ def render():
             st.plotly_chart(fig_cmp, use_container_width=True, config={"displayModeBar": False})
 
             if mtf_total_gross > 0:
-                st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
+                st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;
                     padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6;margin-top:8px">
                     MTF interest consumed <b style="color:{TEXT_H}">{(total_mtf_interest_auto/mtf_total_gross*100 if mtf_total_gross else 0):.1f}%</b>
                     of your gross MTF profit this year. {"Leverage is paying for itself." if mtf_total_net > 0 else "Net MTF result is negative after interest — worth reviewing whether the leverage is adding edge or just risk."}
@@ -1022,7 +1022,7 @@ def render():
                     <td style="{TD_m};text-align:right">{f"{lev:.1f}x" if lev else "—"}</td>
                     <td style="{TD_m};text-align:center">{in_portfolio}</td>
                 </tr>"""
-            st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER};max-height:500px;overflow-y:auto">
+            st.markdown(f"""<div style="overflow-x:auto;border-radius:14px;border:1px solid {BORDER};max-height:500px;overflow-y:auto">
             <table style="width:100%;border-collapse:collapse">
                 <thead><tr>
                     <th style="{TH_m}">Ticker</th>

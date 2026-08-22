@@ -31,7 +31,7 @@ def _bell_chart(returns, pnls, title_suffix=""):
         ("Total P&L",   f"₹{total_pnl:,.0f}",      TEAL if total_pnl>=0 else RED),
         ("Std Dev",     f"{std_r:.2f}%",             TEXT_H),
     ]):
-        col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px 16px;box-shadow:{SHADOW_SM}">
+        col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:14px 16px;box-shadow:{SHADOW_SM}">
             <div style="font-size:9.5px;color:{TEXT_SUBTLE};font-weight:500;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">{label}</div>
             <div style="font-size:20px;font-weight:700;color:{color};letter-spacing:-0.02em">{value}</div>
         </div>''', unsafe_allow_html=True)
@@ -99,7 +99,7 @@ def _bell_chart(returns, pnls, title_suffix=""):
         ("Win/Loss Ratio", f"{wl_ratio:.2f}x",   TEAL if wl_ratio>=1 else RED),
         ("Std Deviation",  f"{std_r:.2f}%",       TEXT_H),
     ]):
-        col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px 16px;box-shadow:{SHADOW_SM}">
+        col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:14px 16px;box-shadow:{SHADOW_SM}">
             <div style="font-size:9.5px;color:{TEXT_SUBTLE};font-weight:500;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">{label}</div>
             <div style="font-size:20px;font-weight:700;color:{color};letter-spacing:-0.02em">{value}</div>
         </div>''', unsafe_allow_html=True)

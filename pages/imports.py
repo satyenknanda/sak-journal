@@ -262,17 +262,17 @@ def render():
         st.markdown(f'<p style="font-size:11px;color:{TEXT_SUBTLE}">Run every morning — Easy Money, High ADR, Stocks-in-Play are auto-updated via GitHub Actions at 4 PM IST</p>', unsafe_allow_html=True)
 
         d1, d2, d3 = st.columns(3)
-        d1.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px;text-align:center">
+        d1.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:14px;text-align:center">
             <div style="font-size:20px">💰</div>
             <div style="font-size:12px;font-weight:700;color:{TEXT_H};margin:6px 0">Easy Money List</div>
             <div style="font-size:11px;color:{TEXT_SUBTLE}">Auto-updated daily<br>View in Screener → Cohort 3</div>
         </div>''', unsafe_allow_html=True)
-        d2.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px;text-align:center">
+        d2.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:14px;text-align:center">
             <div style="font-size:20px">⚡</div>
             <div style="font-size:12px;font-weight:700;color:{TEXT_H};margin:6px 0">High ADR</div>
             <div style="font-size:11px;color:{TEXT_SUBTLE}">Auto-updated daily<br>View in Screener → Cohort 3</div>
         </div>''', unsafe_allow_html=True)
-        d3.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px;text-align:center">
+        d3.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:14px;text-align:center">
             <div style="font-size:20px">🎯</div>
             <div style="font-size:12px;font-weight:700;color:{TEXT_H};margin:6px 0">Stocks-in-Play</div>
             <div style="font-size:11px;color:{TEXT_SUBTLE}">Auto-updated daily<br>View in Screener → Cohort 3</div>

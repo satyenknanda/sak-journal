@@ -122,7 +122,7 @@ def render():
             color = DNA_COLORS[sectors_list.index(sname) % len(DNA_COLORS)]
             with cols[j]:
                 st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {color};
-                    border-radius:10px;padding:14px 16px;margin-bottom:12px;min-height:140px;box-shadow:{SHADOW_SM}">
+                    border-radius:14px;padding:14px 16px;margin-bottom:12px;min-height:140px;box-shadow:{SHADOW_SM}">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start">
                         <div style="font-size:13px;font-weight:700;color:{TEXT_H};line-height:1.3">{sname}</div>
                         <div style="font-size:14px;font-weight:700;color:{color}">{weight:.1f}%</div>

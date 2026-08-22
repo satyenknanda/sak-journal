@@ -135,7 +135,7 @@ def render():
             for tag in (note.get("template") or "").split(","):
                 tag = tag.strip()
                 if tag and len(tag)<20 and tag not in TEMPLATES:
-                    tags_html += f'<span style="display:inline-block;background:{BLUE_BG};color:{BLUE};border:1px solid {BLUE_BORDER};padding:2px 7px;border-radius:10px;font-size:10px;margin:2px 2px 0 0">{tag}</span>'
+                    tags_html += f'<span style="display:inline-block;background:{BLUE_BG};color:{BLUE};border:1px solid {BLUE_BORDER};padding:2px 7px;border-radius:14px;font-size:10px;margin:2px 2px 0 0">{tag}</span>'
         if tags_html:
             st.markdown(f'<p style="font-size:10px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin:12px 0 4px">Tags</p>', unsafe_allow_html=True)
             st.markdown(tags_html, unsafe_allow_html=True)

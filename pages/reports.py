@@ -30,7 +30,7 @@ def kpi_strip(items):
     html = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">'
     for i, (label, value, color) in enumerate(items):
         border_c = DNA_COLORS[i % len(DNA_COLORS)]
-        html += (f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {border_c};border-radius:10px;'
+        html += (f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {border_c};border-radius:14px;'
                  f'padding:12px 18px;flex:1;min-width:140px;box-shadow:{SHADOW_SM}">'
                  f'<div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;'
                  f'letter-spacing:0.07em;margin-bottom:4px">{label}</div>'
@@ -639,17 +639,17 @@ def render():
             if d and d!="nan": by_d_o[d]+=safe_float(t.get("pnl"))
 
         st.markdown(f"""<div style="display:flex;gap:16px;margin-bottom:20px">
-            <div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[0]};border-radius:10px;padding:14px 20px;flex:1;box-shadow:{SHADOW_SM}">
+            <div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[0]};border-radius:14px;padding:14px 20px;flex:1;box-shadow:{SHADOW_SM}">
                 <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.07em">Best Month</div>
                 <div style="font-size:22px;font-weight:700;color:{TEAL}">{fmt_month(best_m)}</div>
                 <div style="font-size:12px;color:{TEXT_MUTED}">{fmt_pnl(by_m_o.get(best_m,0))}</div>
             </div>
-            <div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[1]};border-radius:10px;padding:14px 20px;flex:1;box-shadow:{SHADOW_SM}">
+            <div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[1]};border-radius:14px;padding:14px 20px;flex:1;box-shadow:{SHADOW_SM}">
                 <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.07em">Worst Month</div>
                 <div style="font-size:22px;font-weight:700;color:{RED}">{fmt_month(worst_m)}</div>
                 <div style="font-size:12px;color:{TEXT_MUTED}">{fmt_pnl(by_m_o.get(worst_m,0))}</div>
             </div>
-            <div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[2]};border-radius:10px;padding:14px 20px;flex:1;box-shadow:{SHADOW_SM}">
+            <div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[2]};border-radius:14px;padding:14px 20px;flex:1;box-shadow:{SHADOW_SM}">
                 <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.07em">Avg / Month</div>
                 <div style="font-size:22px;font-weight:700;color:{pnl_color(avg_m)}">{fmt_pnl(avg_m)}</div>
             </div>
@@ -1703,12 +1703,12 @@ def render():
                 with col:
                     bg=f"rgba(16,185,129,0.04)" if color==TEAL else f"rgba(239,68,68,0.04)"
                     st.markdown(
-                        f'<div style="background:{bg};border:1px solid {BORDER};border-radius:10px;padding:10px 16px;margin-bottom:12px">'
+                        f'<div style="background:{bg};border:1px solid {BORDER};border-radius:14px;padding:10px 16px;margin-bottom:12px">'
                         f'<p style="font-size:12px;font-weight:700;color:{color};margin:0">{label} ({len(grp)} Trades Matched)</p></div>',
                         unsafe_allow_html=True)
                     stats=_grp_stats_wl(grp)
                     st.markdown(
-                        f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:16px 20px;margin-bottom:12px">'
+                        f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:16px 20px;margin-bottom:12px">'
                         f'<p style="font-size:10px;font-weight:700;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px">STATISTICS ({label})</p>'
                         f'<p style="font-size:10px;color:{TEXT_SUBTLE};margin-bottom:12px">(ALL DATES)</p>',
                         unsafe_allow_html=True)
@@ -1724,7 +1724,7 @@ def render():
                         rows_html+=(f'<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid {BORDER_LIGHT};font-size:13px"><span style="color:{TEXT_MUTED}">{k}</span><span style="color:{fc};font-weight:500">{fv}</span></div>')
                     st.markdown(rows_html+"</div>",unsafe_allow_html=True)
                     st.markdown(
-                        f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:16px 20px">'
+                        f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:16px 20px">'
                         f'<p style="font-size:10px;font-weight:700;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px">DAILY NET CUMULATIVE P&L ({label})</p>'
                         f'<p style="font-size:10px;color:{TEXT_SUBTLE};margin-bottom:4px">(ALL DATES)</p>',
                         unsafe_allow_html=True)
@@ -1908,19 +1908,19 @@ def render():
 
                 cs_col = RED if cur_streak_type == "LOSING" else TEAL
                 sc1, sc2, sc3 = st.columns(3)
-                sc1.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[3]};border-radius:10px;
+                sc1.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[3]};border-radius:14px;
                     padding:16px;text-align:center;box-shadow:{SHADOW_SM}">
                     <div style="font-size:9.5px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.07em">Current</div>
                     <div style="font-size:24px;font-weight:800;color:{cs_col};margin:4px 0">{('L' if cur_streak_type=='LOSING' else 'W')}{cur_streak_n}</div>
                     <div style="font-size:10px;color:{TEXT_SUBTLE};text-transform:uppercase">{cur_streak_type or '—'}</div>
                 </div>""", unsafe_allow_html=True)
-                sc2.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[4]};border-radius:10px;
+                sc2.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[4]};border-radius:14px;
                     padding:16px;text-align:center;box-shadow:{SHADOW_SM}">
                     <div style="font-size:9.5px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.07em">Best Streak</div>
                     <div style="font-size:20px;font-weight:800;color:{TEAL};margin:4px 0">{fmt_pnl(best_streak_pnl)}</div>
                     <div style="font-size:9px;color:{TEXT_SUBTLE}">{best_streak_label}</div>
                 </div>""", unsafe_allow_html=True)
-                sc3.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[5]};border-radius:10px;
+                sc3.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-top:3px solid {DNA_COLORS[5]};border-radius:14px;
                     padding:16px;text-align:center;box-shadow:{SHADOW_SM}">
                     <div style="font-size:9.5px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.07em">Worst Streak</div>
                     <div style="font-size:20px;font-weight:800;color:{RED};margin:4px 0">{fmt_pnl(worst_streak_pnl)}</div>
@@ -2159,7 +2159,7 @@ def render():
                     header_html = f'<th style="{th_style}">Matrix Metrics</th>' + "".join(
                         f'<th style="{th_style};text-align:center">{fmt_month_label(m)}</th>' for m in all_months_sorted)
 
-                    st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER};box-shadow:{SHADOW_SM}">
+                    st.markdown(f"""<div style="overflow-x:auto;border-radius:14px;border:1px solid {BORDER};box-shadow:{SHADOW_SM}">
                         <table style="width:100%;border-collapse:collapse">
                         <thead><tr>{header_html}</tr></thead>
                         <tbody>{rows_html}</tbody>
@@ -2300,7 +2300,7 @@ def render():
                     st.dataframe(pareto_df, use_container_width=True, hide_index=True)
 
                     st.markdown(section_label("What this means"), unsafe_allow_html=True)
-                    st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6">
+                    st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6">
                         If a small number of trades drive most of your profit, your exit execution on the <i>rest</i> of your winners is likely
                         cutting them short — i.e. an MFE-capture problem, not a stop-loss problem. The fix is usually trailing/scale-out discipline
                         on trades that are already working, not finding more setups.
@@ -2422,7 +2422,7 @@ def render():
 
                     if dur_strat_sel in ("VCP", "REVERSAL", "All Strategies"):
                         st.markdown(section_label("Notes"), unsafe_allow_html=True)
-                        st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6">
+                        st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6">
                             Use this to sanity-check your strategy-specific stop levels: VCP at 2.5–3% and REVERSAL at technical stop with a 2.5% floor
                             should show their best Avg P/L in the 4-7 Day to 2-4 Week buckets if exits are working as designed. If the Intraday or 1-3 Day
                             buckets are dragging the average down, that's premature stop-outs rather than the setup failing.
@@ -2842,7 +2842,7 @@ def render():
                             tags = [s.strip() for s in str(raw).split(",") if s.strip()] or ["—"]
                             return tag in tags
                         prior_pf_for_same = sum(safe_float(t.get("pnl")) for t in prior_trades if _has_tag(t, k))
-                    st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:16px 20px;margin-bottom:16px">
+                    st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:16px 20px;margin-bottom:16px">
                         <p style="font-size:13px;color:{TEXT_BODY};line-height:1.6;margin:0">
                         In the <b>{lf_period.lower()}</b> your best setup was <b style="color:{TEAL}">{k}</b> with
                         <b>{wr:.1f}% win rate</b> and <b style="color:{pnl_color(pf)}">{fmt_pnl(pf)}</b> net P&L,
@@ -2929,7 +2929,7 @@ def render():
         # ── Filter forms ─────────────────────────────────────────────────
         def group_form(label, key):
             st.markdown(
-                f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;'
+                f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;'
                 f'padding:14px 16px;margin-bottom:4px">'
                 f'<p style="font-size:12px;font-weight:700;color:{TEXT_H};text-transform:uppercase;'
                 f'letter-spacing:0.06em;margin-bottom:10px">{label}</p>',
@@ -3020,7 +3020,7 @@ def render():
             for col, stats, label, grp in [(comp_c1,s1,"Group #1",r1),(comp_c2,s2,"Group #2",r2)]:
                 with col:
                     st.markdown(
-                        f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:16px 20px;margin-bottom:12px">'
+                        f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:16px 20px;margin-bottom:12px">'
                         f'<p style="font-size:10px;font-weight:700;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px">STATISTICS ({label})</p>'
                         f'<p style="font-size:10px;color:{TEXT_SUBTLE};margin-bottom:12px">(ALL DATES)</p>',
                         unsafe_allow_html=True)
@@ -3051,7 +3051,7 @@ def render():
             for col, stats, label, grp in [(ev_c1,s1,"Group #1",r1),(ev_c2,s2,"Group #2",r2)]:
                 with col:
                     st.markdown(
-                        f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:16px 20px;margin-bottom:12px">'
+                        f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:16px 20px;margin-bottom:12px">'
                         f'<p style="font-size:10px;font-weight:700;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px">OVERALL EVALUATION ({label})</p>'
                         f'<p style="font-size:10px;color:{TEXT_SUBTLE};margin-bottom:4px">(ALL DATES)</p>',
                         unsafe_allow_html=True)
@@ -3069,7 +3069,7 @@ def render():
             for col, stats, label, grp in [(pnl_c1,s1,"Group #1",r1),(pnl_c2,s2,"Group #2",r2)]:
                 with col:
                     st.markdown(
-                        f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:16px 20px">'
+                        f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:16px 20px">'
                         f'<p style="font-size:10px;font-weight:700;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px">DAILY NET CUMULATIVE P&L ({label})</p>'
                         f'<p style="font-size:10px;color:{TEXT_SUBTLE};margin-bottom:4px">(ALL DATES)</p>',
                         unsafe_allow_html=True)
@@ -3135,7 +3135,7 @@ def render():
                     grade_cols = {"A": (g1,TEAL), "B": (g2,"#3B82F6"), "C": (g3,AMBER), "D": (g4,RED), "F": (g5,RED)}
                     for grade, (col, color) in grade_cols.items():
                         count = grade_counts.get(grade, 0)
-                        col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px;text-align:center">
+                        col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:12px;text-align:center">
                             <div style="font-size:24px;font-weight:800;color:{color}">{grade}</div>
                             <div style="font-size:20px;font-weight:700;color:{TEXT_H}">{count}</div>
                             <div style="font-size:9px;color:{TEXT_SUBTLE}">trades</div>
@@ -3186,7 +3186,7 @@ def render():
                                 <td style="{TD};color:{rc}">{r:+.2f}R</td>
                                 <td style="{TD};color:{TEXT_SUBTLE}">{note}</td>
                             </tr>"""
-                        st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER}">
+                        st.markdown(f"""<div style="overflow-x:auto;border-radius:14px;border:1px solid {BORDER}">
                         <table style="width:100%;border-collapse:collapse">
                             <thead><tr>
                                 <th style="{TH}">Ticker</th>
@@ -3218,7 +3218,7 @@ def render():
                     for grade, col in zip(["A","B","C","D","F"],[e1,e2,e3,e4,e5]):
                         count = eq_grades.count(grade)
                         color = TEAL if grade in ("A","B") else AMBER if grade=="C" else RED
-                        col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px;text-align:center">
+                        col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:12px;text-align:center">
                             <div style="font-size:24px;font-weight:800;color:{color}">{grade}</div>
                             <div style="font-size:20px;font-weight:700;color:{TEXT_H}">{count}</div>
                             <div style="font-size:9px;color:{TEXT_SUBTLE}">trades</div>
@@ -3248,7 +3248,7 @@ def render():
                             <td style="{TD2};letter-spacing:4px">{check_str}</td>
                             <td style="{TD2};color:{TEXT_SUBTLE};font-size:10px">{str(t.get('entry_date',''))[:10]}</td>
                         </tr>"""
-                    st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER}">
+                    st.markdown(f"""<div style="overflow-x:auto;border-radius:14px;border:1px solid {BORDER}">
                     <table style="width:100%;border-collapse:collapse">
                         <thead><tr>
                             <th style="{TH2}">Ticker</th>
@@ -3286,7 +3286,7 @@ def render():
                     for grade, col in zip(["A","B","C","D","F"],[rv1,rv2,rv3,rv4,rv5]):
                         count = all_rev_grades.count(grade)
                         color = TEAL if grade in ("A","B") else AMBER if grade=="C" else RED
-                        col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px;text-align:center">
+                        col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:12px;text-align:center">
                             <div style="font-size:24px;font-weight:800;color:{color}">{grade}</div>
                             <div style="font-size:20px;font-weight:700;color:{TEXT_H}">{count}</div>
                             <div style="font-size:9px;color:{TEXT_SUBTLE}">sessions</div>

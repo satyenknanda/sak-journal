@@ -114,7 +114,7 @@ def render():
             ("Total Trades",        f"{wins_all}W / {len(closed)-wins_all}L of {len(closed)}", TEXT_H),
             ("Strategies Tracked",  str(len(stats)),       TEXT_H),
         ]):
-            col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px 16px;box-shadow:{SHADOW_SM}">
+            col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:14px 16px;box-shadow:{SHADOW_SM}">
                 <div style="font-size:9.5px;color:{TEXT_SUBTLE};font-weight:500;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">{label}</div>
                 <div style="font-size:22px;font-weight:700;color:{color}">{val}</div>
             </div>''', unsafe_allow_html=True)
@@ -220,7 +220,7 @@ def render():
                 <td style="{TD};text-align:center"><span style="background:{vbg};color:{vc};padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600">{verdict}</span></td>
             </tr>"""
 
-        st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER}">
+        st.markdown(f"""<div style="overflow-x:auto;border-radius:14px;border:1px solid {BORDER}">
         <table style="width:100%;border-collapse:collapse">
             <thead><tr>
                 <th style="{TH};text-align:left">Strategy</th>
@@ -327,7 +327,7 @@ def render():
                 balance = balance * (1 + risk_pct * r)
             final_pct = (balance/100 - 1)*100
             color = TEAL if final_pct >= 0 else RED
-            card_cols[i].markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-left:3px solid {_strat_color(s)};border-radius:10px;padding:14px 16px">
+            card_cols[i].markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-left:3px solid {_strat_color(s)};border-radius:14px;padding:14px 16px">
                 <div style="font-size:9.5px;color:{TEXT_SUBTLE};font-weight:600;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">{s}</div>
                 <div style="font-size:22px;font-weight:700;color:{color}">{final_pct:+.0f}%</div>
                 <div style="font-size:11px;color:{TEXT_SUBTLE}">{d["exp"]:+.2f}R/trade</div>
@@ -373,7 +373,7 @@ def render():
             ("Efficiency",        f"{avg_cap_pct:.1f}%",       TEAL if avg_cap_pct>=50 else RED),
             ("R Left/Trade",      f"{r_left:+.2f}R",           RED if r_left > 0 else TEAL),
         ]):
-            col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px 14px">
+            col.markdown(f'''<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:12px 14px">
                 <div style="font-size:9px;color:{TEXT_SUBTLE};font-weight:500;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">{label}</div>
                 <div style="font-size:17px;font-weight:700;color:{color}">{val}</div>
             </div>''', unsafe_allow_html=True)
@@ -459,7 +459,7 @@ def render():
                 <td style="{TD2};text-align:center;color:{RED}">{r_left2:+.2f}R</td>
             </tr>"""
 
-        st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER}">
+        st.markdown(f"""<div style="overflow-x:auto;border-radius:14px;border:1px solid {BORDER}">
         <table style="width:100%;border-collapse:collapse">
             <thead><tr>
                 <th style="{TH2};text-align:left">Strategy</th>

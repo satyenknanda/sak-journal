@@ -158,7 +158,7 @@ def render():
     st.markdown("<br>", unsafe_allow_html=True)
     mtf_bg = AMBER_BG if mtf_total > 0 else CARD_BG
     mtf_border = AMBER_BORDER if mtf_total > 0 else BORDER
-    st.markdown(f'''<div style="background:{mtf_bg};border:1px solid {mtf_border};border-radius:10px;
+    st.markdown(f'''<div style="background:{mtf_bg};border:1px solid {mtf_border};border-radius:14px;
         padding:14px 20px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">
         <div>
             <div style="font-size:11px;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;font-weight:500">MTF Interest Cost</div>
@@ -175,7 +175,7 @@ def render():
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;
+    st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;
         padding:18px 20px;box-shadow:{SHADOW_SM}">
         <div style="font-size:11px;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;font-weight:500;margin-bottom:8px">
             Estimated Total Tax Liability — {fy_sel}

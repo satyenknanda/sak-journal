@@ -152,7 +152,7 @@ def render():
 
         # Header
         st.markdown(f"""<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-            <div style="width:44px;height:44px;border-radius:10px;background:{pb['color']};
+            <div style="width:44px;height:44px;border-radius:14px;background:{pb['color']};
                 display:flex;align-items:center;justify-content:center;font-size:22px">{pb['emoji']}</div>
             <div>
                 <div style="font-size:20px;font-weight:700;color:{TEXT_H}">{pb['name']}</div>
@@ -191,7 +191,7 @@ def render():
                 ("Missed",      str(len(missed)),                  TEXT_MUTED),
             ]):
                 col.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};
-                    border-radius:10px;padding:14px 16px;box-shadow:{SHADOW_SM}">
+                    border-radius:14px;padding:14px 16px;box-shadow:{SHADOW_SM}">
                     <div style="font-size:9.5px;color:{TEXT_SUBTLE};font-weight:500;text-transform:uppercase;
                         letter-spacing:0.07em;margin-bottom:6px">{lbl}</div>
                     <div style="font-size:20px;font-weight:700;color:{col_}">{val}</div>
@@ -307,7 +307,7 @@ def render():
                         det_l, det_r = st.columns([1, 1.8])
                         with det_l:
                             st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};
-                                border-radius:10px;padding:16px;box-shadow:{SHADOW_SM}">
+                                border-radius:14px;padding:16px;box-shadow:{SHADOW_SM}">
                                 <div style="font-size:14px;font-weight:700;color:{TEXT_H}">{t_data.get('ticker','')}</div>
                                 <div style="font-size:11px;color:{TEXT_MUTED};margin-bottom:12px">{str(t_data.get('exit_date','') or '')[:10]}</div>
                                 <div style="font-size:11px;color:{TEXT_SUBTLE};margin-bottom:4px">NET P&L</div>
@@ -321,7 +321,7 @@ def render():
                             n_followed = len(rf); n_total = len(rules)
                             bar_w = int(n_followed/n_total*100) if n_total else 0
                             st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};
-                                border-radius:10px;padding:16px;box-shadow:{SHADOW_SM}">
+                                border-radius:14px;padding:16px;box-shadow:{SHADOW_SM}">
                                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
                                     <span style="font-size:12px;font-weight:600;color:{TEXT_H}">Rules Followed</span>
                                     <span style="font-size:11px;color:{TEXT_SUBTLE}">{n_followed}/{n_total}</span>

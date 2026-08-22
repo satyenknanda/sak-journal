@@ -136,7 +136,7 @@ def render():
     # ── Strategy-specific note (VCP/REVERSAL stop optimization) ─────────
     if strat_sel in ("VCP", "REVERSAL", "All Strategies"):
         st.markdown(section_label("Notes"), unsafe_allow_html=True)
-        st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6">
+        st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6">
             Use this to sanity-check your strategy-specific stop levels: VCP at 2.5–3% and REVERSAL at technical stop with a 2.5% floor
             should show their best Avg P/L in the 4-7 Day to 2-4 Week buckets if exits are working as designed. If the Intraday or 1-3 Day
             buckets are dragging the average down, that's premature stop-outs rather than the setup failing.

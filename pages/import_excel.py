@@ -286,7 +286,7 @@ Commission | Risk Status""", language=None)
 
                 # ── OPEN column ──────────────────────────────────────────────
                 with oc1:
-                    st.markdown(f'<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px"><div style="font-size:13px;font-weight:700;color:{B if "B" in dir() else "#3B82F6"};margin-bottom:8px">📂 OPEN Trades ({len(open_trades)})</div></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:14px;padding:14px"><div style="font-size:13px;font-weight:700;color:{B if "B" in dir() else "#3B82F6"};margin-bottom:8px">📂 OPEN Trades ({len(open_trades)})</div></div>', unsafe_allow_html=True)
                     o_add, o_upd, o_same = classify(open_trades)
                     st.caption(f"{len(o_add)} new · {len(o_upd)} changed · {len(o_same)} unchanged")
                     if st.button(f"⬆️ Import OPEN only ({len(o_add)+len(o_upd)})", key="import_open_btn", use_container_width=True):
@@ -296,7 +296,7 @@ Commission | Risk Status""", language=None)
 
                 # ── CLOSED column ────────────────────────────────────────────
                 with oc2:
-                    st.markdown(f'<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:14px"><div style="font-size:13px;font-weight:700;color:{G if "G" in dir() else "#10B981"};margin-bottom:8px">✅ CLOSED Trades ({len(closed_trades)})</div></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:14px;padding:14px"><div style="font-size:13px;font-weight:700;color:{G if "G" in dir() else "#10B981"};margin-bottom:8px">✅ CLOSED Trades ({len(closed_trades)})</div></div>', unsafe_allow_html=True)
                     c_add, c_upd, c_same = classify(closed_trades)
                     st.caption(f"{len(c_add)} new · {len(c_upd)} changed · {len(c_same)} unchanged")
                     if st.button(f"⬆️ Import CLOSED only ({len(c_add)+len(c_upd)})", key="import_closed_btn", type="primary", use_container_width=True):

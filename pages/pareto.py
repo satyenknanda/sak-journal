@@ -126,7 +126,7 @@ def render():
     st.dataframe(df, use_container_width=True, hide_index=True)
 
     st.markdown(section_label("What this means"), unsafe_allow_html=True)
-    st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6">
+    st.markdown(f"""<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:14px 18px;font-size:13px;color:{TEXT_BODY};line-height:1.6">
         If a small number of trades drive most of your profit, your exit execution on the <i>rest</i> of your winners is likely
         cutting them short — i.e. an MFE-capture problem, not a stop-loss problem. The fix is usually trailing/scale-out discipline
         on trades that are already working, not finding more setups.

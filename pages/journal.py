@@ -58,7 +58,7 @@ def _pct(v):
 def kcard_local(label, value, color="neutral", fs="1.2rem"):
     c = {"green":G,"red":R,"blue":B,"amber":AM,"neutral":MUTED}.get(color,MUTED)
     return f"""<div style="background:{BG};border:1px solid {BORDER};border-top:3px solid {c};
-        border-radius:10px;padding:14px 16px;min-height:76px;box-shadow:0 1px 3px rgba(0,0,0,0.06)">
+        border-radius:14px;padding:14px 16px;min-height:76px;box-shadow:0 1px 3px rgba(0,0,0,0.06)">
         <div style="font-size:0.65rem;color:{MUTED};text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:6px">{label}</div>
         <div style="font-size:{fs};font-weight:700;color:{TEXT};font-family:'SF Mono','Fira Code',monospace;white-space:nowrap">{value}</div>
     </div>"""

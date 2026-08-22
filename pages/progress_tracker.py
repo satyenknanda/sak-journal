@@ -535,7 +535,7 @@ def render():
             <td style="{td_s};font-weight:700;color:{fr_col}">{follow_rate}%</td>
         </tr>"""
 
-    st.markdown(f"""<div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER};box-shadow:0 1px 3px rgba(0,0,0,0.05)">
+    st.markdown(f"""<div style="overflow-x:auto;border-radius:14px;border:1px solid {BORDER};box-shadow:0 1px 3px rgba(0,0,0,0.05)">
     <table style="width:100%;border-collapse:collapse">
     <thead><tr>
         {"".join(f'<th style="{th}">{h}</th>' for h in ["Type","Rule","Description","Condition","Active Days","Status","Follow Rate (30d)"])}

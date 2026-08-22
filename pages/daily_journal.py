@@ -347,7 +347,7 @@ def mini_calendar(trades_by_date, selected_month, selected_year):
     cal = calendar.monthcalendar(selected_year, selected_month)
     month_name = datetime(selected_year, selected_month, 1).strftime("%B %Y")
 
-    html = f"""<div style="background:#fff;border:1px solid {BORDER};border-radius:10px;padding:12px;margin-bottom:12px">
+    html = f"""<div style="background:#fff;border:1px solid {BORDER};border-radius:14px;padding:12px;margin-bottom:12px">
     <div style="font-size:12px;font-weight:700;color:{TEXT};text-align:center;margin-bottom:8px">{month_name}</div>
     <table style="width:100%;border-collapse:collapse;font-size:10px;text-align:center">
     <tr>{"".join(f'<th style="color:{MUTED};padding:2px;font-weight:600">{d}</th>' for d in ["S","M","T","W","T","F","S"])}</tr>"""
@@ -569,7 +569,7 @@ def render():
                                             grade_col = G if g in ("A","B") else AM if g=="C" else R
                                             break
                                     if grade: break
-                            st.markdown(f'''<div style="background:#F8FAFC;border:1px solid {BORDER};border-radius:10px;padding:14px 16px;margin:10px 0">
+                            st.markdown(f'''<div style="background:#F8FAFC;border:1px solid {BORDER};border-radius:14px;padding:14px 16px;margin:10px 0">
                                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
                                     <span style="font-size:11px;font-weight:700;color:{MUTED}">🤖 AI SESSION REVIEW</span>
                                     {f'<span style="font-size:20px;font-weight:800;color:{grade_col};margin-left:auto">{grade}</span>' if grade else ""}

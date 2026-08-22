@@ -56,7 +56,7 @@ def render():
             height=55, margin=dict(l=0,r=0,t=0,b=0),
             xaxis=dict(visible=False), yaxis=dict(visible=False))
         cnt = f'<span style="background:{BLUE_BG};color:{BLUE};padding:1px 5px;border-radius:9px;font-size:9px;margin-left:4px">{len(closed)}</span>'
-        st.markdown(f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px 14px 4px;box-shadow:{SHADOW_SM}">'
+        st.markdown(f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:12px 14px 4px;box-shadow:{SHADOW_SM}">'
             f'<div style="font-size:9px;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px">Net cumulative P&L {cnt}</div>'
             f'<div style="font-size:17px;font-weight:700;color:{TEAL};letter-spacing:-0.02em">{"+" if total_pnl>=0 else ""}₹{total_pnl:,.2f}</div>'
             f'</div>', unsafe_allow_html=True)
@@ -73,7 +73,7 @@ def render():
                 steps=[dict(range=[0,100], color=BORDER_LIGHT)])))
         fig_g.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
             height=90, margin=dict(l=20,r=20,t=5,b=30))
-        st.markdown(f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px 14px 0;box-shadow:{SHADOW_SM}">'
+        st.markdown(f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:12px 14px 0;box-shadow:{SHADOW_SM}">'
             f'<div style="font-size:9px;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;margin-bottom:2px">Profit factor</div>'
             f'<div style="font-size:17px;font-weight:700;color:{TEXT_H}">{pf:.2f}</div>'
             f'</div>', unsafe_allow_html=True)
@@ -92,7 +92,7 @@ def render():
             height=90, margin=dict(l=20,r=20,t=5,b=30))
         cnt2 = f'<span style="background:{TEAL_BG};color:{TEAL};padding:1px 5px;border-radius:9px;font-size:9px;margin-left:3px">{len(pos_r)}</span>'
         cnt3 = f'<span style="background:{RED_BG};color:{RED};padding:1px 5px;border-radius:9px;font-size:9px;margin-left:3px">{len(neg_r)}</span>'
-        st.markdown(f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px 14px 0;box-shadow:{SHADOW_SM}">'
+        st.markdown(f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:12px 14px 0;box-shadow:{SHADOW_SM}">'
             f'<div style="font-size:9px;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;margin-bottom:2px">Trade win % {cnt2}{cnt3}</div>'
             f'<div style="font-size:17px;font-weight:700;color:{TEAL if wr>=0.4 else AMBER}">{wr*100:.2f}%</div>'
             f'</div>', unsafe_allow_html=True)
@@ -101,7 +101,7 @@ def render():
     with k4:
         bar_ratio = avg_win/(avg_win+abs(avg_loss)) if (avg_win+abs(avg_loss)) else 0.5
         st.markdown(f"""
-        <div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:12px 14px;box-shadow:{SHADOW_SM};height:105px">
+        <div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:14px;padding:12px 14px;box-shadow:{SHADOW_SM};height:105px">
             <div style="font-size:9px;color:{TEXT_SUBTLE};text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">Avg win/loss trade</div>
             <div style="font-size:17px;font-weight:700;color:{TEXT_H};margin-bottom:8px">{pf:.2f}</div>
             <div style="height:6px;background:{BORDER_LIGHT};border-radius:3px;overflow:hidden;margin-bottom:5px">
@@ -179,7 +179,7 @@ def render():
     th = f"padding:9px 12px;text-align:left;color:{TEXT_SUBTLE};font-size:9.5px;font-weight:500;text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap;border-bottom:1px solid {BORDER};background:{TABLE_HEAD_BG}"
 
     table_html = f"""
-    <div style="overflow-x:auto;border-radius:10px;border:1px solid {BORDER};
+    <div style="overflow-x:auto;border-radius:14px;border:1px solid {BORDER};
         box-shadow:{SHADOW_SM};background:{CARD_BG}">
     <table style="width:100%;border-collapse:collapse">
         <thead>

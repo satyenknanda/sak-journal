@@ -237,7 +237,7 @@ def render_portfolio_holdings(open_all, all_trades_raw, price_data):
 
     h1, h2 = st.columns([1, 1])
     h1.markdown(f"""<div style="font-size:13px;color:{TEXT_MUTED}">
-        Portfolio Holdings <span style="background:{BLUE}1A;color:{BLUE};padding:1px 8px;border-radius:10px;font-size:11px;margin-left:6px">{len(combined)} Active</span>
+        Portfolio Holdings <span style="background:{BLUE}1A;color:{BLUE};padding:1px 8px;border-radius:14px;font-size:11px;margin-left:6px">{len(combined)} Active</span>
     </div>""", unsafe_allow_html=True)
     h2.markdown(f"""<div style="text-align:right;font-size:13px">
         <span style="color:{TEXT_SUBTLE}">INVESTED</span> <b style="color:{TEXT_H}">₹{invested_total:,.2f}</b>

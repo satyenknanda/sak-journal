@@ -86,7 +86,7 @@ def render_position_sizing():
     with col_in:
         st.markdown(
             '<div style="background:var(--card-bg);border:1px solid var(--border);'
-            'border-radius:10px;padding:20px">', unsafe_allow_html=True)
+            'border-radius:14px;padding:20px">', unsafe_allow_html=True)
 
         st.markdown("**Account**")
         a1, a2 = st.columns(2)
@@ -289,7 +289,7 @@ def render_entry_finder(side="Long"):
     with c1:
         st.markdown(
             '<div style="background:var(--card-bg);border:1px solid var(--border);'
-            'border-radius:10px;padding:20px">', unsafe_allow_html=True)
+            'border-radius:14px;padding:20px">', unsafe_allow_html=True)
         st.markdown("**Parameters**")
         rr_req   = st.number_input("Required R:R", value=2.0, min_value=0.1, step=0.5,
                                     format="%.1f", key=f"{side}_rr")
