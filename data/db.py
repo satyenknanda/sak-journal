@@ -171,10 +171,34 @@ def add_trade(data):
     except Exception as e: print(f"add_trade local error: {e}"); return None
 
 def update_trade(trade_id, data):
-    try:
-        if _use_supabase():
-            _sb().table("trades").update(data).eq("id", trade_id).execute(); return
-    except Exception as e: print(f"update_trade error: {e}")
+    if _use_supabase():
+        # This app is Supabase-backed — if Supabase is configured, any failure
+        # here must raise so the caller sees a real error, instead of silently
+        # reporting success while nothing actually changed.
+        res = _sb().table("trades").update(data).eq("id", trade_id).execute()
+        updated_row = res.data[0] if res.data else None
+        if not updated_row:
+            # Update call didn't raise, but returned no row data — this can
+            # happen when an RLS policy blocks reading the row back even
+            # though the update itself went through. Verify by re-fetching
+            # the row and checking whether the fields we tried to set now
+            # match, before deciding whether it actually failed.
+            try:
+                vres = _sb().table("trades").select("*").eq("id", trade_id).limit(1).execute()
+                if vres.data:
+                    candidate = vres.data[0]
+                    if all(candidate.get(k) == v for k, v in data.items()):
+                        updated_row = candidate
+            except Exception as e:
+                print(f"update_trade verify error: {e}")
+        if not updated_row:
+            raise RuntimeError(
+                f"Update for trade id={trade_id} returned no data and couldn't be verified "
+                f"afterward — likely blocked by a Supabase RLS policy on the 'trades' table, "
+                f"or the trade_id doesn't exist. Check Supabase → Authentication → Policies."
+            )
+        return updated_row
+    # Supabase isn't configured at all — use local SQLite as primary storage.
     try:
         c = _local_db()
         sets = ",".join(f"{k}=?" for k in data.keys())

@@ -202,16 +202,19 @@ def render_exit_trade_modal(trade: dict):
                 except Exception as e:
                     st.error(f"⚠️ Couldn't complete the partial exit: {e}")
             else:
-                exit_trade(
-                    trade_id=trade["id"],
-                    exit_date=str(exit_date),
-                    exit_price=exit_price,
-                    exit_qty=exit_qty,
-                    commission_exit=commission_exit,
-                    risk_status=risk_status,
-                )
-            st.success(f"✅ {trade['ticker']} closed.")
-            st.rerun()
+                try:
+                    exit_trade(
+                        trade_id=trade["id"],
+                        exit_date=str(exit_date),
+                        exit_price=exit_price,
+                        exit_qty=exit_qty,
+                        commission_exit=commission_exit,
+                        risk_status=risk_status,
+                    )
+                    st.success(f"✅ {trade['ticker']} closed.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"⚠️ Couldn't close {trade['ticker']}: {e}")
 
 
 def render_edit_trade_modal(trade: dict):
@@ -314,20 +317,23 @@ def render_edit_trade_modal(trade: dict):
             if not ticker:
                 st.error("Ticker is required.")
             else:
-                update_trade(trade["id"], {
-                    "ticker":           ticker,
-                    "strategy":         strategy,
-                    "side":             side,
-                    "entry_date":       str(entry_date),
-                    "qty":              qty,
-                    "entry_price":      entry_price,
-                    "stop_loss":        stop_loss,
-                    "take_profit":      take_profit,
-                    "tsl":              tsl if tsl > 0 else None,
-                    "commission_entry": commission,
-                    "notes":            notes,
-                    "funding_type":     funding_type.upper(),
-                    "mtf_margin_pct":   mtf_margin_pct if funding_type == "MTF" else None,
-                })
-                st.success(f"✅ {ticker} updated!")
-                st.rerun()
+                try:
+                    update_trade(trade["id"], {
+                        "ticker":           ticker,
+                        "strategy":         strategy,
+                        "side":             side,
+                        "entry_date":       str(entry_date),
+                        "qty":              qty,
+                        "entry_price":      entry_price,
+                        "stop_loss":        stop_loss,
+                        "take_profit":      take_profit,
+                        "tsl":              tsl if tsl > 0 else None,
+                        "commission_entry": commission,
+                        "notes":            notes,
+                        "funding_type":     funding_type.upper(),
+                        "mtf_margin_pct":   mtf_margin_pct if funding_type == "MTF" else None,
+                    })
+                    st.success(f"✅ {ticker} updated!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"⚠️ Couldn't save changes to {ticker}: {e}")
