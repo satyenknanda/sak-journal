@@ -615,27 +615,38 @@ with st.sidebar:
     _render_nav_item("dashboard", "Dashboard")
     st.markdown(f'<div style="height:1px;background:{BORDER};margin:8px 4px"></div>', unsafe_allow_html=True)
 
-    for group in nav_groups:
-        gkey = group["key"]
-        state_key = f"navgroup_open_{gkey}"
-        # The group containing the active page is always shown open, so
-        # navigating there (e.g. via the Add Trade shortcut) never hides the
-        # current page inside a collapsed group. Other groups respect
-        # whatever the user last toggled them to.
-        contains_active = any(k == page for k, _ in group["items"])
-        is_open = contains_active or st.session_state.get(state_key, False)
+    @st.fragment
+    def _render_nav_groups():
+        # Scoping this to a fragment means clicking a group header to
+        # expand/collapse only reruns this small section, not the entire
+        # app (including whatever heavy data-fetching the current page
+        # does) — toggling a group has zero effect on the main content, so
+        # it shouldn't pay the cost of re-rendering it.
+        for group in nav_groups:
+            gkey = group["key"]
+            state_key = f"navgroup_open_{gkey}"
+            # The group containing the active page is always shown open, so
+            # navigating there (e.g. via the Add Trade shortcut) never hides
+            # the current page inside a collapsed group. Other groups
+            # respect whatever the user last toggled them to.
+            contains_active = any(k == page for k, _ in group["items"])
+            is_open = contains_active or st.session_state.get(state_key, False)
 
-        chevron = "▾" if is_open else "▸"
-        if st.button(f"{group['icon']}  {group['label']}   {chevron}",
-                     key=f"navgroup_toggle_{gkey}", use_container_width=True):
-            st.session_state[state_key] = not is_open
-            st.rerun()
+            chevron = "▾" if is_open else "▸"
+            if st.button(f"{group['icon']}  {group['label']}   {chevron}",
+                         key=f"navgroup_toggle_{gkey}", use_container_width=True):
+                # No explicit st.rerun() here — the button click already
+                # triggers a fragment-scoped rerun on its own, which is all
+                # that's needed to reflect the new expand/collapse state.
+                st.session_state[state_key] = not is_open
 
-        if is_open:
-            for key, label in group["items"]:
-                st.markdown('<div style="padding-left:14px">', unsafe_allow_html=True)
-                _render_nav_item(key, label)
-                st.markdown('</div>', unsafe_allow_html=True)
+            if is_open:
+                for key, label in group["items"]:
+                    st.markdown('<div style="padding-left:14px">', unsafe_allow_html=True)
+                    _render_nav_item(key, label)
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+    _render_nav_groups()
 
     st.markdown(f'<div style="height:1px;background:{BORDER};margin:8px 2px 6px"></div>', unsafe_allow_html=True)
 
