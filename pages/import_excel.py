@@ -52,11 +52,21 @@ def _safe_date(v):
         if isinstance(v, (datetime, date)):
             return v.strftime("%Y-%m-%d")
         s = str(v).strip()
-        # Try DD/MM/YY or DD/MM/YYYY first
-        for fmt in ("%d/%m/%y", "%d/%m/%Y", "%d-%m-%y", "%d-%m-%Y"):
+        # Try each format against the FULL untouched string first — truncating
+        # by len(fmt) is wrong, since a format pattern like "%d/%m/%Y" is only
+        # 8 characters as literal text, identical to "%d/%m/%y", so naive
+        # truncation destroys 4-digit years before the right format gets a
+        # chance (e.g. "21/08/2026" -> "21/08/20" -> misparsed as year 2020).
+        for fmt in ("%d/%m/%Y", "%d-%m-%Y", "%d/%m/%y", "%d-%m-%y"):
             try:
-                from datetime import datetime as _dt
-                return _dt.strptime(s[:len(fmt)], fmt).strftime("%Y-%m-%d")
+                return _dt.strptime(s, fmt).strftime("%Y-%m-%d")
+            except: pass
+        # Fall back to truncating to each format's correct expected length,
+        # in case there's trailing content (e.g. a time component) after the date.
+        expected_len = {"%d/%m/%Y": 10, "%d-%m-%Y": 10, "%d/%m/%y": 8, "%d-%m-%y": 8}
+        for fmt in ("%d/%m/%Y", "%d-%m-%Y", "%d/%m/%y", "%d-%m-%y"):
+            try:
+                return _dt.strptime(s[:expected_len[fmt]], fmt).strftime("%Y-%m-%d")
             except: pass
         return pd.to_datetime(v, dayfirst=True).strftime("%Y-%m-%d")
     except:
