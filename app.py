@@ -555,48 +555,46 @@ with st.sidebar:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    nav = [
-        "── TRADING ──",
-        ("dashboard","Dashboard"),
-        ("dayview",  "Daily Journal"),
-        ("journal",  "Trade Log"),
-        ("daily",    "Daily Plan"),
-        ("calendar", "Calendar"),
-        ("morning",  "Morning Brief"),
-        ("calc",     "Calculator"),
-        "── ANALYSIS ──",
-        ("reports",  "Reports"),
-        ("screener", "Screener"),
-        ("strategy", "Strategy Cards"),
-        ("playbook", "Playbook"),
-        ("progress", "Progress Tracker"),
-        ("notebook", "Notebook"),
-        "── FINANCE ──",
-        ("fund_management", "Fund Management"),
-        ("tax_analytics",   "Tax Analytics"),
-        "── RESEARCH ──",
-        ("trade_research", "Trade Research"),
-        ("portfolio_dna",   "Portfolio DNA"),
-        ("thematic_heatmap", "Thematic Heatmap"),
-        ("tracker", "Tracker"),
-        ("comparison_engine", "Comparison Engine"),
-        ("stock_niche_mapper", "Stock Niche Mapper"),
-        ("domain_vector", "Domain Vector"),
-        "── TOOLS ──",
-        ("import",   "Import Excel"),
+    # nav_groups: each group has a key, label, icon, and its list of (key, label) items.
+    # Dashboard stands alone, outside any group, like the reference design.
+    nav_groups = [
+        {"key": "trading", "label": "Trading", "icon": "📈", "items": [
+            ("dayview",  "Daily Journal"),
+            ("journal",  "Trade Log"),
+            ("daily",    "Daily Plan"),
+            ("calendar", "Calendar"),
+            ("morning",  "Morning Brief"),
+            ("calc",     "Calculator"),
+        ]},
+        {"key": "analysis", "label": "Analysis", "icon": "📊", "items": [
+            ("reports",  "Reports"),
+            ("screener", "Screener"),
+            ("strategy", "Strategy Cards"),
+            ("playbook", "Playbook"),
+            ("progress", "Progress Tracker"),
+            ("notebook", "Notebook"),
+        ]},
+        {"key": "finance", "label": "Finance", "icon": "💰", "items": [
+            ("fund_management", "Fund Management"),
+            ("tax_analytics",   "Tax Analytics"),
+        ]},
+        {"key": "research", "label": "Research", "icon": "🔎", "items": [
+            ("trade_research", "Trade Research"),
+            ("portfolio_dna",   "Portfolio DNA"),
+            ("thematic_heatmap", "Thematic Heatmap"),
+            ("tracker", "Tracker"),
+            ("comparison_engine", "Comparison Engine"),
+            ("stock_niche_mapper", "Stock Niche Mapper"),
+            ("domain_vector", "Domain Vector"),
+        ]},
+        {"key": "tools", "label": "Tools", "icon": "🛠️", "items": [
+            ("import", "Import Excel"),
+        ]},
     ]
 
-    # Nav — use st.button with CSS override to look like Tradezella nav items
     page = st.session_state.get("page","dashboard")
 
-    for item in nav:
-        if item is None:
-            st.markdown(f'<div style="height:1px;background:{BORDER};margin:5px 4px"></div>', unsafe_allow_html=True)
-            continue
-        if isinstance(item, str):
-            st.markdown(f'<div style="font-size:9px;font-weight:600;color:#94A3B8;letter-spacing:0.12em;padding:16px 12px 2px;margin-top:2px">{item}</div>', unsafe_allow_html=True)
-            continue
-        key, label = item
+    def _render_nav_item(key, label):
         icon = NAV_ICONS.get(key,"")
         if page == key:
             # Active item — render as HTML (no click needed)
@@ -612,6 +610,32 @@ with st.sidebar:
             if st.button(f"{icon}  {label}", key=f"nav_{key}", use_container_width=True):
                 st.session_state.page = key
                 st.rerun()
+
+    # Dashboard — standalone, always visible, not inside any group
+    _render_nav_item("dashboard", "Dashboard")
+    st.markdown(f'<div style="height:1px;background:{BORDER};margin:8px 4px"></div>', unsafe_allow_html=True)
+
+    for group in nav_groups:
+        gkey = group["key"]
+        state_key = f"navgroup_open_{gkey}"
+        # The group containing the active page is always shown open, so
+        # navigating there (e.g. via the Add Trade shortcut) never hides the
+        # current page inside a collapsed group. Other groups respect
+        # whatever the user last toggled them to.
+        contains_active = any(k == page for k, _ in group["items"])
+        is_open = contains_active or st.session_state.get(state_key, False)
+
+        chevron = "▾" if is_open else "▸"
+        if st.button(f"{group['icon']}  {group['label']}   {chevron}",
+                     key=f"navgroup_toggle_{gkey}", use_container_width=True):
+            st.session_state[state_key] = not is_open
+            st.rerun()
+
+        if is_open:
+            for key, label in group["items"]:
+                st.markdown('<div style="padding-left:14px">', unsafe_allow_html=True)
+                _render_nav_item(key, label)
+                st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown(f'<div style="height:1px;background:{BORDER};margin:8px 2px 6px"></div>', unsafe_allow_html=True)
 
