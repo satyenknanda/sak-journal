@@ -102,13 +102,13 @@ div[data-testid="stKeyboardShortcuts"],
 /* Sidebar */
 [data-testid="stSidebar"]{{
     background:{SIDEBAR_BG}!important;
-    border-right:none!important;
-    box-shadow:1px 0 0 rgba(255,255,255,0.05)!important;
+    border-right:1px solid {BORDER}!important;
+    box-shadow:1px 0 0 rgba(15,23,42,0.03)!important;
 }}
 [data-testid="stSidebar"]>div{{background:{SIDEBAR_BG}!important}}
 [data-testid="stSidebar"] *{{font-family:'Inter',sans-serif!important}}
 [data-testid="stSidebar"] p,
-[data-testid="stSidebar"] span:not(.nav-active-text){{color:#94A3B8!important}}
+[data-testid="stSidebar"] span:not(.nav-active-text){{color:#64748B!important}}
 
 /* Sidebar nav buttons - remove ALL default styling */
 [data-testid="stSidebar"] [data-testid="stButton"] > button,
@@ -121,10 +121,10 @@ div[data-testid="stKeyboardShortcuts"],
     gap: 9px !important;
     width: 100% !important;
     padding: 8px 10px !important;
-    border-radius: 7px !important;
+    border-radius: 8px !important;
     font-size: 12.5px !important;
     font-weight: 500 !important;
-    color: #64748B !important;
+    color: #475569 !important;
     cursor: pointer !important;
     transition: background 0.12s, color 0.12s !important;
     font-family: 'Inter', sans-serif !important;
@@ -136,8 +136,8 @@ div[data-testid="stKeyboardShortcuts"],
     box-shadow: none !important;
 }}
 [data-testid="stSidebar"] [data-testid="stButton"] > button:hover {{
-    background: rgba(255,255,255,0.06) !important;
-    color: #94A3B8 !important;
+    background: #F8FAFC !important;
+    color: #0F172A !important;
 }}
 [data-testid="stSidebar"] [data-testid="stButton"] > button > div {{
     display: flex !important;
@@ -199,16 +199,16 @@ div[data-testid="stKeyboardShortcuts"],
 }}
 [data-testid="stButton"]>button[kind="primary"]:hover{{background:{TEAL_DARK}!important}}
 
-/* Sidebar Add Trade button — purple gradient */
+/* Sidebar Add Trade button — teal gradient */
 [data-testid="stSidebar"] [data-testid="stButton"] [data-testid="stBaseButton-primary"]{{
-    background:linear-gradient(135deg,#7C3AED,#6D28D9)!important;
-    border-radius:8px!important;
+    background:linear-gradient(135deg,{TEAL},{TEAL_DARK})!important;
+    border-radius:10px!important;
     font-size:13px!important;
     font-weight:600!important;
     padding:10px 0!important;
 }}
 [data-testid="stSidebar"] [data-testid="stButton"] [data-testid="stBaseButton-primary"]:hover{{
-    background:linear-gradient(135deg,#6D28D9,#5B21B6)!important;
+    background:linear-gradient(135deg,{TEAL_DARK},{TEAL_DARK})!important;
 }}
 
 /* Secondary button */
@@ -351,7 +351,7 @@ span[class*="shortcut"] {{ display:none!important }}
 section[data-testid="stSidebar"] > div > div > div > ul {{ display:none!important }}
 nav[data-testid="stSidebarNav"] {{ display:none!important }}
 
-/* Sidebar nav buttons - styled like Tradezella */
+/* Sidebar nav buttons - styled like clean SaaS nav */
 [data-testid="stSidebar"] [data-testid="stButton"] > button {{
     all:unset!important;
     display:flex!important;
@@ -359,10 +359,10 @@ nav[data-testid="stSidebarNav"] {{ display:none!important }}
     gap:9px!important;
     width:100%!important;
     padding:8px 10px!important;
-    border-radius:7px!important;
+    border-radius:8px!important;
     font-size:12.5px!important;
     font-weight:500!important;
-    color:#64748B!important;
+    color:#475569!important;
     cursor:pointer!important;
     font-family:'Inter',sans-serif!important;
     margin-bottom:1px!important;
@@ -372,8 +372,8 @@ nav[data-testid="stSidebarNav"] {{ display:none!important }}
     transition:background 0.12s,color 0.12s!important;
 }}
 [data-testid="stSidebar"] [data-testid="stButton"] > button:hover {{
-    background:rgba(255,255,255,0.08)!important;
-    color:#94A3B8!important;
+    background:#F8FAFC!important;
+    color:#0F172A!important;
 }}
 [data-testid="stSidebar"] [data-testid="stButton"] {{
     margin:0 0 1px 0!important;
@@ -386,10 +386,10 @@ nav[data-testid="stSidebarNav"] {{ display:none!important }}
     visibility:visible!important;
 }}
 [data-testid="stSidebarCollapseButton"] button {{
-    background:rgba(255,255,255,0.08)!important;
-    border:1px solid rgba(255,255,255,0.1)!important;
+    background:#F1F5F9!important;
+    border:1px solid {BORDER}!important;
     border-radius:6px!important;
-    color:#94A3B8!important;
+    color:#64748B!important;
     width:28px!important;
     height:28px!important;
     padding:0!important;
@@ -398,8 +398,8 @@ nav[data-testid="stSidebarNav"] {{ display:none!important }}
     justify-content:center!important;
 }}
 [data-testid="stSidebarCollapseButton"] button:hover {{
-    background:rgba(255,255,255,0.15)!important;
-    color:#fff!important;
+    background:#E2E8F0!important;
+    color:#0F172A!important;
 }}
 /* Also target the collapsed state toggle */
 [data-testid="collapsedControl"] {{
@@ -408,8 +408,8 @@ nav[data-testid="stSidebarNav"] {{ display:none!important }}
     background:{SIDEBAR_BG}!important;
 }}
 [data-testid="collapsedControl"] button {{
-    background:rgba(16,185,129,0.15)!important;
-    border:1px solid rgba(16,185,129,0.3)!important;
+    background:rgba(16,185,129,0.1)!important;
+    border:1px solid rgba(16,185,129,0.25)!important;
     color:{TEAL}!important;
     border-radius:0 6px 6px 0!important;
 }}
@@ -425,15 +425,15 @@ button[kind="header"],
 }}
 [data-testid="stSidebarCollapseButton"] button,
 [data-testid="stSidebarCollapsedControl"] button {{
-    background:rgba(255,255,255,0.08)!important;
-    border:1px solid rgba(255,255,255,0.12)!important;
+    background:#F1F5F9!important;
+    border:1px solid {BORDER}!important;
     border-radius:6px!important;
-    color:#94A3B8!important;
+    color:#64748B!important;
 }}
 [data-testid="stSidebarCollapseButton"] button:hover,
 [data-testid="stSidebarCollapsedControl"] button:hover {{
-    background:rgba(255,255,255,0.15)!important;
-    color:#fff!important;
+    background:#E2E8F0!important;
+    color:#0F172A!important;
 }}
 
 /* Pill-shaped tabs (main content area, not sidebar) — softer, rounder look */
@@ -503,14 +503,14 @@ _check_password()
 
 with st.sidebar:
     st.markdown(f"""
-    <div style="padding:18px 14px 14px;border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:4px">
+    <div style="padding:18px 14px 14px;border-bottom:1px solid {BORDER};margin-bottom:4px">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:30px;height:30px;background:{TEAL};border-radius:7px;
+          <div style="width:30px;height:30px;background:{TEAL};border-radius:8px;
             display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">📈</div>
           <div>
-            <div style="font-size:13px;font-weight:700;color:#F1F5F9;letter-spacing:-0.01em">SAK Journal</div>
-            <div style="font-size:10px;color:#475569">FY 2026-27</div>
+            <div style="font-size:13px;font-weight:700;color:#0F172A;letter-spacing:-0.01em">SAK Journal</div>
+            <div style="font-size:10px;color:#94A3B8">FY 2026-27</div>
           </div>
         </div>
       </div>
@@ -588,19 +588,19 @@ with st.sidebar:
 
     for item in nav:
         if item is None:
-            st.markdown(f'<div style="height:1px;background:rgba(255,255,255,0.07);margin:5px 4px"></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="height:1px;background:{BORDER};margin:5px 4px"></div>', unsafe_allow_html=True)
             continue
         if isinstance(item, str):
-            st.markdown(f'<div style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.35);letter-spacing:0.12em;padding:16px 12px 2px;margin-top:2px">{item}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="font-size:9px;font-weight:600;color:#94A3B8;letter-spacing:0.12em;padding:16px 12px 2px;margin-top:2px">{item}</div>', unsafe_allow_html=True)
             continue
         key, label = item
         icon_svg = NAV_ICONS.get(key,"")
         if page == key:
             # Active item — render as HTML (no click needed)
             st.markdown(f"""<div style="display:flex;align-items:center;gap:9px;padding:8px 10px;
-                border-radius:7px;background:rgba(124,58,237,0.2);margin-bottom:1px">
-                <span style="color:#A78BFA;flex-shrink:0;display:flex">{icon_svg}</span>
-                <span style="font-size:12.5px;font-weight:600;color:#A78BFA">{label}</span>
+                border-radius:8px;background:#ECFDF5;margin-bottom:1px">
+                <span style="color:#047857;flex-shrink:0;display:flex">{icon_svg}</span>
+                <span style="font-size:12.5px;font-weight:600;color:#047857">{label}</span>
             </div>""", unsafe_allow_html=True)
         else:
             # Inactive — real st.button that works, styled via CSS
@@ -608,7 +608,7 @@ with st.sidebar:
                 st.session_state.page = key
                 st.rerun()
 
-    st.markdown(f'<div style="height:1px;background:rgba(255,255,255,0.07);margin:8px 2px 6px"></div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="height:1px;background:{BORDER};margin:8px 2px 6px"></div>', unsafe_allow_html=True)
 
     pass  # Re-sync Excel removed — use Import Excel page instead
 

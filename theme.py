@@ -31,7 +31,7 @@ TEXT_DIM    = "#CBD5E1"   # disabled, very muted — slate-300
 # Backgrounds
 PAGE_BG     = "#F8FAFC"   # page background — slate-50
 CARD_BG     = "#FFFFFF"   # card, table background
-SIDEBAR_BG  = "#0F172A"   # sidebar — slate-900
+SIDEBAR_BG  = "#FFFFFF"   # sidebar — white (was slate-900 dark navy)
 SIDEBAR_HOVER = "#1E293B" # sidebar hover — slate-800
 TABLE_HEAD_BG = "#F8FAFC" # table header bg
 
