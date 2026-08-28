@@ -1,6 +1,7 @@
 # data/db.py — Auto-switches between Supabase (cloud) and SQLite (local)
 import os
 import sqlite3
+import streamlit as st
 from datetime import datetime, date as _date, timedelta as _timedelta
 
 ZERODHA_MTF_DAILY_RATE = 0.0004  # 0.04% per day
@@ -76,6 +77,7 @@ def import_trading_journal():
     pass
 
 # ── Trades ────────────────────────────────────────────────────────────────────
+@st.cache_data(ttl=30, show_spinner=False)
 def get_trades(strategy="All", date_from=None, date_to=None, status=None, ticker=None):
     try:
         if _use_supabase():
@@ -161,13 +163,16 @@ def add_trade(data):
             threading.Thread(target=_run_eq, daemon=True).start()
         except Exception as e:
             print(f"entry quality error: {e}")
+        get_trades.clear()  # invalidate cache so this new trade shows up immediately everywhere
         return trade
     # Supabase isn't configured at all — use local SQLite as primary storage.
     try:
         c = _local_db()
         cols = ",".join(data.keys()); vals = ",".join(["?"]*len(data))
         cur = c.execute(f"INSERT INTO trades({cols})VALUES({vals})", list(data.values()))
-        c.commit(); tid = cur.lastrowid; c.close(); return tid
+        c.commit(); tid = cur.lastrowid; c.close()
+        get_trades.clear()
+        return tid
     except Exception as e: print(f"add_trade local error: {e}"); return None
 
 def update_trade(trade_id, data):
@@ -197,6 +202,7 @@ def update_trade(trade_id, data):
                 f"afterward — likely blocked by a Supabase RLS policy on the 'trades' table, "
                 f"or the trade_id doesn't exist. Check Supabase → Authentication → Policies."
             )
+        get_trades.clear()  # invalidate cache so this change shows up immediately everywhere
         return updated_row
     # Supabase isn't configured at all — use local SQLite as primary storage.
     try:
@@ -204,16 +210,20 @@ def update_trade(trade_id, data):
         sets = ",".join(f"{k}=?" for k in data.keys())
         c.execute(f"UPDATE trades SET {sets} WHERE id=?", list(data.values())+[trade_id])
         c.commit(); c.close()
+        get_trades.clear()
     except Exception as e: print(f"update_trade local error: {e}")
 
 def delete_trade(trade_id):
     try:
         if _use_supabase():
-            _sb().table("trades").delete().eq("id", trade_id).execute(); return
+            _sb().table("trades").delete().eq("id", trade_id).execute()
+            get_trades.clear()
+            return
     except Exception as e: print(f"delete_trade error: {e}")
     try:
         c = _local_db(); c.execute("DELETE FROM trades WHERE id=?", (trade_id,))
         c.commit(); c.close()
+        get_trades.clear()
     except Exception as e: print(f"delete_trade local error: {e}")
 
 def exit_trade(trade_id, exit_price, exit_date, exit_qty=None, commission=0):
