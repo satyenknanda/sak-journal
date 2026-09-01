@@ -341,8 +341,9 @@ def render_portfolio_holdings(open_all, all_trades_raw, price_data):
                             <div style="font-size:11px;font-weight:600;color:{pnl_col}">{unrealized_pct:+.2f}%</div>
                         </div>
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:11px;
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;font-size:11px;
                         border-top:1px solid {BORDER_LIGHT};padding-top:8px;margin-bottom:6px">
+                        <div><div style="color:{TEXT_MUTED};font-weight:600;font-size:10px">QTY</div><div style="color:{TEXT_H};font-weight:700">{qty:,.0f}</div></div>
                         <div><div style="color:{TEXT_MUTED};font-weight:600;font-size:10px">AVG</div><div style="color:{TEXT_H};font-weight:700">₹{avg:,.2f}</div></div>
                         <div><div style="color:{TEXT_MUTED};font-weight:600;font-size:10px">LTP</div><div style="color:{TEXT_H};font-weight:700">₹{live:,.2f}</div></div>
                         <div><div style="color:{TEXT_MUTED};font-weight:600;font-size:10px">ALLOC</div><div style="color:{TEXT_H};font-weight:700">{alloc:.2f}%</div></div>
