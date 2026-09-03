@@ -245,10 +245,10 @@ def render_edit_trade_modal(trade: dict):
     existing_margin = trade.get("mtf_margin_pct")
 
     if match:
-        mtf_margin_pct = float(match.get("margin_pct") or 50.0)
+        mtf_margin_pct = max(float(match.get("margin_pct") or 50.0), 1.0)
         lookup_note = f"📋 Auto-filled from saved lookup for {trade_ticker}"
     elif existing_margin:
-        mtf_margin_pct = float(existing_margin)
+        mtf_margin_pct = max(float(existing_margin), 1.0)
         lookup_note = None
     else:
         mtf_margin_pct = 50.0
@@ -284,18 +284,18 @@ def render_edit_trade_modal(trade: dict):
                 value=date.fromisoformat(str(trade.get("entry_date") or date.today())))
         with c5:
             qty = st.number_input("Quantity", min_value=1, step=1,
-                value=int(trade.get("qty") or 100))
+                value=max(int(trade.get("qty") or 100), 1))
         with c6:
             entry_price = st.number_input("Entry Price ₹", min_value=0.01, step=0.05,
-                value=float(trade.get("entry_price") or 0.01), format="%.2f")
+                value=max(float(trade.get("entry_price") or 0.01), 0.01), format="%.2f")
 
         c7, c8, c9 = st.columns(3)
         with c7:
             stop_loss = st.number_input("Stop Loss ₹", min_value=0.01, step=0.05,
-                value=float(trade.get("stop_loss") or 0.01), format="%.2f")
+                value=max(float(trade.get("stop_loss") or 0.01), 0.01), format="%.2f")
         with c8:
             take_profit = st.number_input("Take Profit ₹", min_value=0.01, step=0.05,
-                value=float(trade.get("take_profit") or 0.01), format="%.2f")
+                value=max(float(trade.get("take_profit") or 0.01), 0.01), format="%.2f")
         with c9:
             tsl = st.number_input("TSL ₹", min_value=0.0, step=0.05,
                 value=float(trade.get("tsl") or 0.0), format="%.2f")
