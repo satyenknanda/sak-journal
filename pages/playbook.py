@@ -539,11 +539,35 @@ def render():
     # ══════════════════════════════════════════════════════════════════════════
     # LIST VIEW (main page)
     # ══════════════════════════════════════════════════════════════════════════
-    h1, h2 = st.columns([4,1])
+    h1, h2, h3 = st.columns([3,1,1])
     with h1:
         st.markdown("## Playbook")
         st.markdown(f'<p style="color:{TEXT_SUBTLE};margin-top:-8px;margin-bottom:14px;font-size:11px">Track your trading setups and strategies</p>', unsafe_allow_html=True)
     with h2:
+        if playbooks:
+            _lines = ["# My Playbooks\n"]
+            for _pb in playbooks:
+                _lines.append(f"## {_pb.get('emoji','📋')} {_pb.get('name','Untitled')}\n")
+                if _pb.get("description"):
+                    _lines.append(f"{_pb['description']}\n")
+                _rules = get_playbook_rules(_pb.get("id"))
+                _entry = [r for r in _rules if r.get("rule_type") == "entry"]
+                _exit  = [r for r in _rules if r.get("rule_type") == "exit"]
+                if _entry:
+                    _lines.append("**Entry Rules:**\n")
+                    for r in _entry:
+                        _lines.append(f"- {r.get('rule_text','')}")
+                    _lines.append("")
+                if _exit:
+                    _lines.append("**Exit Rules:**\n")
+                    for r in _exit:
+                        _lines.append(f"- {r.get('rule_text','')}")
+                    _lines.append("")
+                _lines.append("---\n")
+            _export_text = "\n".join(_lines)
+            st.download_button("📥 Download All", data=_export_text,
+                file_name="playbooks.md", mime="text/markdown", use_container_width=True)
+    with h3:
         if st.button("＋ Create Playbook", type="primary", use_container_width=True):
             st.session_state.pb_view = "create"; st.rerun()
 
